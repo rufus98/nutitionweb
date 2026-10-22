@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"><style>body{margin:0;background:#F5F4F0;-webkit-font-smoothing:antialiased}*{box-sizing:border-box}a{color:#1E5A5F;text-decoration:none}a:hover{color:#0F3B40;text-decoration:underline}input,button,select{font-family:inherit}</style></helmet>
+<div style="display:grid;grid-template-columns:232px minmax(0,1fr);min-height:100vh;min-width:1280px;background:#F5F4F0;font-family:'Figtree',sans-serif;color:#18211F;font-size:14px;line-height:1.45">
+
+<aside style="background:#0F3B40;color:#DCE7E2;padding:22px 14px;display:flex;flex-direction:column;gap:28px;position:sticky;top:0;height:100vh">
+  <div style="display:flex;align-items:center;gap:10px;padding:0 8px">
+    <div style="width:28px;height:28px;border-radius:8px;background:#A9C6B1;color:#0F3B40;display:grid;place-items:center;font-weight:700;font-size:15px">n</div>
+    <div style="font-weight:600;font-size:16px;color:#fff;letter-spacing:-.01em">Nutrea <span style="color:#8FB3A6;font-weight:500">Studio</span></div>
+  </div>
+  <nav style="display:flex;flex-direction:column;gap:2px">
+    <div style="padding:9px 10px;border-radius:8px;color:#B7CCC5">Oggi</div>
+    <a href="Lista Pazienti.dc.html" style="padding:9px 10px;border-radius:8px;color:#B7CCC5;text-decoration:none;display:flex;justify-content:space-between" style-hover="background:rgba(255,255,255,.06);color:#fff;text-decoration:none">Pazienti<span style="font:500 11px 'IBM Plex Mono';color:#8FB3A6">128</span></a>
+    <div style="padding:9px 10px;border-radius:8px;background:rgba(169,198,177,.16);color:#fff;font-weight:600">Agenda</div>
+    <div style="padding:9px 10px;border-radius:8px;color:#B7CCC5">Piani nutrizionali</div>
+    <a href="Pagamenti.dc.html" style="padding:9px 10px;border-radius:8px;color:#B7CCC5;text-decoration:none" style-hover="background:rgba(255,255,255,.06);color:#fff;text-decoration:none">Pagamenti</a>
+    <a href="Impostazioni.dc.html" style="padding:9px 10px;border-radius:8px;color:#B7CCC5;text-decoration:none" style-hover="background:rgba(255,255,255,.06);color:#fff;text-decoration:none">Impostazioni</a>
+  </nav>
+  <div style="margin-top:auto;padding:12px 10px;border-top:1px solid rgba(255,255,255,.1);display:flex;gap:10px;align-items:center">
+    <div style="width:32px;height:32px;border-radius:50%;background:#2F6B6E;color:#fff;display:grid;place-items:center;font-size:12px;font-weight:600">EM</div>
+    <div><div style="color:#fff;font-weight:500;font-size:13px">Dott.ssa Elena Marchi</div><div style="font-size:12px;color:#8FB3A6">Biologa nutrizionista</div></div>
+  </div>
+</aside>
+
+<main style="padding:24px 32px 40px;display:flex;flex-direction:column;gap:18px;min-width:0">
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap">
+    <div><h1 style="margin:0;font-size:28px;font-weight:600;letter-spacing:-.02em">Agenda</h1><div style="color:#5E6866;font-size:13px;margin-top:2px">{{ weekLabel }} · {{ weekCount }} appuntamenti</div></div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <div style="display:flex;border:1px solid #DAD8D1;border-radius:10px;background:#fff;overflow:hidden">
+        <button onClick="{{ prev }}" style="border:0;background:none;padding:9px 13px;cursor:pointer;font-size:14px" style-hover="background:#F5F4F0">‹</button>
+        <button onClick="{{ today }}" style="border:0;border-left:1px solid #EEECE6;border-right:1px solid #EEECE6;background:none;padding:9px 14px;cursor:pointer;font-weight:500;font-size:13px" style-hover="background:#F5F4F0">Oggi</button>
+        <button onClick="{{ next }}" style="border:0;background:none;padding:9px 13px;cursor:pointer;font-size:14px" style-hover="background:#F5F4F0">›</button>
+      </div>
+      <button onClick="{{ openNew }}" style="padding:10px 16px;border-radius:10px;background:#1E5A5F;color:#fff;border:0;font-weight:600;font-size:13px;cursor:pointer" style-hover="background:#0F3B40">+ Nuovo appuntamento</button>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:16px;font-size:12.5px;color:#5E6866">
+    <span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;background:#1E5A5F"></span>Prima visita</span>
+    <span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;background:#DCE8DF;border:1px solid #7FA08A"></span>Controllo</span>
+    <span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;background:#FAEEDD;border:1px solid #D9B37C"></span>Online</span>
+    <span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:3px;background:repeating-linear-gradient(45deg,#E4E2DC 0 3px,#F5F4F0 3px 6px)"></span>Non disponibile</span>
+    <span style="margin-left:auto">Clicca su uno slot libero per prenotare</span>
+  </div>
+
+  <div style="display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;align-items:start">
+    <div style="background:#fff;border:1px solid #E4E2DC;border-radius:16px;overflow:hidden;min-width:0">
+      <div style="display:grid;grid-template-columns:56px repeat(6,minmax(0,1fr));border-bottom:1px solid #EEECE6">
+        <div></div>
+        <sc-for list="{{ days }}" as="d" hint-placeholder-count="6">
+          <sc-if value="{{ d.isToday }}" hint-placeholder-val="{{ false }}"><div style="padding:10px 12px;border-left:1px solid #F0EEE9;background:#F2F7F4"><div style="font:500 11px 'IBM Plex Mono';letter-spacing:.06em;text-transform:uppercase;color:#1E5A5F">{{ d.l }}</div><div style="display:flex;align-items:center;gap:8px"><span style="font-size:20px;font-weight:600;color:#fff;background:#1E5A5F;border-radius:8px;padding:0 7px">{{ d.n }}</span><span style="font-size:12px;color:#5E6866">{{ d.count }}</span></div></div></sc-if>
+          <sc-if value="{{ d.notToday }}" hint-placeholder-val="{{ true }}"><div style="padding:10px 12px;border-left:1px solid #F0EEE9"><div style="font:500 11px 'IBM Plex Mono';letter-spacing:.06em;text-transform:uppercase;color:#6B7472">{{ d.l }}</div><div style="display:flex;align-items:center;gap:8px"><span style="font-size:20px;font-weight:600">{{ d.n }}</span><span style="font-size:12px;color:#8A928F">{{ d.count }}</span></div></div></sc-if>
+        </sc-for>
+      </div>
+      <div style="display:grid;grid-template-columns:56px repeat(6,minmax(0,1fr));position:relative">
+        <div style="position:relative;height:{{ gridH }}px">
+          <sc-for list="{{ hours }}" as="h"><div style="position:absolute;right:8px;top:{{ h.y }}px;transform:translateY(-50%);font:400 11px 'IBM Plex Mono';color:#8A928F">{{ h.l }}</div></sc-for>
+        </div>
+        <sc-for list="{{ days }}" as="d" hint-placeholder-count="6">
+          <div onClick="{{ d.onSlot }}" style="position:relative;height:{{ gridH }}px;border-left:1px solid #F0EEE9;cursor:copy;background-image:linear-gradient(#F0EEE9 1px,transparent 1px);background-size:100% 56px">
+            <sc-if value="{{ d.isToday }}"><div style="position:absolute;inset:0;background:rgba(127,160,138,.06);pointer-events:none"></div></sc-if>
+            <sc-for list="{{ d.blocks }}" as="b"><div style="position:absolute;left:0;right:0;top:{{ b.top }}px;height:{{ b.h }}px;background:repeating-linear-gradient(45deg,#EEECE6 0 4px,#F7F6F2 4px 8px);display:flex;align-items:center;justify-content:center;font:500 10.5px 'IBM Plex Mono';color:#8A928F;cursor:not-allowed">{{ b.label }}</div></sc-for>
+            <sc-for list="{{ d.appts }}" as="a">
+              <div onClick="{{ a.onClick }}" style="position:absolute;left:4px;right:4px;top:{{ a.top }}px;height:{{ a.h }}px;cursor:pointer">
+                <sc-if value="{{ a.prima }}"><div style="height:100%;border-radius:8px;background:#1E5A5F;color:#fff;padding:5px 8px;overflow:hidden;box-shadow:{{ a.ring }}"><div style="font-weight:600;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ a.name }}</div><div style="font:400 10.5px 'IBM Plex Mono';color:#BFD6CE">{{ a.time }} · {{ a.typeL }}</div></div></sc-if>
+                <sc-if value="{{ a.controllo }}"><div style="height:100%;border-radius:8px;background:#DCE8DF;border:1px solid #A9C6B1;color:#18211F;padding:5px 8px;overflow:hidden;box-shadow:{{ a.ring }}"><div style="font-weight:600;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ a.name }}</div><div style="font:400 10.5px 'IBM Plex Mono';color:#3F6150">{{ a.time }} · {{ a.typeL }}</div></div></sc-if>
+                <sc-if value="{{ a.online }}"><div style="height:100%;border-radius:8px;background:#FAEEDD;border:1px solid #E3C79C;color:#18211F;padding:5px 8px;overflow:hidden;box-shadow:{{ a.ring }}"><div style="font-weight:600;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ a.name }}</div><div style="font:400 10.5px 'IBM Plex Mono';color:#8A5418">{{ a.time }} · {{ a.typeL }}</div></div></sc-if>
+              </div>
+            </sc-for>
+            <sc-if value="{{ d.showNow }}"><div style="position:absolute;left:-1px;right:0;top:{{ nowY }}px;height:2px;background:#C9833A;pointer-events:none"><span style="position:absolute;left:-4px;top:-3px;width:8px;height:8px;border-radius:50%;background:#C9833A"></span></div></sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:16px;position:sticky;top:20px">
+      <sc-if value="{{ sel }}" hint-placeholder-val="{{ false }}">
+      <div style="background:#fff;border:1px solid #E4E2DC;border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="font:500 11px 'IBM Plex Mono';letter-spacing:.06em;text-transform:uppercase;color:#6B7472">{{ sel.typeL }}</div><button onClick="{{ clearSel }}" style="border:0;background:#F0EEE9;width:26px;height:26px;border-radius:7px;cursor:pointer">×</button></div>
+        <div style="display:flex;gap:11px;align-items:center"><div style="width:40px;height:40px;border-radius:50%;background:#DCE8DF;color:#1E5A5F;display:grid;place-items:center;font-weight:600">{{ sel.ini }}</div><div><div style="font-weight:600;font-size:16px">{{ sel.name }}</div><div style="font-size:12.5px;color:#6B7472">{{ sel.goal }}</div></div></div>
+        <div style="display:grid;grid-template-columns:70px 1fr;row-gap:6px;font-size:13px"><span style="color:#6B7472">Quando</span><span>{{ sel.when }}</span><span style="color:#6B7472">Durata</span><span>{{ sel.dur }} min</span><span style="color:#6B7472">Dove</span><span>{{ sel.where }}</span></div>
+        <div style="font-size:12.5px;color:#2E6B47;background:#EEF3EE;border-radius:9px;padding:7px 10px">Promemoria WhatsApp inviato 24 h prima</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><a href="{{ sel.wa }}" target="_blank" style="padding:9px;border-radius:10px;background:#E3EFE6;color:#245C3B;font-weight:600;font-size:13px;text-align:center;text-decoration:none">WhatsApp</a><a href="{{ sel.tel }}" style="padding:9px;border-radius:10px;border:1px solid #DAD8D1;color:#18211F;font-weight:500;font-size:13px;text-align:center;text-decoration:none">Chiama</a></div>
+        <a href="Dashboard Nutrizionista.dc.html" style="padding:10px;border-radius:10px;background:#1E5A5F;color:#fff;font-weight:600;font-size:13px;text-align:center;text-decoration:none">Apri scheda paziente →</a>
+        <button onClick="{{ delSel }}" style="border:0;background:none;color:#9B3A31;font-size:13px;font-weight:500;cursor:pointer;padding:2px">Annulla appuntamento</button>
+      </div>
+      </sc-if>
+      <div style="background:#fff;border:1px solid #E4E2DC;border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:4px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px"><span style="font-weight:600;font-size:15px">Oggi · mer 21 ott</span><span style="font-size:12px;color:#6B7472">{{ todayCount }}</span></div>
+        <sc-for list="{{ todayList }}" as="t" hint-placeholder-count="5">
+          <button onClick="{{ t.onClick }}" style="display:grid;grid-template-columns:48px 1fr;gap:10px;align-items:center;padding:8px 0;border:0;border-top:1px solid #F0EEE9;background:none;text-align:left;cursor:pointer;font-size:13px" style-hover="background:#FAF9F6">
+            <span style="font:500 12px 'IBM Plex Mono';color:#1E5A5F">{{ t.time }}</span>
+            <span><span style="display:block;font-weight:500;color:#18211F">{{ t.name }}</span><span style="font-size:12px;color:#6B7472">{{ t.typeL }} · {{ t.dur }} min</span></span>
+          </button>
+        </sc-for>
+        <sc-if value="{{ todayEmpty }}"><div style="font-size:13px;color:#6B7472;padding:8px 0">Nessun appuntamento.</div></sc-if>
+      </div>
+    </div>
+  </div>
+</main>
+
+<sc-if value="{{ modal }}" hint-placeholder-val="{{ false }}">
+<div onClick="{{ closeNew }}" style="position:fixed;inset:0;background:rgba(15,30,32,.32);z-index:30;display:grid;place-items:center">
+  <div onClick="{{ stop }}" style="width:460px;background:#fff;border-radius:18px;box-shadow:0 24px 60px rgba(15,30,32,.25);padding:24px;display:flex;flex-direction:column;gap:14px">
+    <div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:19px;font-weight:600">Nuovo appuntamento</div><button onClick="{{ closeNew }}" style="border:0;background:#F0EEE9;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:16px">×</button></div>
+    <label style="display:flex;flex-direction:column;gap:6px"><span style="font:500 11px 'IBM Plex Mono';letter-spacing:.06em;text-transform:uppercase;color:#6B7472">Paziente</span><select value="{{ form.pid }}" onChange="{{ onPid }}" style="padding:10px 12px;border:1px solid #DAD8D1;border-radius:10px;font-size:14px;background:#fff"><sc-for list="{{ patientOpts }}" as="o"><option value="{{ o.v }}">{{ o.l }}</option></sc-for></select></label>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <label style="display:flex;flex-direction:column;gap:6px"><span style="font:500 11px 'IBM Plex Mono';letter-spacing:.06em;text-transform:uppercase;color:#6B7472">Giorno</span><select value="{{ form.d }}" onChange="{{ onDay }}" style="padding:10px 12px;border:1px solid #DAD8D1;border-radius:10px;font-size:14px;background:#fff"><sc-for list="{{ dayOpts }}" as="o"><option value="{{ o.v }}">{{ o.l }}</option></sc-for></select></label>
+      <label style="display:flex;flex-direction:column;gap:6px"><span style="font:500 11px 'IBM Plex Mono';letter-spacing:.06em;text-transform:uppercase;color:#6B7472">Ora</span><input type="time" step="900" value="{{ form.s }}" onChange="{{ onTime }}" style="padding:9px 12px;border:1px solid #DAD8D1;border-radius:10px;font-size:14px"></label>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px"><span style="font:500 11px 'IBM Plex Mono';letter-spacing:.06em;text-transform:uppercase;color:#6B7472">Tipo</span>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+        <sc-for list="{{ typeOpts }}" as="o">
+          <sc-if value="{{ o.active }}"><button style="padding:9px 6px;border-radius:10px;border:1.5px solid #1E5A5F;background:#EEF4F2;font-weight:600;font-size:13px;color:#0F3B40">{{ o.l }}<span style="display:block;font:400 11px 'IBM Plex Mono';color:#5E6866">{{ o.d }} min</span></button></sc-if>
+          <sc-if value="{{ o.inactive }}"><button onClick="{{ o.onClick }}" style="padding:9px 6px;border-radius:10px;border:1px solid #DAD8D1;background:#fff;font-weight:500;font-size:13px;cursor:pointer">{{ o.l }}<span style="display:block;font:400 11px 'IBM Plex Mono';color:#8A928F">{{ o.d }} min</span></button></sc-if>
+        </sc-for>
+      </div>
+    </div>
+    <label style="display:flex;align-items:center;gap:10px;font-size:13.5px;cursor:pointer"><input type="checkbox" checked="{{ form.remind }}" onChange="{{ onRemind }}" style="width:16px;height:16px;accent-color:#1E5A5F">Invia promemoria WhatsApp 24 h prima</label>
+    <sc-if value="{{ conflict }}"><div style="font-size:12.5px;color:#8A5418;background:#FAEEDD;border-radius:9px;padding:7px 10px">Si sovrappone a un altro appuntamento.</div></sc-if>
+    <div style="display:flex;gap:10px;justify-content:flex-end;padding-top:4px"><button onClick="{{ closeNew }}" style="padding:10px 16px;border-radius:10px;border:1px solid #DAD8D1;background:#fff;font-weight:500;cursor:pointer">Annulla</button><button onClick="{{ saveNew }}" style="padding:10px 18px;border-radius:10px;border:0;background:#1E5A5F;color:#fff;font-weight:600;cursor:pointer">Conferma</button></div>
+  </div>
+</div>
+</sc-if>
+<sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}"><div style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0F3B40;color:#fff;padding:11px 18px;border-radius:12px;font-size:13.5px;font-weight:500;z-index:40">{{ toast }}</div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const PH=56,H0=8,H1=19;
+const MO=['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
+const DL=['Lun','Mar','Mer','Gio','Ven','Sab'];
+const PAT=[['Giulia Ferrante','347 218 5590','Ricomposizione'],['Marco Bellini','333 904 1127','Ipertensione'],['Sara Lombardo','340 552 7781','Gravidanza 2° trim.'],['Luca Esposito','328 117 4402','Performance ciclismo'],['Chiara Rinaldi','349 663 2018','Endometriosi'],['Andrea Conti','338 270 9915','Diabete tipo 2'],['Francesca Greco','331 448 6620','Post-parto'],['Paolo Marini','345 981 3307','Colesterolo'],['Elisa Ferri','347 302 1184','DCA · follow-up'],['Davide Santoro','329 775 0491','Massa muscolare'],['Roberto De Luca','339 857 4413','Reflusso'],['Valentina Moretti','346 129 8870','Ricomposizione'],['Giorgio Barbieri','335 404 6632','Sarcopenia'],['Alessia Fontana','342 903 5519','PCOS'],['Simone Caruso','320 688 1045','Prima visita'],['Matteo Ricci','333 570 2284','Running'],['Federica Gentile','340 739 9102','Ipotiroidismo']];
+const TYPES={prima:['Prima visita',60],controllo:['Controllo',30],online:['Online',30]};
+const W0=[[0,'09:00',2,'prima'],[0,'10:30',0,'controllo'],[0,'11:00',7,'controllo'],[0,'15:00',13,'online'],[0,'16:30',4,'controllo'],
+[1,'09:30',5,'controllo'],[1,'10:00',9,'controllo'],[1,'14:30',14,'prima'],[1,'17:00',11,'online'],
+[2,'09:00',6,'prima'],[2,'10:30',8,'controllo'],[2,'11:30',1,'controllo'],[2,'15:30',12,'controllo'],[2,'17:30',0,'controllo'],
+[3,'09:00',16,'controllo'],[3,'09:30',10,'controllo'],[3,'11:00',3,'online'],[3,'14:00',15,'prima'],[3,'16:00',4,'controllo'],
+[4,'10:00',5,'online'],[4,'11:00',2,'controllo'],[4,'15:00',7,'controllo'],[4,'16:00',13,'prima'],
+[5,'09:30',9,'controllo'],[5,'10:30',11,'controllo']];
+const BLOCKS=[[0,'13:00',90,'Pausa'],[1,'13:00',90,'Pausa'],[2,'13:00',90,'Pausa'],[3,'13:00',60,'Pausa'],[4,'13:00',90,'Pausa'],[5,'12:30',390,'Chiuso']];
+const toMin=s=>{const[h,m]=s.split(':').map(Number);return h*60+m};
+const toStr=m=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+const yOf=s=>(toMin(s)-H0*60)/60*PH;
+const rnd=seed=>{let x=Math.sin(seed)*1e4;return x-Math.floor(x)};
+function genWeek(w){if(w===0)return W0.map((a,i)=>({id:'w0-'+i,w:0,d:a[0],s:a[1],pid:a[2],type:a[3]}));
+  const out=[];const slots=['09:00','10:00','11:00','11:30','14:30','15:30','16:30','17:30'];
+  for(let d=0;d<6;d++){const n=d===5?2:3+Math.floor(rnd(w*31+d)*3);for(let k=0;k<n;k++){const s=d===5?['09:30','10:30'][k]:slots[Math.floor(rnd(w*97+d*13+k)*slots.length)];if(out.some(o=>o.d===d&&o.s===s))continue;const r=rnd(w*7+d*3+k);out.push({id:`w${w}-${d}-${k}`,w,d,s,pid:Math.floor(rnd(w+d*5+k*11)*PAT.length),type:r<.2?'prima':r<.35?'online':'controllo'})}}return out}
+class Component extends DCLogic {
+  state={week:0,extra:[],removed:{},sel:null,modal:false,form:null,toast:null};
+  componentWillUnmount(){clearTimeout(this.tt)}
+  flash(t){this.setState({toast:t});clearTimeout(this.tt);this.tt=setTimeout(()=>this.setState({toast:null}),2400)}
+  appts(w){return [...genWeek(w),...this.state.extra.filter(a=>a.w===w)].filter(a=>!this.state.removed[a.id])}
+  dateOf(w,d){const dt=new Date(2026,9,19+w*7+d);return dt}
+  openForm(d,s){this.setState({modal:true,form:{pid:'0',d:String(d),s,type:'controllo',remind:true}})}
+  renderVals(){
+    const s=this.state,w=s.week,list=this.appts(w);
+    const mon=this.dateOf(w,0),sat=this.dateOf(w,5);
+    const weekLabel=`${mon.getDate()}${mon.getMonth()!==sat.getMonth()?' '+MO[mon.getMonth()]:''} – ${sat.getDate()} ${MO[sat.getMonth()]} ${sat.getFullYear()}`;
+    const mk=a=>{const[tl,dur]=TYPES[a.type],p=PAT[a.pid],selected=s.sel===a.id;return{...a,name:p[0],typeL:tl,dur,time:a.s,top:yOf(a.s)+1,h:dur/60*PH-3,prima:a.type==='prima',controllo:a.type==='controllo',online:a.type==='online',ring:selected?'0 0 0 2px #fff,0 0 0 4px #C9833A':'none',onClick:e=>{e.stopPropagation();this.setState({sel:a.id})}}};
+    const days=DL.map((l,d)=>{const dt=this.dateOf(w,d),isToday=w===0&&d===2,ap=list.filter(a=>a.d===d).map(mk);
+      return{l,n:dt.getDate(),isToday,notToday:!isToday,count:ap.length?ap.length+' app.':'',showNow:isToday,appts:ap,
+        blocks:BLOCKS.filter(b=>b[0]===d).map(b=>({top:yOf(b[1]),h:b[2]/60*PH,label:b[3]})),
+        onSlot:e=>{const r=e.currentTarget.getBoundingClientRect(),y=e.clientY-r.top,m=H0*60+Math.floor(y/PH*60/15)*15;
+          if(BLOCKS.some(b=>b[0]===d&&m>=toMin(b[1])&&m<toMin(b[1])+b[2]))return;this.openForm(d,toStr(m))}}});
+    const hours=[];for(let h=H0;h<=H1;h++)hours.push({y:(h-H0)*PH,l:h<H1?String(h).padStart(2,'0')+':00':''});
+    const all=this.appts(w),selA=all.find(a=>a.id===s.sel);
+    let sel=null;if(selA){const p=PAT[selA.pid],[tl,dur]=TYPES[selA.type],dt=this.dateOf(selA.w,selA.d);
+      sel={typeL:tl,dur,name:p[0],goal:p[2],ini:p[0].split(' ').map(x=>x[0]).join(''),when:`${['Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'][selA.d]} ${dt.getDate()} ${MO[dt.getMonth()]} · ${selA.s}–${toStr(toMin(selA.s)+dur)}`,where:selA.type==='online'?'Videochiamata (link inviato)':'Studio · Via Santo Stefano 42',wa:'https://wa.me/39'+p[1].replace(/\D/g,''),tel:'tel:+39'+p[1].replace(/\D/g,'')}}
+    const tl=this.appts(0).filter(a=>a.d===2).sort((a,b)=>toMin(a.s)-toMin(b.s)).map(a=>({time:a.s,name:PAT[a.pid][0],typeL:TYPES[a.type][0],dur:TYPES[a.type][1],onClick:()=>this.setState({week:0,sel:a.id})}));
+    const f=s.form;let conflict=false;
+    if(f){const st=toMin(f.s||'09:00'),en=st+TYPES[f.type][1];conflict=list.some(a=>a.d===+f.d&&toMin(a.s)<en&&toMin(a.s)+TYPES[a.type][1]>st)}
+    const setF=(k,v)=>this.setState(st=>({form:{...st.form,[k]:v}}));
+    return {
+      weekLabel,weekCount:list.length,days,hours,gridH:(H1-H0)*PH,nowY:yOf('11:20'),
+      prev:()=>this.setState(st=>({week:st.week-1,sel:null})),next:()=>this.setState(st=>({week:st.week+1,sel:null})),today:()=>this.setState({week:0}),
+      sel,clearSel:()=>this.setState({sel:null}),
+      delSel:()=>{this.setState(st=>({removed:{...st.removed,[st.sel]:true},sel:null}));this.flash('Appuntamento annullato · paziente avvisato su WhatsApp')},
+      todayList:tl,todayCount:tl.length+' appuntamenti',todayEmpty:!tl.length,
+      modal:s.modal,form:f||{},openNew:()=>this.openForm(w===0?2:0,'09:00'),closeNew:()=>this.setState({modal:false}),stop:e=>e.stopPropagation(),
+      patientOpts:PAT.map((p,i)=>({v:String(i),l:p[0]})),
+      dayOpts:DL.map((l,d)=>({v:String(d),l:l+' '+this.dateOf(w,d).getDate()})),
+      typeOpts:Object.entries(TYPES).map(([k,[l,d]])=>({l,d,active:f&&f.type===k,inactive:!(f&&f.type===k),onClick:()=>setF('type',k)})),
+      onPid:e=>setF('pid',e.target.value),onDay:e=>setF('d',e.target.value),onTime:e=>setF('s',e.target.value),onRemind:e=>setF('remind',e.target.checked),conflict,
+      saveNew:()=>{const id='x'+Date.now();const f2=this.state.form;this.setState(st=>({extra:[...st.extra,{id,w:st.week,d:+f2.d,s:f2.s||'09:00',pid:+f2.pid,type:f2.type}],modal:false,sel:id}));this.flash(f2.remind?'Appuntamento confermato · promemoria programmato':'Appuntamento confermato')},
+      toast:s.toast
+    };
+  }
+}
+</script>
+</body>
+</html>

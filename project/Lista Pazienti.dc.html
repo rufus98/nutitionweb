@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"><style>body{margin:0;background:#F5F4F0;-webkit-font-smoothing:antialiased}*{box-sizing:border-box}a{color:#1E5A5F;text-decoration:none}a:hover{color:#0F3B40;text-decoration:underline}input,button,select{font-family:inherit}</style></helmet>
+<div style="display:grid;grid-template-columns:232px minmax(0,1fr);min-height:100vh;min-width:1280px;background:#F5F4F0;font-family:'Figtree',sans-serif;color:#18211F;font-size:14px;line-height:1.45">
+
+<aside style="background:#0F3B40;color:#DCE7E2;padding:22px 14px;display:flex;flex-direction:column;gap:28px;position:sticky;top:0;height:100vh">
+  <div style="display:flex;align-items:center;gap:10px;padding:0 8px">
+    <div style="width:28px;height:28px;border-radius:8px;background:#A9C6B1;color:#0F3B40;display:grid;place-items:center;font-weight:700;font-size:15px">n</div>
+    <div style="font-weight:600;font-size:16px;color:#fff;letter-spacing:-.01em">Nutrea <span style="color:#8FB3A6;font-weight:500">Studio</span></div>
+  </div>
+  <nav style="display:flex;flex-direction:column;gap:2px">
+    <div style="padding:9px 10px;border-radius:8px;color:#B7CCC5;cursor:pointer" style-hover="background:rgba(255,255,255,.06)">Oggi</div>
+    <div style="padding:9px 10px;border-radius:8px;background:rgba(169,198,177,.16);color:#fff;font-weight:600;display:flex;justify-content:space-between">Pazienti<span style="font:500 11px 'IBM Plex Mono';color:#A9C6B1">128</span></div>
+    <a href="Agenda.dc.html" style="padding:9px 10px;border-radius:8px;color:#B7CCC5;text-decoration:none" style-hover="background:rgba(255,255,255,.06);color:#fff;text-decoration:none">Agenda</a>
+    <div style="padding:9px 10px;border-radius:8px;color:#B7CCC5;cursor:pointer" style-hover="background:rgba(255,255,255,.06)">Piani nutrizionali</div>
+    <a href="Pagamenti.dc.html" style="padding:9px 10px;border-radius:8px;color:#B7CCC5;text-decoration:none" style-hover="background:rgba(255,255,255,.06);color:#fff;text-decoration:none">Pagamenti</a>
+    <a href="Impostazioni.dc.html" style="padding:9px 10px;border-radius:8px;color:#B7CCC5;text-decoration:none" style-hover="background:rgba(255,255,255,.06);color:#fff;text-decoration:none">Impostazioni</a>
+  </nav>
+  <div style="margin-top:auto;padding:12px 10px;border-top:1px solid rgba(255,255,255,.1);display:flex;gap:10px;align-items:center">
+    <div style="width:32px;height:32px;border-radius:50%;background:#2F6B6E;color:#fff;display:grid;place-items:center;font-size:12px;font-weight:600">EM</div>
+    <div><div style="color:#fff;font-weight:500;font-size:13px">Dott.ssa Elena Marchi</div><div style="font-size:12px;color:#8FB3A6">Biologa nutrizionista</div></div>
+  </div>
+</aside>
+
+<main style="padding:24px 32px 48px;display:flex;flex-direction:column;gap:18px;min-width:0">
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap">
+    <div><h1 style="margin:0;font-size:28px;font-weight:600;letter-spacing:-.02em">Pazienti</h1><div style="color:#5E6866;font-size:13px;margin-top:2px">128 in archivio · 74 in percorso attivo</div></div>
+    <div style="display:flex;gap:8px">
+      <button style="padding:10px 14px;border-radius:10px;border:1px solid #DAD8D1;background:#fff;font-weight:500;font-size:13px;cursor:pointer" style-hover="background:#FAF9F6">Esporta CSV</button>
+      <a href="Nuovo Paziente.dc.html" style="padding:10px 16px;border-radius:10px;background:#1E5A5F;color:#fff;font-weight:600;font-size:13px;text-decoration:none" style-hover="background:#0F3B40;color:#fff;text-decoration:none">+ Nuovo paziente</a>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #DAD8D1;border-radius:10px;padding:0 12px;width:340px"><span style="width:12px;height:12px;border-radius:50%;border:1.8px solid #8A928F;flex:none"></span><input value="{{ q }}" onChange="{{ onQ }}" placeholder="Cerca per nome, telefono, email…" style="flex:1;border:0;outline:0;padding:10px 0;font-size:13.5px;background:none"></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <sc-for list="{{ filters }}" as="f" hint-placeholder-count="5">
+        <sc-if value="{{ f.active }}" hint-placeholder-val="{{ false }}"><button style="padding:7px 12px;border-radius:99px;border:1px solid #1E5A5F;background:#1E5A5F;color:#fff;font-size:13px;font-weight:600;display:flex;gap:7px;align-items:center;white-space:nowrap;flex:none">{{ f.label }}<span style="font:500 11px 'IBM Plex Mono';color:#BFD6CE">{{ f.count }}</span></button></sc-if>
+        <sc-if value="{{ f.inactive }}" hint-placeholder-val="{{ true }}"><button onClick="{{ f.onClick }}" style="padding:7px 12px;border-radius:99px;border:1px solid #DAD8D1;background:#fff;color:#3E4846;font-size:13px;font-weight:500;cursor:pointer;display:flex;gap:7px;align-items:center;white-space:nowrap;flex:none" style-hover="border-color:#7FA08A">{{ f.label }}<span style="font:500 11px 'IBM Plex Mono';color:#8A928F">{{ f.count }}</span></button></sc-if>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="background:#fff;border:1px solid #E4E2DC;border-radius:16px;overflow:hidden">
+    <div style="display:grid;grid-template-columns:minmax(200px,2fr) minmax(160px,1.2fr) minmax(96px,1fr) minmax(84px,.8fr) minmax(84px,.9fr) minmax(92px,.8fr) minmax(112px,1fr) 14px;gap:10px;padding:10px 20px;background:#FAF9F6;border-bottom:1px solid #EEECE6;font:500 11px 'IBM Plex Mono';letter-spacing:.05em;text-transform:uppercase;color:#6B7472;align-items:center">
+      <sc-for list="{{ cols }}" as="c" hint-placeholder-count="7">
+        <button onClick="{{ c.onClick }}" style="background:none;border:0;padding:0;font:inherit;letter-spacing:inherit;text-transform:inherit;color:inherit;cursor:pointer;text-align:left;display:flex;gap:5px;align-items:center;white-space:nowrap" style-hover="color:#18211F">{{ c.label }}<span style="color:#1E5A5F">{{ c.arrow }}</span></button>
+      </sc-for>
+      <span></span>
+    </div>
+    <sc-for list="{{ rows }}" as="p" hint-placeholder-count="10">
+      <a href="Dashboard Nutrizionista.dc.html" style="display:grid;grid-template-columns:minmax(200px,2fr) minmax(160px,1.2fr) minmax(96px,1fr) minmax(84px,.8fr) minmax(84px,.9fr) minmax(92px,.8fr) minmax(112px,1fr) 14px;gap:10px;padding:12px 20px;border-bottom:1px solid #F3F1EC;align-items:center;color:#18211F;text-decoration:none;font-size:13.5px" style-hover="background:#FAF9F6;text-decoration:none;color:#18211F">
+        <div style="display:flex;gap:11px;align-items:center;min-width:0">
+          <div style="width:36px;height:36px;border-radius:50%;background:#DCE8DF;color:#1E5A5F;display:grid;place-items:center;font-weight:600;font-size:13px;flex:none">{{ p.ini }}</div>
+          <div style="min-width:0"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.name }}</div><div style="font-size:12px;color:#6B7472;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.goal }}</div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px"><span style="font:400 12.5px 'IBM Plex Mono';color:#3E4846;white-space:nowrap">{{ p.phone }}</span><span onClick="{{ p.onWa }}" title="WhatsApp" style="width:26px;height:26px;border-radius:7px;background:#E3EFE6;display:grid;place-items:center;cursor:pointer"><span style="width:8px;height:8px;border-radius:50%;background:#3C9A5F"></span></span></div>
+        <div><div>{{ p.last }}</div><div style="font-size:12px;color:#6B7472">{{ p.ago }}</div></div>
+        <div>
+          <sc-if value="{{ p.hasNext }}" hint-placeholder-val="{{ true }}"><span>{{ p.next }}</span></sc-if>
+          <sc-if value="{{ p.noNext }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;font-weight:600;color:#8A5418;background:#FAEEDD;padding:3px 9px;border-radius:99px;white-space:nowrap">Da fissare</span></sc-if>
+        </div>
+        <div style="font-variant-numeric:tabular-nums"><span style="font-weight:600">{{ p.kg }}</span> <span style="font-size:12px;color:#6B7472">kg</span>
+          <sc-if value="{{ p.down }}" hint-placeholder-val="{{ true }}"><div style="font-size:12px;color:#2E6B47;font-weight:500">{{ p.delta }} kg</div></sc-if>
+          <sc-if value="{{ p.notDown }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px;color:#6B7472;font-weight:500">{{ p.delta }} kg</div></sc-if>
+        </div>
+        <div>
+          <sc-if value="{{ p.planOn }}" hint-placeholder-val="{{ true }}"><span style="font-size:12px;font-weight:600;color:#2E6B47;background:#E3EFE6;padding:3px 9px;border-radius:99px;white-space:nowrap">Link attivo</span></sc-if>
+          <sc-if value="{{ p.planDraft }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;font-weight:600;color:#5E6866;background:#EFEEEA;padding:3px 9px;border-radius:99px;white-space:nowrap">Non inviato</span></sc-if>
+          <sc-if value="{{ p.planNone }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:#8A928F">—</span></sc-if>
+        </div>
+        <div>
+          <sc-if value="{{ p.paid }}" hint-placeholder-val="{{ true }}"><span style="font-size:12px;font-weight:600;color:#2E6B47">Saldato</span></sc-if>
+          <sc-if value="{{ p.pending }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;font-weight:600;color:#8A5418;background:#FAEEDD;padding:3px 9px;border-radius:99px;white-space:nowrap">€ {{ p.due }} in sospeso</span></sc-if>
+        </div>
+        <span style="color:#8A928F;font-size:16px;text-align:right">›</span>
+      </a>
+    </sc-for>
+    <sc-if value="{{ empty }}" hint-placeholder-val="{{ false }}"><div style="padding:48px 20px;text-align:center;color:#5E6866"><div style="font-weight:600;color:#18211F;font-size:15px">Nessun paziente trovato</div><div style="font-size:13px;margin-top:4px">Prova a cambiare ricerca o filtro.</div></div></sc-if>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 20px;font-size:13px;color:#5E6866">
+      <span>{{ countLabel }}</span>
+      <div style="display:flex;gap:4px;align-items:center"><span style="padding:5px 10px;border-radius:7px;background:#0F3B40;color:#fff;font-weight:600">1</span><span style="padding:5px 10px;border-radius:7px;cursor:pointer" style-hover="background:#F0EEE9">2</span><span style="padding:5px 10px;border-radius:7px;cursor:pointer" style-hover="background:#F0EEE9">3</span><span style="padding:5px 6px">…</span><span style="padding:5px 10px;border-radius:7px;cursor:pointer" style-hover="background:#F0EEE9">7</span></div>
+    </div>
+  </div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const MO=['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+const TODAY=new Date('2026-10-21');
+const fmt=s=>{const[y,m,d]=s.split('-');return `${+d} ${MO[m-1]}${y!=='2026'?' '+y:''}`};
+const n1=v=>v.toFixed(1).replace('.',',');
+// name, phone, goal, last, next, kgNow, kgStart, plan(on|draft|none), due, active
+const P=[
+['Giulia Ferrante','347 218 5590','Ricomposizione · −8 kg','2026-10-14','2026-11-11',76.8,84.6,'on',70,1],
+['Marco Bellini','333 904 1127','Ipertensione · −10 kg','2026-10-17','2026-11-07',91.2,98.5,'on',0,1],
+['Sara Lombardo','340 552 7781','Gravidanza 2° trim.','2026-10-20','2026-11-17',64.1,61.0,'on',0,1],
+['Luca Esposito','328 117 4402','Performance ciclismo','2026-09-02','',72.4,74.0,'on',0,1],
+['Chiara Rinaldi','349 663 2018','Endometriosi · antinfiammatoria','2026-10-09','2026-11-06',58.3,59.8,'on',90,1],
+['Andrea Conti','338 270 9915','Diabete tipo 2 · −12 kg','2026-10-15','2026-11-12',102.6,112.0,'on',0,1],
+['Francesca Greco','331 448 6620','Svezzamento post-parto','2026-10-21','',67.9,67.9,'draft',120,1],
+['Paolo Marini','345 981 3307','Colesterolo · −5 kg','2026-08-28','',84.0,86.2,'on',0,1],
+['Elisa Ferri','347 302 1184','DCA · follow-up con psicologa','2026-10-13','2026-10-27',52.6,50.9,'on',0,1],
+['Davide Santoro','329 775 0491','Massa muscolare','2026-10-02','2026-10-30',78.8,75.5,'on',0,1],
+['Martina Galli','334 610 2256','Celiachia · educazione','2026-07-18','',61.2,62.0,'none',0,0],
+['Roberto De Luca','339 857 4413','Reflusso · −6 kg','2026-10-06','2026-11-03',88.1,92.3,'on',70,1],
+['Valentina Moretti','346 129 8870','Ricomposizione','2026-10-18','2026-11-15',69.5,72.8,'on',0,1],
+['Giorgio Barbieri','335 404 6632','Over 65 · sarcopenia','2026-09-25','2026-10-23',70.2,69.4,'on',0,1],
+['Alessia Fontana','342 903 5519','PCOS · −7 kg','2026-10-11','2026-11-08',74.6,79.9,'on',0,1],
+['Simone Caruso','320 688 1045','Prima visita','2026-10-21','',95.4,95.4,'draft',0,1],
+['Laura Pellegrini','348 216 7790','Mantenimento','2026-05-30','',63.0,70.1,'none',0,0],
+['Matteo Ricci','333 570 2284','Running · maratona','2026-10-08','2026-11-05',68.7,70.0,'on',0,1],
+['Federica Gentile','340 739 9102','Ipotiroidismo · −6 kg','2026-10-16','2026-11-13',71.8,76.4,'on',0,1],
+['Tommaso Villa','347 845 3367','Adolescente · educazione','2026-09-19','',58.9,60.3,'on',60,1]
+];
+const ROWS=P.map((r,i)=>({id:i,name:r[0],phone:'+39 '+r[1],goal:r[2],last:r[3],next:r[4],kg:r[5],start:r[6],plan:r[7],due:r[8],active:!!r[9]}));
+const days=s=>Math.round((TODAY-new Date(s))/864e5);
+const ago=d=>d===0?'oggi':d===1?'ieri':d<30?d+' giorni fa':Math.round(d/30)+' mesi fa';
+const FILTERS=[['all','Tutti',()=>true],['active','In percorso',r=>r.active],['recall','Da ricontattare',r=>!r.next],['pending','Pagamenti in sospeso',r=>r.due>0],['draft','Piano da inviare',r=>r.plan==='draft']];
+const COLS=[['name','Paziente'],['phone','Telefono'],['last','Ultima visita'],['next','Prossima'],['delta','Peso · Δ'],['plan','Piano'],['due','Pagamenti']];
+class Component extends DCLogic {
+  state={q:'',f:'all',sort:'last',dir:-1};
+  renderVals(){
+    const s=this.state,fn=FILTERS.find(f=>f[0]===s.f)[2],q=s.q.trim().toLowerCase(),qd=q.replace(/\D/g,'');
+    const key={name:r=>r.name,phone:r=>r.phone,last:r=>r.last,next:r=>r.next||'9999',delta:r=>r.kg-r.start,plan:r=>r.plan,due:r=>r.due};
+    let list=ROWS.filter(fn).filter(r=>!q||r.name.toLowerCase().includes(q)||r.goal.toLowerCase().includes(q)||(qd&&r.phone.replace(/\D/g,'').includes(qd)));
+    const k=key[s.sort];list=[...list].sort((a,b)=>{const x=k(a),y=k(b);return (x<y?-1:x>y?1:0)*s.dir});
+    const rows=list.map(r=>{const d=r.kg-r.start,dd=days(r.last);return{ini:r.name.split(' ').map(w=>w[0]).join('').slice(0,2),name:r.name,goal:r.goal,phone:r.phone,
+      onWa:e=>{e.preventDefault();e.stopPropagation();window.open('https://wa.me/39'+r.phone.replace(/\D/g,'').slice(2),'_blank')},
+      last:fmt(r.last),ago:ago(dd),hasNext:!!r.next,noNext:!r.next,next:r.next?fmt(r.next):'',kg:n1(r.kg),delta:(d>0?'+':d<0?'−':'±')+n1(Math.abs(d)),down:d<0,notDown:d>=0,
+      planOn:r.plan==='on',planDraft:r.plan==='draft',planNone:r.plan==='none',paid:!r.due,pending:r.due>0,due:r.due}});
+    return {
+      q:s.q,onQ:e=>this.setState({q:e.target.value}),rows,empty:!rows.length,
+      countLabel:`${rows.length} di ${ROWS.length} mostrati · 128 totali`,
+      filters:FILTERS.map(([id,label,f])=>({label,count:ROWS.filter(f).length,active:s.f===id,inactive:s.f!==id,onClick:()=>this.setState({f:id})})),
+      cols:COLS.map(([id,label])=>({label,arrow:s.sort===id?(s.dir>0?'↑':'↓'):'',onClick:()=>this.setState(st=>({sort:id,dir:st.sort===id?-st.dir:1}))}))
+    };
+  }
+}
+</script>
+</body>
+</html>

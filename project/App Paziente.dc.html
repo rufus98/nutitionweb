@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"><style>body{margin:0;background:#E9E7E1;-webkit-font-smoothing:antialiased}*{box-sizing:border-box}a{color:#1E5A5F;text-decoration:none}a:hover{color:#0F3B40}button{font-family:inherit}</style></helmet>
+<div style="min-height:100vh;padding:40px 32px;display:flex;gap:56px;justify-content:center;align-items:flex-start;flex-wrap:wrap;font-family:'Figtree',sans-serif;color:#18211F">
+
+<div style="width:390px;height:844px;border-radius:54px;background:#0E1716;padding:10px;box-shadow:0 30px 70px rgba(15,30,32,.28);flex:none">
+<div style="position:relative;width:370px;height:824px;border-radius:44px;overflow:hidden;background:#F6F5F1;display:flex;flex-direction:column">
+  <div style="height:50px;flex:none;display:flex;justify-content:space-between;align-items:center;padding:0 30px;font-size:15px;font-weight:600;position:relative;z-index:2"><span>9:41</span><span style="position:absolute;left:50%;top:11px;transform:translateX(-50%);width:120px;height:32px;border-radius:20px;background:#0E1716"></span><span style="display:flex;gap:5px;align-items:center"><span style="width:17px;height:10px;border-radius:2px;background:#18211F"></span><span style="width:24px;height:11px;border-radius:3px;border:1.5px solid #18211F;padding:1px"><span style="display:block;width:70%;height:100%;background:#18211F;border-radius:1px"></span></span></span></div>
+  <div style="flex:none;text-align:center;font:400 10.5px 'IBM Plex Mono';color:#8A928F;padding-bottom:4px">app.diet.it/p/gF7k2q9X</div>
+
+  <div style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:6px 18px 24px;display:grid;grid-auto-rows:max-content;align-content:start;gap:14px">
+    <sc-if value="{{ showBanner }}" hint-placeholder-val="{{ true }}">
+    <div style="background:#0F3B40;color:#fff;border-radius:18px;padding:14px;display:flex;gap:12px;align-items:center">
+      <div style="width:42px;height:42px;border-radius:11px;background:#A9C6B1;color:#0F3B40;display:grid;place-items:center;font-weight:700;font-size:18px;flex:none">n</div>
+      <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:14px">Aggiungi alla Home</div><div style="font-size:12px;color:#B7CCC5;line-height:1.35">Tocca <b style="color:#fff">Condividi</b> → <b style="color:#fff">Aggiungi a Home</b>. Si apre come un'app.</div></div>
+      <button onClick="{{ hideBanner }}" style="border:0;background:rgba(255,255,255,.12);color:#fff;width:32px;height:32px;border-radius:9px;font-size:15px;cursor:pointer;flex:none">×</button>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ tOggi }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;padding-top:4px">
+        <div><div style="font-size:13px;color:#6B7472">Mercoledì 21 ottobre</div><div style="font-size:28px;font-weight:600;letter-spacing:-.02em;line-height:1.15">Ciao Giulia</div></div>
+        <div style="text-align:right"><div style="font:600 20px 'Figtree';color:#1E5A5F">{{ doneCount }}/5</div><div style="font-size:11.5px;color:#6B7472">pasti di {{ dayName }}</div></div>
+      </div>
+      <div style="display:flex;gap:5px">
+        <sc-for list="{{ days }}" as="d" hint-placeholder-count="7">
+          <sc-if value="{{ d.active }}" hint-placeholder-val="{{ false }}"><button style="flex:1;height:58px;border:0;border-radius:14px;background:#1E5A5F;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px"><span style="font-size:11px;color:#BFD6CE">{{ d.l }}</span><span style="font-weight:600;font-size:16px">{{ d.n }}</span></button></sc-if>
+          <sc-if value="{{ d.inactive }}" hint-placeholder-val="{{ true }}"><button onClick="{{ d.onClick }}" style="flex:1;height:58px;border:1px solid #E4E2DC;border-radius:14px;background:#fff;color:#18211F;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;position:relative"><span style="font-size:11px;color:#8A928F">{{ d.l }}</span><span style="font-weight:600;font-size:16px">{{ d.n }}</span><sc-if value="{{ d.today }}"><span style="position:absolute;bottom:6px;width:4px;height:4px;border-radius:50%;background:#1E5A5F"></span></sc-if></button></sc-if>
+        </sc-for>
+      </div>
+      <div style="height:6px;border-radius:3px;background:#E6E4DE;overflow:hidden"><div style="height:100%;width:{{ donePct }}%;background:#7FA08A;border-radius:3px;transition:width .3s"></div></div>
+      <sc-for list="{{ meals }}" as="m" hint-placeholder-count="5">
+        <div style="background:#fff;border:1px solid #E8E6E0;border-radius:18px;padding:14px 14px 14px 16px;display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="flex:1"><div style="display:flex;gap:8px;align-items:baseline"><span style="font-weight:600;font-size:16px">{{ m.name }}</span><span style="font:400 11.5px 'IBM Plex Mono';color:#8A928F">{{ m.time }}</span></div></div>
+            <sc-if value="{{ m.done }}" hint-placeholder-val="{{ false }}"><button onClick="{{ m.toggle }}" style="width:44px;height:44px;border-radius:50%;border:0;background:#1E5A5F;color:#fff;font-size:17px;font-weight:700;cursor:pointer">✓</button></sc-if>
+            <sc-if value="{{ m.todo }}" hint-placeholder-val="{{ true }}"><button onClick="{{ m.toggle }}" style="width:44px;height:44px;border-radius:50%;border:1.5px solid #CFD8D4;background:#fff;cursor:pointer"></button></sc-if>
+          </div>
+          <sc-for list="{{ m.items }}" as="it"><div style="display:flex;justify-content:space-between;gap:10px;font-size:14px;line-height:1.3"><span style="color:#2C3533">{{ it.f }}</span><span style="font:500 12.5px 'IBM Plex Mono';color:#1E5A5F;white-space:nowrap">{{ it.g }}</span></div></sc-for>
+          <sc-if value="{{ m.note }}"><div style="font-size:12.5px;color:#7A5426;background:#F7F0E4;border-radius:9px;padding:6px 9px">{{ m.note }}</div></sc-if>
+        </div>
+      </sc-for>
+    </sc-if>
+
+    <sc-if value="{{ tDieta }}" hint-placeholder-val="{{ false }}">
+      <div style="padding-top:4px"><div style="font-size:13px;color:#6B7472">Piano v3 · dal 15 set 2026</div><div style="font-size:28px;font-weight:600;letter-spacing:-.02em;line-height:1.15">La mia dieta</div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <a href="#" style="display:flex;align-items:center;justify-content:center;gap:8px;height:48px;border-radius:14px;background:#fff;border:1px solid #E4E2DC;color:#18211F;font-weight:600;font-size:14px;text-decoration:none"><span style="font:600 9px 'IBM Plex Mono';color:#1E5A5F;border:1.5px solid #1E5A5F;border-radius:3px;padding:2px 3px">PDF</span>Originale</a>
+        <a href="#" style="display:flex;align-items:center;justify-content:center;height:48px;border-radius:14px;background:#fff;border:1px solid #E4E2DC;color:#18211F;font-weight:600;font-size:14px;text-decoration:none">Lista spesa</a>
+      </div>
+      <div style="background:#EEF3EE;border-radius:16px;padding:14px 16px;font-size:13.5px;color:#2C4A3A;line-height:1.5"><b>Indicazioni generali</b><br>Usa solo latticini delattosati · 1,5–2 L d'acqua · pesa gli alimenti a crudo · domenica pranzo libero.</div>
+      <sc-for list="{{ week }}" as="w" hint-placeholder-count="7">
+        <div style="background:#fff;border:1px solid #E8E6E0;border-radius:18px;overflow:hidden">
+          <button onClick="{{ w.toggle }}" style="width:100%;border:0;background:none;padding:0 16px;height:56px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-size:16px;font-weight:600;color:#18211F"><span>{{ w.name }}<sc-if value="{{ w.today }}"><span style="margin-left:8px;font-size:11px;font-weight:600;color:#1E5A5F;background:#E6EFEC;padding:2px 7px;border-radius:99px">Oggi</span></sc-if></span><span style="font-size:13px;color:#8A928F;font-weight:500">{{ w.chev }}</span></button>
+          <sc-if value="{{ w.open }}" hint-placeholder-val="{{ false }}"><div style="padding:0 16px 14px;display:flex;flex-direction:column;gap:12px">
+            <sc-for list="{{ w.meals }}" as="m"><div style="display:flex;flex-direction:column;gap:3px;border-top:1px solid #F0EEE9;padding-top:10px"><div style="font:500 11px 'IBM Plex Mono';letter-spacing:.06em;text-transform:uppercase;color:#6B7472">{{ m.name }}</div><div style="font-size:14px;color:#2C3533;line-height:1.45;text-wrap:pretty">{{ m.line }}</div></div></sc-for>
+          </div></sc-if>
+        </div>
+      </sc-for>
+    </sc-if>
+
+    <sc-if value="{{ tProg }}" hint-placeholder-val="{{ false }}">
+      <div style="padding-top:4px"><div style="font-size:13px;color:#6B7472">Dal 10 marzo · 9 visite</div><div style="font-size:28px;font-weight:600;letter-spacing:-.02em;line-height:1.15">I miei progressi</div></div>
+      <div style="background:#1E5A5F;color:#fff;border-radius:22px;padding:18px;display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-end"><div><div style="font-size:13px;color:#BFD6CE">Hai perso</div><div style="font-size:44px;font-weight:600;letter-spacing:-.03em;line-height:1">7,8 <span style="font-size:20px">kg</span></div></div><div style="text-align:right;font-size:13px;color:#BFD6CE">Ora <b style="color:#fff">76,8 kg</b><br>Obiettivo 74 kg</div></div>
+        <div><div style="height:8px;border-radius:4px;background:rgba(255,255,255,.18);overflow:hidden"><div style="width:74%;height:100%;background:#A9C6B1;border-radius:4px"></div></div><div style="font-size:12.5px;color:#D7E5DF;margin-top:7px">Sei al 74% del percorso — mancano 2,8 kg.</div></div>
+      </div>
+      <div style="background:#fff;border:1px solid #E8E6E0;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-weight:600;font-size:16px">Peso</span><span style="font:400 11.5px 'IBM Plex Mono';color:#8A928F">mar → ott</span></div>
+        <div style="position:relative;height:150px">
+          <svg width="300" height="150" style="position:absolute;left:0;top:0;overflow:visible"><path d="{{ pg.area }}" style="fill:#7FA08A;fill-opacity:.16"></path><path d="{{ pg.target }}" style="stroke:#C9833A;stroke-width:1.5px;stroke-dasharray:4 4;fill:none"></path><path d="{{ pg.line }}" style="stroke:#1E5A5F;stroke-width:3px;fill:none;stroke-linecap:round;stroke-linejoin:round"></path></svg>
+          <div style="position:absolute;left:{{ pg.lx }}px;top:{{ pg.ly }}px;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:#1E5A5F;border:3px solid #fff;box-shadow:0 0 0 1px #1E5A5F"></div>
+          <div style="position:absolute;right:0;top:{{ pg.ty }}px;transform:translateY(-120%);font:500 10.5px 'IBM Plex Mono';color:#A5621F">obiettivo 74</div>
+        </div>
+      </div>
+      <div style="background:#fff;border:1px solid #E8E6E0;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:4px">
+        <div style="font-weight:600;font-size:16px;margin-bottom:6px">Centimetri persi</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+          <sc-for list="{{ meas }}" as="m" hint-placeholder-count="5"><div style="background:#F3F6F3;border-radius:14px;padding:10px 12px"><div style="font-size:12px;color:#5E6866">{{ m.l }}</div><div style="font-size:20px;font-weight:600;color:#245C3B">{{ m.d }}</div></div></sc-for>
+        </div>
+      </div>
+      <div style="font-size:13.5px;color:#5E6866;text-align:center;padding:2px 12px;text-wrap:pretty">−16,5 cm in totale. Prossimo controllo: 11 novembre.</div>
+    </sc-if>
+
+    <sc-if value="{{ tStudio }}" hint-placeholder-val="{{ false }}">
+      <div style="padding-top:4px"><div style="font-size:28px;font-weight:600;letter-spacing:-.02em;line-height:1.15">Il tuo studio</div></div>
+      <div style="background:#fff;border:1px solid #E8E6E0;border-radius:20px;padding:18px;display:flex;flex-direction:column;gap:16px;align-items:center;text-align:center">
+        <div style="width:76px;height:76px;border-radius:50%;background:repeating-linear-gradient(45deg,#E6ECE8 0 6px,#F1F4F1 6px 12px);display:grid;place-items:center;font:500 9.5px 'IBM Plex Mono';color:#6B7472">foto</div>
+        <div><div style="font-size:19px;font-weight:600">Dott.ssa Elena Marchi</div><div style="font-size:13px;color:#6B7472">Biologa nutrizionista · Bologna</div></div>
+        <div style="display:flex;flex-direction:column;gap:8px;width:100%">
+          <a href="https://wa.me/390510000000" target="_blank" style="height:54px;border-radius:15px;background:#1E5A5F;color:#fff;font-weight:600;font-size:16px;display:flex;align-items:center;justify-content:center;gap:9px;text-decoration:none"><span style="width:9px;height:9px;border-radius:50%;background:#A9C6B1"></span>Scrivi su WhatsApp</a>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <a href="tel:+390510000000" style="height:50px;border-radius:15px;border:1px solid #DAD8D1;color:#18211F;font-weight:600;display:flex;align-items:center;justify-content:center;text-decoration:none">Chiama</a>
+            <a href="mailto:studio@marchi-nutrizione.it" style="height:50px;border-radius:15px;border:1px solid #DAD8D1;color:#18211F;font-weight:600;display:flex;align-items:center;justify-content:center;text-decoration:none">Email</a>
+          </div>
+        </div>
+      </div>
+      <div style="background:#EEF3EE;border-radius:18px;padding:16px;display:flex;justify-content:space-between;align-items:center"><div><div style="font:500 11px 'IBM Plex Mono';letter-spacing:.06em;text-transform:uppercase;color:#4E6E5B">Prossimo appuntamento</div><div style="font-size:17px;font-weight:600;margin-top:3px">Mer 11 novembre · 17:30</div></div></div>
+      <div style="background:#fff;border:1px solid #E8E6E0;border-radius:18px;padding:16px;font-size:14px;line-height:1.5;color:#2C3533"><div style="font-weight:600;margin-bottom:2px">Studio</div>Via Santo Stefano 42, Bologna<br><span style="color:#6B7472">Lun–Ven 9:00–19:00</span></div>
+    </sc-if>
+  </div>
+
+  <div style="flex:none;background:rgba(255,255,255,.94);border-top:1px solid #E6E4DE;padding:8px 10px 26px;display:grid;grid-template-columns:repeat(4,1fr)">
+    <sc-for list="{{ nav }}" as="n" hint-placeholder-count="4">
+      <sc-if value="{{ n.active }}" hint-placeholder-val="{{ false }}"><button style="border:0;background:none;height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;color:#0F3B40;font-weight:600;font-size:11.5px"><span style="width:40px;height:26px;border-radius:13px;background:#DCE8DF;display:grid;place-items:center"><span style="width:12px;height:12px;border-radius:{{ n.r }};background:#1E5A5F"></span></span>{{ n.label }}</button></sc-if>
+      <sc-if value="{{ n.inactive }}" hint-placeholder-val="{{ true }}"><button onClick="{{ n.onClick }}" style="border:0;background:none;height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;color:#6B7472;font-weight:500;font-size:11.5px;cursor:pointer"><span style="width:40px;height:26px;display:grid;place-items:center"><span style="width:12px;height:12px;border-radius:{{ n.r }};border:1.8px solid #8A928F"></span></span>{{ n.label }}</button></sc-if>
+    </sc-for>
+  </div>
+  <div style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:130px;height:5px;border-radius:3px;background:#18211F"></div>
+</div>
+</div>
+
+<div style="max-width:440px;display:flex;flex-direction:column;gap:22px;padding-top:12px">
+  <div><div style="font:500 11px 'IBM Plex Mono';letter-spacing:.08em;text-transform:uppercase;color:#6B7472">Web View Paziente · PWA</div><h1 style="margin:6px 0 0;font-size:30px;font-weight:600;letter-spacing:-.02em;line-height:1.15">Zero login, un tap dal link alla dieta</h1></div>
+  <div style="display:flex;flex-direction:column;gap:14px;font-size:14px;line-height:1.5;color:#3E4846">
+    <div style="display:grid;grid-template-columns:28px 1fr;gap:8px"><span style="font:600 12px 'IBM Plex Mono';color:#1E5A5F">01</span><div><b style="color:#18211F">Accesso tokenizzato.</b> URL <span style="font-family:'IBM Plex Mono';font-size:12.5px">/p/{token}</span> revocabile dallo studio; token salvato in localStorage per l'apertura da Home.</div></div>
+    <div style="display:grid;grid-template-columns:28px 1fr;gap:8px"><span style="font:600 12px 'IBM Plex Mono';color:#1E5A5F">02</span><div><b style="color:#18211F">Install prompt discreto.</b> Card in testa a "Oggi" solo alla 2ª visita; su Android usa <span style="font-family:'IBM Plex Mono';font-size:12.5px">beforeinstallprompt</span>, su iOS istruzioni Condividi → Home. Chiusa = nascosta 30 giorni.</div></div>
+    <div style="display:grid;grid-template-columns:28px 1fr;gap:8px"><span style="font:600 12px 'IBM Plex Mono';color:#1E5A5F">03</span><div><b style="color:#18211F">Oggi.</b> Strip settimanale (58 px), check pasto 44 px, barra avanzamento. Spunte salvate offline.</div></div>
+    <div style="display:grid;grid-template-columns:28px 1fr;gap:8px"><span style="font:600 12px 'IBM Plex Mono';color:#1E5A5F">04</span><div><b style="color:#18211F">La mia dieta.</b> Accordion per giorno con il giorno corrente aperto; PDF originale sempre a portata.</div></div>
+    <div style="display:grid;grid-template-columns:28px 1fr;gap:8px"><span style="font:600 12px 'IBM Plex Mono';color:#1E5A5F">05</span><div><b style="color:#18211F">Progressi.</b> Solo indicatori positivi: kg persi, % percorso, cm persi. Niente BMI o massa grassa lato paziente.</div></div>
+    <div style="display:grid;grid-template-columns:28px 1fr;gap:8px"><span style="font:600 12px 'IBM Plex Mono';color:#1E5A5F">06</span><div><b style="color:#18211F">Bottom nav.</b> 4 voci, 52 px + safe-area; tipografia base 16 px, contenuti in colonna singola con margini 18 px.</div></div>
+  </div>
+  <a href="Dashboard Nutrizionista.dc.html" style="font-size:14px;font-weight:600">← Dashboard nutrizionista</a>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;installBanner&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;startTab&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;oggi&quot;,&quot;dieta&quot;,&quot;prog&quot;,&quot;studio&quot;],&quot;default&quot;:&quot;oggi&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+const A={col:[['Yogurt greco delattosato','150 g'],['Fiocchi d\'avena','30 g'],['Mirtilli','80 g']],sp:[['Mela','150 g'],['Mandorle','15 g']],pr:[['Riso basmati','70 g'],['Petto di pollo','120 g'],['Zucchine grigliate','200 g'],['Olio EVO','10 g']],me:[['Kefir','125 ml']],ce:[['Merluzzo','180 g'],['Patate','200 g'],['Verdure al vapore','200 g'],['Olio EVO','10 g']]};
+const B={col:[['Pane integrale','50 g'],['Ricotta delattosata','60 g'],['Miele','10 g']],sp:[['Frutta di stagione','150 g'],['Noci','15 g']],pr:[['Pasta integrale','70 g'],['Ceci lessati','150 g'],['Pomodorini','150 g'],['Olio EVO','10 g']],me:[['Gallette di riso','2 pz'],['Hummus','30 g']],ce:[['Uova','2 pz'],['Pane integrale','50 g'],['Spinaci','200 g'],['Olio EVO','10 g']]};
+const C={col:[['Bevanda d\'avena','200 ml'],['Fette biscottate integrali','4 pz'],['Marmellata s/zucchero','20 g']],sp:[['Kiwi','2 pz'],['Mandorle','15 g']],pr:[['Farro','70 g'],['Salmone','120 g'],['Insalata mista','150 g'],['Olio EVO','10 g']],me:[['Yogurt greco delattosato','125 g']],ce:[['Fesa di tacchino','130 g'],['Quinoa','50 g'],['Finocchi','200 g'],['Olio EVO','10 g']]};
+const DAYS=[['Lun','Lunedì',19,A],['Mar','Martedì',20,B],['Mer','Mercoledì',21,C],['Gio','Giovedì',22,A],['Ven','Venerdì',23,B],['Sab','Sabato',24,C],['Dom','Domenica',25,A]];
+const MEALS=[['col','Colazione','07:30','Levotiroxina 30 min prima di colazione'],['sp','Spuntino','10:30',''],['pr','Pranzo','13:00',''],['me','Merenda','16:30',''],['ce','Cena','20:00','']];
+const TODAY=2;const KG=[84.6,83.1,81.9,81.2,80.0,79.4,78.1,77.6,76.8];
+class Component extends DCLogic {
+  state={tab:null,day:TODAY,checks:{'2-0':true,'2-1':true},banner:true,open:{[TODAY]:true}};
+  renderVals(){
+    const s=this.state,tab=s.tab||this.props.startTab||'oggi',banner=s.banner&&(this.props.installBanner??true);
+    const T=DAYS[s.day][3];
+    const meals=MEALS.map(([k,name,time,note],i)=>{const key=s.day+'-'+i,done=!!s.checks[key];return{name,time,note:(s.day===6&&k==='pr')?'Pasto libero: porzione moderata':note,items:T[k].map(([f,g])=>({f,g})),done,todo:!done,toggle:()=>this.setState(st=>({checks:{...st.checks,[key]:!st.checks[key]}}))}});
+    const doneCount=meals.filter(m=>m.done).length;
+    const W=300,H=150,lo=73,hi=86,X=i=>8+i*(W-16)/(KG.length-1),Y=v=>10+(hi-v)/(hi-lo)*(H-20);
+    const line=KG.map((v,i)=>(i?'L':'M')+X(i).toFixed(1)+' '+Y(v).toFixed(1)).join(' ');
+    const pg={line,area:line+` L${X(KG.length-1)} ${H} L${X(0)} ${H} Z`,target:`M0 ${Y(74)} H${W}`,lx:X(KG.length-1),ly:Y(76.8),ty:Y(74)};
+    const nav=[['oggi','Oggi','50%'],['dieta','La mia dieta','3px'],['prog','Progressi','50% 50% 3px 3px'],['studio','Studio','3px 50% 50% 50%']].map(([id,label,r])=>({label,r,active:tab===id,inactive:tab!==id,onClick:()=>this.setState({tab:id})}));
+    const week=DAYS.map(([,name,,t],i)=>({name,today:i===TODAY,open:!!s.open[i],chev:s.open[i]?'Chiudi':'Apri',toggle:()=>this.setState(st=>({open:{...st.open,[i]:!st.open[i]}})),meals:MEALS.map(([k,n])=>({name:n,line:(i===6&&k==='pr')?'Pasto libero':t[k].map(([f,g])=>f+' '+g).join(' · ')}))}));
+    return {
+      tOggi:tab==='oggi',tDieta:tab==='dieta',tProg:tab==='prog',tStudio:tab==='studio',nav,
+      showBanner:banner,hideBanner:()=>this.setState({banner:false}),
+      days:DAYS.map(([l,,n],i)=>({l,n,today:i===TODAY,active:s.day===i,inactive:s.day!==i,onClick:()=>this.setState({day:i})})),
+      dayName:DAYS[s.day][1].toLowerCase(),meals,doneCount,donePct:doneCount*20,week,pg,
+      meas:[['Vita','−8'],['Fianchi','−6'],['Torace','−3,5'],['Braccio','−1,5'],['Coscia','−3']].map(([l,d])=>({l,d:d+' cm'}))
+    };
+  }
+}
+</script>
+</body>
+</html>

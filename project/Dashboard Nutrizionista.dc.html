@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"><style>body{margin:0;background:#F5F4F0;-webkit-font-smoothing:antialiased}*{box-sizing:border-box}a{color:#1E5A5F;text-decoration:none}a:hover{color:#0F3B40;text-decoration:underline}input,textarea,button{font-family:inherit}@keyframes spin{to{transform:rotate(360deg)}}</style></helmet>
+<div style="display:grid;grid-template-columns:232px minmax(0,1fr);min-height:100vh;min-width:1180px;background:#F5F4F0;font-family:'Figtree',sans-serif;color:#18211F;font-size:14px;line-height:1.45">
+
+<aside style="background:#0F3B40;color:#DCE7E2;padding:22px 14px;display:flex;flex-direction:column;gap:28px;position:sticky;top:0;height:100vh">
+  <div style="display:flex;align-items:center;gap:10px;padding:0 8px">
+    <div style="width:28px;height:28px;border-radius:8px;background:#A9C6B1;color:#0F3B40;display:grid;place-items:center;font-weight:700;font-size:15px">n</div>
+    <div style="font-weight:600;font-size:16px;color:#fff;letter-spacing:-.01em">Nutrea <span style="color:#8FB3A6;font-weight:500">Studio</span></div>
+  </div>
+  <nav style="display:flex;flex-direction:column;gap:2px">
+    <div style="padding:9px 10px;border-radius:8px;color:#B7CCC5;cursor:pointer" style-hover="background:rgba(255,255,255,.06)">Oggi</div>
+    <a href="Lista Pazienti.dc.html" style="padding:9px 10px;border-radius:8px;background:rgba(169,198,177,.16);color:#fff;font-weight:600;display:flex;justify-content:space-between;text-decoration:none">Pazienti<span style="font:500 11px 'IBM Plex Mono';color:#A9C6B1">128</span></a>
+    <a href="Agenda.dc.html" style="padding:9px 10px;border-radius:8px;color:#B7CCC5;text-decoration:none" style-hover="background:rgba(255,255,255,.06);color:#fff;text-decoration:none">Agenda</a>
+    <div style="padding:9px 10px;border-radius:8px;color:#B7CCC5;cursor:pointer" style-hover="background:rgba(255,255,255,.06)">Piani nutrizionali</div>
+    <a href="Pagamenti.dc.html" style="padding:9px 10px;border-radius:8px;color:#B7CCC5;text-decoration:none" style-hover="background:rgba(255,255,255,.06);color:#fff;text-decoration:none">Pagamenti</a>
+    <a href="Impostazioni.dc.html" style="padding:9px 10px;border-radius:8px;color:#B7CCC5;text-decoration:none" style-hover="background:rgba(255,255,255,.06);color:#fff;text-decoration:none">Impostazioni</a>
+  </nav>
+  <div style="margin-top:auto;padding:12px 10px;border-top:1px solid rgba(255,255,255,.1);display:flex;gap:10px;align-items:center">
+    <div style="width:32px;height:32px;border-radius:50%;background:#2F6B6E;color:#fff;display:grid;place-items:center;font-size:12px;font-weight:600">EM</div>
+    <div><div style="color:#fff;font-weight:500;font-size:13px">Dott.ssa Elena Marchi</div><div style="font-size:12px;color:#8FB3A6">Biologa nutrizionista</div></div>
+  </div>
+</aside>
+
+<main style="padding:20px 32px 48px;display:flex;flex-direction:column;gap:20px;min-width:0">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:16px">
+    <div style="font-size:13px;color:#68716F;display:flex;gap:8px"><a href="Lista Pazienti.dc.html" style="color:#68716F">Pazienti</a><span>/</span><span style="color:#18211F;font-weight:500">Giulia Ferrante</span></div>
+    <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #E4E2DC;border-radius:10px;padding:8px 12px;width:320px;color:#8A928F;font-size:13px"><span style="flex:1">Cerca paziente, visita, piano…</span><span style="font:500 11px 'IBM Plex Mono';border:1px solid #E4E2DC;border-radius:5px;padding:2px 5px">⌘K</span></div>
+  </div>
+
+  <section style="background:#fff;border:1px solid #E4E2DC;border-radius:16px;padding:22px 24px;display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+    <div style="width:64px;height:64px;border-radius:50%;background:#DCE8DF;color:#1E5A5F;display:grid;place-items:center;font-weight:600;font-size:22px;flex:none">GF</div>
+    <div style="flex:1;min-width:260px;display:flex;flex-direction:column;gap:6px">
+      <div style="display:flex;align-items:center;gap:10px"><h1 style="margin:0;font-size:26px;font-weight:600;letter-spacing:-.02em">Giulia Ferrante</h1><span style="font-size:12px;font-weight:600;color:#2E6B47;background:#E3EFE6;padding:3px 9px;border-radius:99px">In percorso</span></div>
+      <div style="color:#5E6866;font-size:13px">38 anni · F · 166 cm · Paziente dal 10 mar 2026 · ID <span style="font-family:'IBM Plex Mono'">PZ-0417</span></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:2px">
+        <span style="font-size:12px;padding:3px 9px;border-radius:6px;background:#F3EEE4;color:#7A5426">Ipotiroidismo</span>
+        <span style="font-size:12px;padding:3px 9px;border-radius:6px;background:#F3EEE4;color:#7A5426">Intolleranza lattosio</span>
+        <span style="font-size:12px;padding:3px 9px;border-radius:6px;background:#EEF2F1;color:#1E5A5F">Obiettivo 74 kg</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <div style="font:500 13px 'IBM Plex Mono';color:#3E4846;padding-right:6px">+39 347 218 5590</div>
+      <a href="https://wa.me/393472185590" target="_blank" style="display:flex;align-items:center;gap:7px;padding:9px 14px;border-radius:10px;background:#E3EFE6;color:#245C3B;font-weight:600;font-size:13px;text-decoration:none"><span style="width:8px;height:8px;border-radius:50%;background:#3C9A5F"></span>WhatsApp</a>
+      <a href="tel:+393472185590" style="padding:9px 14px;border-radius:10px;border:1px solid #DAD8D1;color:#18211F;font-weight:500;font-size:13px;text-decoration:none">Chiama</a>
+      <a href="mailto:giulia.ferrante@mail.it" style="padding:9px 14px;border-radius:10px;border:1px solid #DAD8D1;color:#18211F;font-weight:500;font-size:13px;text-decoration:none">Email</a>
+      <button onClick="{{ openDrawer }}" style="padding:10px 16px;border-radius:10px;background:#1E5A5F;color:#fff;border:0;font-weight:600;font-size:13px;cursor:pointer" style-hover="background:#0F3B40">+ Nuova visita</button>
+    </div>
+  </section>
+
+  <div style="display:flex;gap:4px;border-bottom:1px solid #E4E2DC">
+    <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4">
+      <sc-if value="{{ t.active }}" hint-placeholder-val="{{ false }}"><button onClick="{{ t.onClick }}" style="background:none;border:0;border-bottom:2px solid #1E5A5F;margin-bottom:-1px;padding:10px 14px;font-weight:600;font-size:14px;color:#0F3B40;cursor:pointer;display:flex;gap:8px;align-items:center">{{ t.label }}<span style="font:500 11px 'IBM Plex Mono';color:#1E5A5F;background:#E6EFEC;border-radius:5px;padding:1px 6px">{{ t.count }}</span></button></sc-if>
+      <sc-if value="{{ t.inactive }}" hint-placeholder-val="{{ true }}"><button onClick="{{ t.onClick }}" style="background:none;border:0;border-bottom:2px solid transparent;margin-bottom:-1px;padding:10px 14px;font-weight:500;font-size:14px;color:#68716F;cursor:pointer;display:flex;gap:8px;align-items:center" style-hover="color:#18211F">{{ t.label }}<span style="font:500 11px 'IBM Plex Mono';color:#8A928F;background:#EFEEEA;border-radius:5px;padding:1px 6px">{{ t.count }}</span></button></sc-if>
+    </sc-for>
+  </div>
+
+  <sc-if value="{{ isOverview }}" hint-placeholder-val="{{ true }}">
+  <div style="display:grid;grid-template-columns:minmax(0,2fr) minmax(300px,1fr);gap:20px;align-items:start">
+    <div style="display:flex;flex-direction:column;gap:20px;min-width:0">
+      <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px">
+        <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4">
+          <div style="background:#fff;border:1px solid #E4E2DC;border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:6px">
+            <div style="font:500 11px 'IBM Plex Mono';letter-spacing:.06em;text-transform:uppercase;color:#6B7472">{{ k.label }}</div>
+            <div style="font-size:24px;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums">{{ k.value }}<span style="font-size:13px;font-weight:500;color:#6B7472;margin-left:3px">{{ k.unit }}</span></div>
+            <div style="font-size:12px;color:#2E6B47;font-weight:500">{{ k.sub }}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="background:#fff;border:1px solid #E4E2DC;border-radius:16px;padding:20px 22px;display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline">
+          <div><div style="font-weight:600;font-size:16px">Andamento peso</div><div style="font-size:12px;color:#6B7472">9 rilevazioni · mar – ott 2026</div></div>
+          <div style="display:flex;gap:14px;font-size:12px;color:#5E6866"><span style="display:flex;align-items:center;gap:6px"><span style="width:14px;height:3px;background:#1E5A5F;border-radius:2px"></span>Peso (kg)</span><span style="display:flex;align-items:center;gap:6px"><span style="width:14px;border-top:2px dashed #C9833A"></span>Obiettivo</span></div>
+        </div>
+        <div ref="{{ chartRef }}" onMouseLeave="{{ clearHover }}" style="position:relative;height:240px;width:100%">
+          <svg width="{{ chart.w }}" height="{{ chart.h }}" style="position:absolute;left:0;top:0;overflow:visible">
+            <path d="{{ chart.grid }}" style="stroke:#EEECE6;stroke-width:1px;fill:none"></path>
+            <path d="{{ chart.area }}" style="fill:#2F7A7D;fill-opacity:.07;stroke:none"></path>
+            <path d="{{ chart.target }}" style="stroke:#C9833A;stroke-width:1.5px;stroke-dasharray:5 5;fill:none"></path>
+            <path d="{{ chart.line }}" style="stroke:#1E5A5F;stroke-width:2.5px;fill:none;stroke-linejoin:round;stroke-linecap:round"></path>
+          </svg>
+          <sc-for list="{{ chart.ylabels }}" as="l"><div style="position:absolute;left:0;top:{{ l.y }}px;transform:translateY(-50%);font:400 11px 'IBM Plex Mono';color:#8A928F">{{ l.label }}</div></sc-for>
+          <sc-for list="{{ chart.points }}" as="p">
+            <div onMouseEnter="{{ p.onEnter }}" style="position:absolute;left:{{ p.hx }}px;width:{{ p.hw }}px;top:0;bottom:0;cursor:crosshair"></div>
+            <div style="position:absolute;left:{{ p.x }}px;top:{{ p.y }}px;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:50%;background:#fff;border:2px solid #1E5A5F;pointer-events:none"></div>
+            <div style="position:absolute;left:{{ p.x }}px;bottom:0;transform:translateX(-50%);font:400 11px 'IBM Plex Mono';color:#8A928F;pointer-events:none;white-space:nowrap">{{ p.xl }}</div>
+          </sc-for>
+          <sc-if value="{{ tip.show }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;left:{{ tip.x }}px;top:0;bottom:24px;border-left:1px solid #C9D6D2;pointer-events:none"></div>
+            <div style="position:absolute;left:{{ tip.x }}px;top:{{ tip.y }}px;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;background:#1E5A5F;border:3px solid #fff;box-shadow:0 0 0 1px #1E5A5F;pointer-events:none"></div>
+            <div style="position:absolute;left:{{ tip.x }}px;top:{{ tip.y }}px;transform:translate(-50%,calc(-100% - 14px));background:#0F3B40;color:#fff;border-radius:10px;padding:8px 11px;white-space:nowrap;pointer-events:none;box-shadow:0 6px 18px rgba(15,59,64,.25)">
+              <div style="font:400 11px 'IBM Plex Mono';color:#A9C6B1">{{ tip.date }}</div>
+              <div style="font-weight:600;font-size:15px">{{ tip.kg }} kg <span style="font-weight:500;font-size:12px;color:#A9C6B1">{{ tip.delta }}</span></div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+
+      <div style="background:#fff;border:1px solid #E4E2DC;border-radius:16px;padding:20px 22px;display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline"><div style="font-weight:600;font-size:16px">Circonferenze</div><div style="font-size:12px;color:#6B7472">Variazione dalla prima visita (10 mar)</div></div>
+        <div style="display:flex;flex-direction:column">
+          <sc-for list="{{ measRows }}" as="m" hint-placeholder-count="5">
+            <div style="display:grid;grid-template-columns:110px 1fr 90px 74px 64px;align-items:center;gap:14px;padding:10px 0;border-top:1px solid #F0EEE9">
+              <div style="font-weight:500">{{ m.label }}</div>
+              <div style="height:6px;background:#F0EEE9;border-radius:3px;position:relative;overflow:hidden"><div style="position:absolute;left:0;top:0;bottom:0;width:{{ m.bar }}%;background:#7FA08A;border-radius:3px"></div></div>
+              <div style="font:400 12px 'IBM Plex Mono';color:#6B7472;text-align:right">{{ m.start }} → {{ m.now }}</div>
+              <div style="font-weight:600;color:#2E6B47;text-align:right;font-variant-numeric:tabular-nums">{{ m.dcm }} cm</div>
+              <div style="font:500 12px 'IBM Plex Mono';color:#2E6B47;text-align:right">{{ m.dpc }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:20px">
+      <div style="background:#fff;border:1px solid #E4E2DC;border-radius:16px;padding:18px 20px;display:flex;flex-direction:column;gap:12px">
+        <div style="font-weight:600;font-size:15px">Anagrafica</div>
+        <div style="display:grid;grid-template-columns:96px 1fr;row-gap:9px;font-size:13px">
+          <span style="color:#6B7472">Nascita</span><span>12 feb 1988 · Bologna</span>
+          <span style="color:#6B7472">Telefono</span><a href="tel:+393472185590" style="font-family:'IBM Plex Mono';font-size:12.5px">+39 347 218 5590</a>
+          <span style="color:#6B7472">Email</span><a href="mailto:giulia.ferrante@mail.it">giulia.ferrante@mail.it</a>
+          <span style="color:#6B7472">Professione</span><span>Architetta · sedentaria</span>
+          <span style="color:#6B7472">Codice fisc.</span><span style="font-family:'IBM Plex Mono';font-size:12.5px">FRRGLI88B52A944K</span>
+        </div>
+      </div>
+      <div style="background:#FBF8F2;border:1px solid #EDE4D3;border-radius:16px;padding:18px 20px;display:flex;flex-direction:column;gap:10px">
+        <div style="font-weight:600;font-size:15px">Note cliniche</div>
+        <ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:13px;color:#3E4846">
+          <li>Ipotiroidismo in terapia (levotiroxina 50 µg, a digiuno)</li>
+          <li>Intolleranza al lattosio — usare alternative delattosate</li>
+          <li>Allenamento: pilates 2×/settimana</li>
+        </ul>
+      </div>
+      <div style="background:#fff;border:1px solid #E4E2DC;border-radius:16px;padding:18px 20px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center"><div style="font-weight:600;font-size:15px">Piano attivo</div><span style="font-size:12px;font-weight:600;color:#2E6B47;background:#E3EFE6;padding:2px 8px;border-radius:99px">Link attivo</span></div>
+        <div style="font-size:13px;color:#3E4846">Ricomposizione · 1.650 kcal · v3 del 15 set 2026</div>
+        <div style="display:flex;align-items:center;gap:8px;background:#F5F4F0;border-radius:10px;padding:8px 10px"><span style="flex:1;font:400 12px 'IBM Plex Mono';color:#3E4846;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">app.diet.it/p/gF7k2q9X</span><span style="font-size:12px;color:#6B7472">aperto 2h fa</span></div>
+        <button onClick="{{ goDiet }}" style="padding:9px 12px;border-radius:10px;border:1px solid #DAD8D1;background:#fff;font-weight:500;font-size:13px;cursor:pointer" style-hover="background:#F5F4F0">Aggiorna piano →</button>
+      </div>
+      <div style="background:#fff;border:1px solid #E4E2DC;border-radius:16px;padding:18px 20px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center"><div style="font-weight:600;font-size:15px">Pagamenti</div><button onClick="{{ goPay }}" style="background:none;border:0;color:#1E5A5F;font-size:13px;font-weight:500;cursor:pointer">Tutti →</button></div>
+        <sc-for list="{{ payRecent }}" as="p" hint-placeholder-count="3">
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:6px 0;border-top:1px solid #F0EEE9">
+            <div><div>{{ p.desc }}</div><div style="font-size:12px;color:#6B7472">{{ p.date }}</div></div>
+            <div style="text-align:right"><div style="font-weight:600">{{ p.amount }}</div>
+              <sc-if value="{{ p.paid }}" hint-placeholder-val="{{ true }}"><div style="font-size:11.5px;color:#2E6B47;font-weight:600">Saldato</div></sc-if>
+              <sc-if value="{{ p.pending }}" hint-placeholder-val="{{ false }}"><div style="font-size:11.5px;color:#A5621F;font-weight:600">In sospeso</div></sc-if>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isVisits }}" hint-placeholder-val="{{ false }}">
+  <div style="display:grid;grid-template-columns:minmax(0,1.7fr) minmax(300px,1fr);gap:20px;align-items:start">
+    <div style="display:flex;flex-direction:column;gap:20px;min-width:0">
+      <div style="background:#fff;border:1px solid #E4E2DC;border-radius:16px;overflow:hidden">
+        <div style="padding:18px 22px 12px;display:flex;justify-content:space-between;align-items:baseline"><div style="font-weight:600;font-size:16px">Peso & composizione</div><div style="font-size:12px;color:#6B7472">Altezza 166 cm</div></div>
+        <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr .8fr 1fr;padding:8px 22px;background:#FAF9F6;border-top:1px solid #EEECE6;border-bottom:1px solid #EEECE6;font:500 11px 'IBM Plex Mono';letter-spacing:.05em;text-transform:uppercase;color:#6B7472"><span>Data</span><span style="text-align:right">Peso</span><span style="text-align:right">Δ prec.</span><span style="text-align:right">BMI</span><span style="text-align:right">Massa grassa</span></div>
+        <sc-for list="{{ visitRows }}" as="v" hint-placeholder-count="6">
+          <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr .8fr 1fr;padding:10px 22px;border-bottom:1px solid #F3F1EC;font-variant-numeric:tabular-nums;font-size:13.5px" style-hover="background:#FAF9F6">
+            <span>{{ v.date }}</span><span style="text-align:right;font-weight:600">{{ v.kg }} kg</span><span style="text-align:right;color:#2E6B47;font-weight:500">{{ v.dkg }}</span><span style="text-align:right">{{ v.bmi }}</span><span style="text-align:right">{{ v.fat }} %</span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="background:#fff;border:1px solid #E4E2DC;border-radius:16px;overflow:hidden">
+        <div style="padding:18px 22px 12px;display:flex;justify-content:space-between;align-items:center">
+          <div style="font-weight:600;font-size:16px">Misure corporee <span style="font-weight:400;color:#6B7472;font-size:13px">(cm)</span></div>
+          <div style="display:flex;background:#F0EEE9;border-radius:8px;padding:3px">
+            <sc-if value="{{ modeCm }}" hint-placeholder-val="{{ true }}"><span style="padding:4px 10px;border-radius:6px;background:#fff;font-size:12px;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.08)">Δ cm</span><button onClick="{{ setPct }}" style="padding:4px 10px;border:0;background:none;font-size:12px;color:#5E6866;cursor:pointer">Δ %</button></sc-if>
+            <sc-if value="{{ modePct }}" hint-placeholder-val="{{ false }}"><button onClick="{{ setCm }}" style="padding:4px 10px;border:0;background:none;font-size:12px;color:#5E6866;cursor:pointer">Δ cm</button><span style="padding:4px 10px;border-radius:6px;background:#fff;font-size:12px;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.08)">Δ %</span></sc-if>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1.3fr repeat(5,1fr);padding:8px 22px;background:#FAF9F6;border-top:1px solid #EEECE6;border-bottom:1px solid #EEECE6;font:500 11px 'IBM Plex Mono';letter-spacing:.05em;text-transform:uppercase;color:#6B7472"><span>Data</span><span style="text-align:right">Vita</span><span style="text-align:right">Fianchi</span><span style="text-align:right">Torace</span><span style="text-align:right">Braccio</span><span style="text-align:right">Coscia</span></div>
+        <sc-for list="{{ measTable }}" as="r" hint-placeholder-count="6">
+          <div style="display:grid;grid-template-columns:1.3fr repeat(5,1fr);padding:10px 22px;border-bottom:1px solid #F3F1EC;font-variant-numeric:tabular-nums;font-size:13.5px" style-hover="background:#FAF9F6">
+            <span>{{ r.date }}</span><sc-for list="{{ r.cells }}" as="c"><span style="text-align:right">{{ c.v }}<span style="display:block;font:400 11px 'IBM Plex Mono';color:#2E6B47">{{ c.d }}</span></span></sc-for>
+          </div>
+        </sc-for>
+        <div style="display:grid;grid-template-columns:1.3fr repeat(5,1fr);padding:12px 22px;background:#EEF4F0;font-weight:600;font-size:13.5px;color:#245C3B"><span>Totale percorso</span><sc-for list="{{ measTotal }}" as="c"><span style="text-align:right">{{ c }}</span></sc-for></div>
+      </div>
+    </div>
+    <div style="background:#fff;border:1px solid #E4E2DC;border-radius:16px;padding:18px 20px;display:flex;flex-direction:column;gap:4px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div style="font-weight:600;font-size:16px">Storico visite</div><button onClick="{{ openDrawer }}" style="padding:7px 12px;border-radius:9px;background:#1E5A5F;color:#fff;border:0;font-weight:600;font-size:12.5px;cursor:pointer">+ Nuova visita</button></div>
+      <sc-for list="{{ timeline }}" as="v" hint-placeholder-count="5">
+        <div style="display:grid;grid-template-columns:14px 1fr;gap:12px">
+          <div style="display:flex;flex-direction:column;align-items:center"><span style="width:10px;height:10px;border-radius:50%;border:2px solid #7FA08A;background:#fff;margin-top:5px"></span><span style="flex:1;width:1px;background:#E4E2DC"></span></div>
+          <div style="padding-bottom:16px;display:flex;flex-direction:column;gap:3px">
+            <div style="display:flex;justify-content:space-between"><span style="font-weight:600">{{ v.type }}</span><span style="font:400 12px 'IBM Plex Mono';color:#6B7472">{{ v.date }}</span></div>
+            <div style="font-size:13px;color:#3E4846;text-wrap:pretty">{{ v.note }}</div>
+            <div style="font-size:12px;color:#1E5A5F;font-weight:500">{{ v.kg }} kg · Obiettivo: {{ v.goal }}</div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isDiet }}" hint-placeholder-val="{{ false }}">
+    <sc-if value="{{ upIdle }}" hint-placeholder-val="{{ true }}">
+    <div style="display:grid;grid-template-columns:minmax(0,2fr) minmax(300px,1fr);gap:20px;align-items:start">
+      <label onDragOver="{{ onDragOver }}" onDragLeave="{{ onDragLeave }}" onDrop="{{ onDrop }}" style="cursor:pointer;display:block">
+        <input type="file" accept="application/pdf" onChange="{{ onFile }}" style="display:none">
+        <sc-if value="{{ dragOver }}" hint-placeholder-val="{{ false }}"><div style="border:2px dashed #1E5A5F;background:#E8F1EE;border-radius:18px;min-height:340px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center"><div style="font-size:18px;font-weight:600;color:#0F3B40">Rilascia per digitalizzare</div></div></sc-if>
+        <sc-if value="{{ notDrag }}" hint-placeholder-val="{{ true }}"><div style="border:2px dashed #C9D3CF;background:#fff;border-radius:18px;min-height:340px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:32px" style-hover="border-color:#7FA08A;background:#FBFCFA">
+          <div style="width:56px;height:68px;border-radius:8px;border:1.5px solid #B9C7C2;background:#F5F8F6;display:grid;place-items:end center;padding-bottom:8px;font:600 11px 'IBM Plex Mono';color:#1E5A5F">PDF</div>
+          <div style="font-size:18px;font-weight:600">Trascina qui il PDF della dieta</div>
+          <div style="color:#5E6866;max-width:380px;text-wrap:pretty">Riconosciamo giorni, pasti, alimenti e grammature. Potrai verificare tutto prima di inviarlo.</div>
+          <div style="display:flex;gap:8px;margin-top:6px"><span style="padding:9px 14px;border-radius:10px;background:#1E5A5F;color:#fff;font-weight:600;font-size:13px">Scegli file</span><button onClick="{{ useSample }}" style="padding:9px 14px;border-radius:10px;border:1px solid #DAD8D1;background:#fff;font-weight:500;font-size:13px;cursor:pointer">Usa PDF di esempio</button></div>
+          <div style="font:400 11px 'IBM Plex Mono';color:#8A928F">PDF · max 20 MB · anche scansioni</div>
+        </div></sc-if>
+      </label>
+      <div style="display:flex;flex-direction:column;gap:20px">
+        <div style="background:#fff;border:1px solid #E4E2DC;border-radius:16px;padding:18px 20px;display:flex;flex-direction:column;gap:12px">
+          <div style="font-weight:600;font-size:15px">Come funziona</div>
+          <div style="display:flex;gap:10px"><span style="font:600 12px 'IBM Plex Mono';color:#1E5A5F">01</span><span style="font-size:13px">Carica il PDF che già usi in studio</span></div>
+          <div style="display:flex;gap:10px"><span style="font:600 12px 'IBM Plex Mono';color:#1E5A5F">02</span><span style="font-size:13px">Verifica il piano strutturato (campi incerti evidenziati)</span></div>
+          <div style="display:flex;gap:10px"><span style="font:600 12px 'IBM Plex Mono';color:#1E5A5F">03</span><span style="font-size:13px">Genera il link personale e invialo su WhatsApp o email</span></div>
+        </div>
+        <div style="background:#fff;border:1px solid #E4E2DC;border-radius:16px;padding:18px 20px;display:flex;flex-direction:column;gap:8px">
+          <div style="font-weight:600;font-size:15px">Versioni precedenti</div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-top:1px solid #F0EEE9"><span>v3 · Ricomposizione 1.650 kcal</span><span style="color:#2E6B47;font-weight:600;font-size:12px">Attivo</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-top:1px solid #F0EEE9;color:#6B7472"><span>v2 · Ipocalorico 1.500 kcal</span><span style="font-size:12px">26 mag</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-top:1px solid #F0EEE9;color:#6B7472"><span>v1 · Avvio 1.450 kcal</span><span style="font-size:12px">10 mar</span></div>
+        </div>
+      </div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ upProcessing }}" hint-placeholder-val="{{ false }}">
+    <div style="background:#fff;border:1px solid #E4E2DC;border-radius:18px;padding:32px;display:grid;grid-template-columns:200px 1fr;gap:32px;align-items:center;max-width:860px">
+      <div style="width:200px;height:250px;border-radius:10px;border:1px solid #E4E2DC;background:repeating-linear-gradient(0deg,#F5F4F0 0 10px,#fff 10px 20px);position:relative;overflow:hidden;display:grid;place-items:center">
+        <span style="font:500 11px 'IBM Plex Mono';color:#8A928F;background:#fff;padding:3px 6px;border-radius:4px">anteprima pagina 1</span>
+        <div style="position:absolute;left:0;right:0;top:{{ scanY }}%;height:2px;background:#2F7A7D;box-shadow:0 0 12px 4px rgba(47,122,125,.35)"></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div><div style="font:400 12px 'IBM Plex Mono';color:#6B7472">{{ fileName }}</div><div style="font-size:20px;font-weight:600;margin-top:2px">Digitalizzazione in corso…</div></div>
+        <div style="height:6px;border-radius:3px;background:#EEECE6;overflow:hidden"><div style="height:100%;width:{{ progress }}%;background:#1E5A5F;border-radius:3px;transition:width .8s ease"></div></div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <sc-for list="{{ steps }}" as="s" hint-placeholder-count="4">
+            <div style="display:flex;align-items:center;gap:10px;font-size:14px">
+              <sc-if value="{{ s.done }}" hint-placeholder-val="{{ false }}"><span style="width:20px;height:20px;border-radius:50%;background:#E3EFE6;color:#2E6B47;display:grid;place-items:center;font-size:12px;font-weight:700">✓</span><span style="color:#3E4846">{{ s.label }}</span></sc-if>
+              <sc-if value="{{ s.current }}" hint-placeholder-val="{{ false }}"><span style="width:20px;height:20px;border-radius:50%;border:2px solid #D6E2DE;border-top-color:#1E5A5F;animation:spin .8s linear infinite"></span><span style="font-weight:600">{{ s.label }}</span></sc-if>
+              <sc-if value="{{ s.pending }}" hint-placeholder-val="{{ true }}"><span style="width:20px;height:20px;border-radius:50%;border:2px solid #E4E2DC"></span><span style="color:#8A928F">{{ s.label }}</span></sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ upReady }}" hint-placeholder-val="{{ false }}">
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;align-items:start">
+      <div style="background:#fff;border:1px solid #E4E2DC;border-radius:16px;overflow:hidden;min-width:0">
+        <div style="padding:18px 22px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;border-bottom:1px solid #EEECE6">
+          <div><div style="font-weight:600;font-size:16px">Anteprima piano digitalizzato</div><div style="font-size:12px;color:#6B7472">{{ fileName }} · 7 giorni · 5 pasti/giorno</div></div>
+          <div style="display:flex;gap:8px;align-items:center"><span style="font-size:12px;font-weight:600;color:#2E6B47;background:#E3EFE6;padding:4px 9px;border-radius:99px">97% riconosciuto</span><span style="font-size:12px;font-weight:600;color:#8A5418;background:#FAEEDD;padding:4px 9px;border-radius:99px">2 da verificare</span></div>
+        </div>
+        <div style="display:flex;gap:6px;padding:14px 22px;border-bottom:1px solid #EEECE6">
+          <sc-for list="{{ dayTabs }}" as="d" hint-placeholder-count="7">
+            <sc-if value="{{ d.active }}" hint-placeholder-val="{{ false }}"><button style="flex:1;padding:8px 0;border-radius:9px;border:0;background:#0F3B40;color:#fff;font-weight:600;font-size:13px">{{ d.label }}</button></sc-if>
+            <sc-if value="{{ d.inactive }}" hint-placeholder-val="{{ true }}"><button onClick="{{ d.onClick }}" style="flex:1;padding:8px 0;border-radius:9px;border:1px solid #E4E2DC;background:#fff;color:#3E4846;font-weight:500;font-size:13px;cursor:pointer;position:relative" style-hover="background:#F5F4F0">{{ d.label }}<sc-if value="{{ d.flag }}"><span style="position:absolute;top:4px;right:6px;width:6px;height:6px;border-radius:50%;background:#D08A3A"></span></sc-if></button></sc-if>
+          </sc-for>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;padding:18px 22px 22px">
+          <sc-for list="{{ dayMeals }}" as="m" hint-placeholder-count="5">
+            <div style="border:1px solid #EEECE6;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px;background:#FCFCFA">
+              <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-weight:600">{{ m.name }}</span><span style="font:400 11px 'IBM Plex Mono';color:#8A928F">{{ m.time }}</span></div>
+              <sc-for list="{{ m.items }}" as="it">
+                <sc-if value="{{ it.ok }}" hint-placeholder-val="{{ true }}"><div style="display:flex;justify-content:space-between;gap:8px;font-size:13px"><span>{{ it.f }}</span><span style="font:500 12px 'IBM Plex Mono';color:#1E5A5F;white-space:nowrap">{{ it.g }}</span></div></sc-if>
+                <sc-if value="{{ it.flag }}" hint-placeholder-val="{{ false }}"><div style="display:flex;justify-content:space-between;gap:8px;font-size:13px;background:#FAEEDD;margin:0 -6px;padding:3px 6px;border-radius:6px" title="Grammatura poco leggibile nel PDF"><span>{{ it.f }}</span><input value="{{ it.g }}" style="width:64px;border:1px solid #E3C79C;border-radius:5px;background:#fff;font:500 12px 'IBM Plex Mono';color:#8A5418;text-align:right;padding:1px 4px"></div></sc-if>
+              </sc-for>
+              <sc-if value="{{ m.note }}"><div style="font-size:12px;color:#5E6866;border-top:1px dashed #E4E2DC;padding-top:7px;font-style:italic">{{ m.note }}</div></sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="position:sticky;top:20px;display:flex;flex-direction:column;gap:14px">
+        <div style="background:#0F3B40;color:#fff;border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:12px">
+          <div style="font:500 11px 'IBM Plex Mono';letter-spacing:.06em;text-transform:uppercase;color:#A9C6B1">Pronto per Giulia</div>
+          <div style="font-size:17px;font-weight:600;line-height:1.3;text-wrap:pretty">Il piano sarà visibile nell'app paziente, insieme al PDF originale.</div>
+          <button onClick="{{ openShare }}" style="padding:12px 14px;border-radius:11px;border:0;background:#A9C6B1;color:#0F3B40;font-weight:700;font-size:14px;cursor:pointer" style-hover="background:#BFD6C5">Genera e Condividi Link Paziente</button>
+          <div style="font-size:12px;color:#A9C6B1">Sostituisce la v3 · il link resta lo stesso</div>
+        </div>
+        <div style="background:#fff;border:1px solid #E4E2DC;border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;font-size:13px">
+          <div style="display:flex;justify-content:space-between"><span style="color:#6B7472">Energia media</span><span style="font-weight:600">1.640 kcal</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:#6B7472">Proteine</span><span style="font-weight:600">96 g · 23%</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:#6B7472">Carboidrati</span><span style="font-weight:600">198 g · 48%</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:#6B7472">Grassi</span><span style="font-weight:600">53 g · 29%</span></div>
+        </div>
+        <button onClick="{{ resetUpload }}" style="padding:9px 12px;border-radius:10px;border:1px solid #DAD8D1;background:#fff;font-weight:500;font-size:13px;cursor:pointer">Carica un altro PDF</button>
+      </div>
+    </div>
+    </sc-if>
+  </sc-if>
+
+  <sc-if value="{{ isPay }}" hint-placeholder-val="{{ false }}">
+  <div style="display:flex;flex-direction:column;gap:20px">
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto;gap:12px;align-items:stretch">
+      <div style="background:#fff;border:1px solid #E4E2DC;border-radius:14px;padding:14px 16px"><div style="font:500 11px 'IBM Plex Mono';letter-spacing:.06em;text-transform:uppercase;color:#6B7472">Incassato 2026</div><div style="font-size:24px;font-weight:600;margin-top:6px">€ 520</div></div>
+      <div style="background:#FBF5EC;border:1px solid #EFDFC6;border-radius:14px;padding:14px 16px"><div style="font:500 11px 'IBM Plex Mono';letter-spacing:.06em;text-transform:uppercase;color:#8A5418">In sospeso</div><div style="font-size:24px;font-weight:600;margin-top:6px;color:#7A4A14">€ 70</div></div>
+      <div style="background:#fff;border:1px solid #E4E2DC;border-radius:14px;padding:14px 16px"><div style="font:500 11px 'IBM Plex Mono';letter-spacing:.06em;text-transform:uppercase;color:#6B7472">Prossima visita</div><div style="font-size:24px;font-weight:600;margin-top:6px">11 nov</div></div>
+      <button style="padding:0 18px;border-radius:14px;background:#1E5A5F;color:#fff;border:0;font-weight:600;font-size:13px;cursor:pointer">+ Registra pagamento</button>
+    </div>
+    <div style="background:#fff;border:1px solid #E4E2DC;border-radius:16px;overflow:hidden">
+      <div style="display:grid;grid-template-columns:1fr 2fr 1fr 1fr 1fr 120px;padding:10px 22px;background:#FAF9F6;border-bottom:1px solid #EEECE6;font:500 11px 'IBM Plex Mono';letter-spacing:.05em;text-transform:uppercase;color:#6B7472"><span>Data</span><span>Descrizione</span><span>Metodo</span><span style="text-align:right">Importo</span><span style="padding-left:24px">Stato</span><span style="text-align:right">Documento</span></div>
+      <sc-for list="{{ payments }}" as="p" hint-placeholder-count="6">
+        <div style="display:grid;grid-template-columns:1fr 2fr 1fr 1fr 1fr 120px;padding:13px 22px;border-bottom:1px solid #F3F1EC;align-items:center;font-size:13.5px" style-hover="background:#FAF9F6">
+          <span>{{ p.date }}</span><span>{{ p.desc }}</span><span style="color:#5E6866">{{ p.method }}</span><span style="text-align:right;font-weight:600;font-variant-numeric:tabular-nums">{{ p.amount }}</span>
+          <span style="padding-left:24px"><sc-if value="{{ p.paid }}" hint-placeholder-val="{{ true }}"><span style="font-size:12px;font-weight:600;color:#2E6B47;background:#E3EFE6;padding:3px 9px;border-radius:99px">Saldato</span></sc-if><sc-if value="{{ p.pending }}" hint-placeholder-val="{{ false }}"><button onClick="{{ p.onMark }}" title="Segna come saldato" style="font-size:12px;font-weight:600;color:#8A5418;background:#FAEEDD;padding:3px 9px;border-radius:99px;border:0;cursor:pointer">In sospeso</button></sc-if></span>
+          <span style="text-align:right"><sc-if value="{{ p.paid }}" hint-placeholder-val="{{ true }}"><a href="#" style="font-size:13px;font-weight:500">Fattura ↓</a></sc-if><sc-if value="{{ p.pending }}" hint-placeholder-val="{{ false }}"><a href="https://wa.me/393472185590" target="_blank" style="font-size:13px;font-weight:500;color:#8A5418">Sollecita</a></sc-if></span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  </sc-if>
+</main>
+
+<sc-if value="{{ drawer }}" hint-placeholder-val="{{ false }}">
+<div onClick="{{ closeDrawer }}" style="position:fixed;inset:0;background:rgba(15,30,32,.32);z-index:20"></div>
+<div style="position:fixed;top:0;right:0;bottom:0;width:460px;background:#fff;z-index:21;box-shadow:-12px 0 40px rgba(15,30,32,.18);display:flex;flex-direction:column">
+  <div style="padding:20px 24px;border-bottom:1px solid #EEECE6;display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:18px;font-weight:600">Nuova visita</div><div style="font-size:12px;color:#6B7472">Giulia Ferrante · ultima visita 14 ott</div></div><button onClick="{{ closeDrawer }}" style="border:0;background:#F0EEE9;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:16px">×</button></div>
+  <div style="flex:1;overflow:auto;padding:20px 24px;display:flex;flex-direction:column;gap:18px">
+    <label style="display:flex;flex-direction:column;gap:6px"><span style="font:500 11px 'IBM Plex Mono';letter-spacing:.06em;text-transform:uppercase;color:#6B7472">Data visita</span><input type="date" value="{{ form.date }}" onChange="{{ onDate }}" style="padding:10px 12px;border:1px solid #DAD8D1;border-radius:10px;font-size:14px"></label>
+    <div style="font:500 11px 'IBM Plex Mono';letter-spacing:.06em;text-transform:uppercase;color:#6B7472;margin-bottom:-8px">Parametri antropometrici</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <sc-for list="{{ formFields }}" as="f" hint-placeholder-count="7">
+        <label style="display:flex;flex-direction:column;gap:5px"><span style="font-size:12.5px;color:#3E4846">{{ f.label }}</span><div style="display:flex;align-items:center;border:1px solid #DAD8D1;border-radius:10px;padding:0 12px" style-focus-within="border-color:#1E5A5F"><input inputmode="decimal" placeholder="{{ f.ph }}" value="{{ f.value }}" onChange="{{ f.onChange }}" style="flex:1;min-width:0;border:0;outline:0;padding:10px 0;font-size:14px;font-variant-numeric:tabular-nums"><span style="font:400 12px 'IBM Plex Mono';color:#8A928F">{{ f.unit }}</span></div></label>
+      </sc-for>
+    </div>
+    <label style="display:flex;flex-direction:column;gap:6px"><span style="font:500 11px 'IBM Plex Mono';letter-spacing:.06em;text-transform:uppercase;color:#6B7472">Note anamnestiche</span><textarea rows="4" placeholder="Aderenza, sintomi, sonno, variazioni terapia…" value="{{ form.note }}" onChange="{{ onNote }}" style="padding:10px 12px;border:1px solid #DAD8D1;border-radius:10px;font-size:14px;resize:vertical"></textarea></label>
+    <label style="display:flex;flex-direction:column;gap:6px"><span style="font:500 11px 'IBM Plex Mono';letter-spacing:.06em;text-transform:uppercase;color:#6B7472">Obiettivi prossimo periodo</span><input placeholder="Es. −1,5 kg, 8.000 passi/giorno" value="{{ form.goal }}" onChange="{{ onGoal }}" style="padding:10px 12px;border:1px solid #DAD8D1;border-radius:10px;font-size:14px"></label>
+  </div>
+  <div style="padding:16px 24px;border-top:1px solid #EEECE6;display:flex;gap:10px;justify-content:flex-end"><button onClick="{{ closeDrawer }}" style="padding:10px 16px;border-radius:10px;border:1px solid #DAD8D1;background:#fff;font-weight:500;cursor:pointer">Annulla</button><button onClick="{{ saveVisit }}" style="padding:10px 18px;border-radius:10px;border:0;background:#1E5A5F;color:#fff;font-weight:600;cursor:pointer">Salva visita</button></div>
+</div>
+</sc-if>
+
+<sc-if value="{{ share }}" hint-placeholder-val="{{ false }}">
+<div onClick="{{ closeShare }}" style="position:fixed;inset:0;background:rgba(15,30,32,.32);z-index:30;display:grid;place-items:center">
+  <div onClick="{{ stop }}" style="width:520px;background:#fff;border-radius:18px;box-shadow:0 24px 60px rgba(15,30,32,.25);padding:24px;display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div style="font-size:19px;font-weight:600">Link paziente pronto</div><div style="font-size:13px;color:#5E6866;margin-top:2px">Giulia potrà aprirlo senza password e aggiungerlo alla Home.</div></div><button onClick="{{ closeShare }}" style="border:0;background:#F0EEE9;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:16px">×</button></div>
+    <div style="display:flex;gap:8px;align-items:center;border:1px solid #DAD8D1;border-radius:12px;padding:6px 6px 6px 14px"><span style="flex:1;font:500 13.5px 'IBM Plex Mono';color:#0F3B40">app.diet.it/p/gF7k2q9X</span>
+      <sc-if value="{{ copied }}" hint-placeholder-val="{{ false }}"><span style="padding:8px 14px;border-radius:9px;background:#E3EFE6;color:#2E6B47;font-weight:600;font-size:13px">Copiato ✓</span></sc-if>
+      <sc-if value="{{ notCopied }}" hint-placeholder-val="{{ true }}"><button onClick="{{ copyLink }}" style="padding:8px 14px;border-radius:9px;border:0;background:#0F3B40;color:#fff;font-weight:600;font-size:13px;cursor:pointer">Copia link</button></sc-if>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <a href="{{ waHref }}" target="_blank" style="padding:12px;border-radius:12px;background:#E3EFE6;color:#245C3B;font-weight:600;text-align:center;text-decoration:none">Invia su WhatsApp</a>
+      <a href="{{ mailHref }}" style="padding:12px;border-radius:12px;border:1px solid #DAD8D1;color:#18211F;font-weight:600;text-align:center;text-decoration:none">Invia per email</a>
+    </div>
+    <div style="background:#F5F4F0;border-radius:12px;padding:12px 14px;font-size:13px;color:#3E4846;line-height:1.5"><div style="font:500 11px 'IBM Plex Mono';letter-spacing:.06em;text-transform:uppercase;color:#6B7472;margin-bottom:4px">Messaggio</div>Ciao Giulia, ecco il tuo nuovo piano nutrizionale. Aprilo dal link e aggiungilo alla schermata Home: app.diet.it/p/gF7k2q9X — Dott.ssa Marchi</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;color:#5E6866;border-top:1px solid #EEECE6;padding-top:14px"><span>Link personale · revocabile in qualsiasi momento</span><button onClick="{{ toggleLink }}" style="border:0;background:none;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:13px;color:#18211F;font-weight:500">{{ linkLabel }}<sc-if value="{{ linkOn }}" hint-placeholder-val="{{ true }}"><span style="width:36px;height:20px;border-radius:99px;background:#1E5A5F;position:relative"><span style="position:absolute;right:2px;top:2px;width:16px;height:16px;border-radius:50%;background:#fff"></span></span></sc-if><sc-if value="{{ linkOff }}" hint-placeholder-val="{{ false }}"><span style="width:36px;height:20px;border-radius:99px;background:#D4D2CB;position:relative"><span style="position:absolute;left:2px;top:2px;width:16px;height:16px;border-radius:50%;background:#fff"></span></span></sc-if></button></div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}"><div style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0F3B40;color:#fff;padding:11px 18px;border-radius:12px;font-size:13.5px;font-weight:500;z-index:40;box-shadow:0 10px 30px rgba(15,30,32,.25)">{{ toast }}</div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const MO=['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+const fmt=s=>{const[y,m,d]=s.split('-');return `${+d} ${MO[m-1]} ${y}`};
+const fmtS=s=>{const[,m,d]=s.split('-');return `${+d} ${MO[m-1]}`};
+const n1=v=>v.toFixed(1).replace('.',',');
+const sg=v=>(v>0?'+':v<0?'−':'±')+n1(Math.abs(v));
+const KEYS=['vita','fianchi','torace','braccio','coscia'];
+const LBL={vita:'Vita',fianchi:'Fianchi',torace:'Torace',braccio:'Braccio',coscia:'Coscia'};
+const V0=[
+['2026-03-10',84.6,33.1,96,108,102,32,61,'Prima visita','Anamnesi completa. Fame nervosa serale, 5.000 passi/giorno.','avvio piano 1.450 kcal'],
+['2026-04-07',83.1,32.4,94.5,107,101.5,31.8,60.4,'Controllo','Buona aderenza, gonfiore ridotto con delattosati.','−1,5 kg'],
+['2026-05-05',81.9,31.6,93,106,101,31.5,60,'Controllo','Inserito pilates 2×/sett. Sonno migliorato.','−1,2 kg'],
+['2026-05-26',81.2,31.1,92.4,105.2,100.4,31.3,59.6,'Controllo + nuovo piano','Passaggio a 1.500 kcal, più proteine a colazione.','mantenere massa magra'],
+['2026-06-23',80.0,30.4,91,104.5,100,31.1,59.2,'Controllo','Ok weekend, attenzione aperitivi.','−1 kg'],
+['2026-07-21',79.4,30.0,90.2,104,99.6,31,58.9,'Controllo','Vacanze gestite bene, peso stabile.','consolidare'],
+['2026-08-25',78.1,29.2,89.5,103.2,99.2,30.8,58.6,'Controllo','Ripresa routine, energia buona.','−1 kg'],
+['2026-09-15',77.6,28.9,88.6,102.6,98.8,30.6,58.2,'Controllo + nuovo piano','Ricomposizione 1.650 kcal con carboidrati periallenamento.','ricomposizione'],
+['2026-10-14',76.8,28.3,88,102,98.5,30.5,58,'Controllo','Ottimo trend. TSH nella norma all\'ultimo esame.','74 kg entro gennaio']
+].map(r=>({date:r[0],kg:r[1],fat:r[2],vita:r[3],fianchi:r[4],torace:r[5],braccio:r[6],coscia:r[7],type:r[8],note:r[9],goal:r[10]}));
+const PAY0=[
+['2026-10-14','Visita di controllo','Satispay',70,false],
+['2026-09-15','Controllo + aggiornamento piano','POS',90,true],
+['2026-08-25','Visita di controllo','Contanti',70,true],
+['2026-07-21','Visita di controllo','Bonifico',70,true],
+['2026-05-26','Pacchetto 3 controlli','Bonifico',170,true],
+['2026-03-10','Prima visita + piano','POS',120,true]];
+const A={col:[['Yogurt greco delattosato','150 g'],['Fiocchi d\'avena','30 g'],['Mirtilli','80 g']],sp:[['Mela','150 g'],['Mandorle','15 g']],pr:[['Riso basmati','70 g'],['Petto di pollo','120 g'],['Zucchine grigliate','200 g'],['Olio EVO','10 g']],me:[['Kefir','125 ml']],ce:[['Merluzzo','180 g'],['Patate','200 g'],['Verdure al vapore','200 g'],['Olio EVO','10 g']]};
+const B={col:[['Pane integrale','50 g'],['Ricotta delattosata','60 g'],['Miele','10 g']],sp:[['Frutta di stagione','150 g'],['Noci','15 g']],pr:[['Pasta integrale','70 g'],['Ceci lessati','150 g',1],['Pomodorini','150 g'],['Olio EVO','10 g']],me:[['Gallette di riso','2 pz'],['Hummus','30 g']],ce:[['Uova','2 pz'],['Pane integrale','50 g'],['Spinaci','200 g'],['Olio EVO','10 g']]};
+const C={col:[['Bevanda d\'avena','200 ml'],['Fette biscottate integrali','4 pz'],['Marmellata s/zucchero','20 g']],sp:[['Kiwi','2 pz'],['Mandorle','15 g']],pr:[['Farro','70 g'],['Salmone','120 g',1],['Insalata mista','150 g'],['Olio EVO','10 g']],me:[['Yogurt greco delattosato','125 g']],ce:[['Fesa di tacchino','130 g'],['Quinoa','50 g'],['Finocchi','200 g'],['Olio EVO','10 g']]};
+const DAYS=[['Lun',A],['Mar',B],['Mer',C],['Gio',A],['Ven',B],['Sab',C],['Dom',A]];
+const MEALS=[['col','Colazione','07:30','Levotiroxina 30 min prima'],['sp','Spuntino','10:30',''],['pr','Pranzo','13:00',''],['me','Merenda','16:30',''],['ce','Cena','20:00','Bere 1,5–2 L d\'acqua nella giornata']];
+const STEPS=['Caricamento PDF','Riconoscimento testo (OCR)','Struttura giorni e pasti','Estrazione alimenti e grammature'];
+const FF=[['kg','Peso','kg','76,8'],['fat','Massa grassa','%','28,3'],['vita','Vita','cm','88'],['fianchi','Fianchi','cm','102'],['torace','Torace','cm','98,5'],['braccio','Braccio','cm','30,5'],['coscia','Coscia','cm','58']];
+
+class Component extends DCLogic {
+  state={tab:'overview',hover:null,visits:V0,pays:PAY0,cw:760,drawer:false,form:{date:'2026-10-21',note:'',goal:''},upload:'idle',step:0,fileName:'',day:0,share:false,copied:false,linkOn:true,toast:null,dragOver:false,mode:'cm',scan:0};
+  chartRef=React.createRef();
+  componentDidMount(){this.ro=new ResizeObserver(()=>this.measure());this.observe()}
+  componentDidUpdate(){this.observe()}
+  componentWillUnmount(){this.ro&&this.ro.disconnect();clearInterval(this.t);clearInterval(this.s);clearTimeout(this.tt)}
+  observe(){const el=this.chartRef.current;if(el&&el!==this.obs){this.obs=el;this.ro.observe(el);this.measure()}}
+  measure(){const el=this.chartRef.current;if(el){const w=Math.round(el.clientWidth);if(w&&w!==this.state.cw)this.setState({cw:w})}}
+  flash(msg){this.setState({toast:msg});clearTimeout(this.tt);this.tt=setTimeout(()=>this.setState({toast:null}),2400)}
+  startUpload(name){clearInterval(this.t);clearInterval(this.s);this.setState({upload:'processing',step:0,dragOver:false,fileName:name||'Piano_Ferrante_ott26.pdf',scan:0});
+    this.s=setInterval(()=>this.setState(s=>({scan:(s.scan+4)%100})),60);
+    this.t=setInterval(()=>this.setState(s=>{if(s.step>=3){clearInterval(this.t);clearInterval(this.s);return{upload:'ready',step:4}}return{step:s.step+1}}),850)}
+  chart(){
+    const {visits,cw,hover}=this.state;const W=cw,H=240,pl=34,pr=18,pt=24,pb=26,lo=73,hi=86;
+    const n=visits.length,X=i=>pl+(n===1?0:i*(W-pl-pr)/(n-1)),Y=v=>pt+(hi-v)/(hi-lo)*(H-pt-pb);
+    const pts=visits.map((v,i)=>[X(i),Y(v.kg)]);
+    const line=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
+    const base=H-pb;const area=line+` L${pts[n-1][0]} ${base} L${pts[0][0]} ${base} Z`;
+    const ys=[74,78,82,86];const grid=ys.map(v=>`M${pl} ${Y(v)} H${W-pr}`).join(' ');
+    const step=(W-pl-pr)/Math.max(1,n-1);
+    const points=visits.map((v,i)=>({x:pts[i][0],y:pts[i][1],hx:pts[i][0]-step/2,hw:step,xl:fmtS(v.date),onEnter:()=>this.setState({hover:i})}));
+    let tip={show:false};if(hover!=null&&visits[hover]){const v=visits[hover],p=visits[hover-1];tip={show:true,x:pts[hover][0],y:pts[hover][1],date:fmt(v.date),kg:n1(v.kg),delta:p?sg(v.kg-p.kg)+' kg':'baseline'}}
+    return {chart:{w:W,h:H,line,area,grid,target:`M${pl} ${Y(74)} H${W-pr}`,ylabels:ys.map(v=>({y:Y(v),label:v})),points},tip};
+  }
+  renderVals(){
+    const s=this.state,vs=s.visits,f0=vs[0],fl=vs[vs.length-1];
+    const tabs=[['overview','Overview','—'],['visits','Visite & Misure',vs.length],['diet','Piano nutrizionale','v3'],['pay','Pagamenti',s.pays.length]].map(([id,label,count])=>({label,count,active:s.tab===id,inactive:s.tab!==id,onClick:()=>this.setState({tab:id})}));
+    const bmi=kg=>n1(kg/2.7556);
+    const kpis=[{label:'Peso attuale',value:n1(fl.kg),unit:'kg',sub:sg(fl.kg-vs[vs.length-2].kg)+' kg dall\'ultima'},{label:'Dall\'inizio',value:sg(fl.kg-f0.kg),unit:'kg',sub:sg((fl.kg-f0.kg)/f0.kg*100)+'% · '+vs.length+' visite'},{label:'BMI',value:bmi(fl.kg),unit:'',sub:'da '+bmi(f0.kg)+' · sovrappeso lieve'},{label:'Mancano',value:n1(Math.max(0,fl.kg-74)),unit:'kg',sub:'all\'obiettivo 74 kg'}];
+    const maxD=Math.max(...KEYS.map(k=>f0[k]-fl[k]));
+    const measRows=KEYS.map(k=>({label:LBL[k],start:n1(f0[k]),now:n1(fl[k]),dcm:sg(fl[k]-f0[k]),dpc:sg((fl[k]-f0[k])/f0[k]*100)+'%',bar:Math.round((f0[k]-fl[k])/maxD*100)}));
+    const desc=[...vs].map((v,i)=>({v,p:vs[i-1]})).reverse();
+    const visitRows=desc.map(({v,p})=>({date:fmt(v.date),kg:n1(v.kg),dkg:p?sg(v.kg-p.kg):'—',bmi:bmi(v.kg),fat:n1(v.fat)}));
+    const measTable=desc.map(({v,p})=>({date:fmt(v.date),cells:KEYS.map(k=>({v:n1(v[k]),d:p?(s.mode==='cm'?sg(v[k]-p[k]):sg((v[k]-p[k])/p[k]*100)+'%'):'base'}))}));
+    const measTotal=KEYS.map(k=>s.mode==='cm'?sg(fl[k]-f0[k])+' cm':sg((fl[k]-f0[k])/f0[k]*100)+'%');
+    const timeline=desc.map(({v})=>({type:v.type,date:fmt(v.date),note:v.note,kg:n1(v.kg),goal:v.goal}));
+    const payments=s.pays.map((p,i)=>({date:fmt(p[0]),desc:p[1],method:p[2],amount:'€ '+p[3],paid:p[4],pending:!p[4],onMark:()=>{this.setState(st=>({pays:st.pays.map((q,j)=>j===i?[...q.slice(0,4),true]:q)}));this.flash('Pagamento segnato come saldato')}}));
+    const dayTabs=DAYS.map(([l,t],i)=>({label:l,active:s.day===i,inactive:s.day!==i,flag:(i===4||i===5),onClick:()=>this.setState({day:i})}));
+    const T=DAYS[s.day][1];
+    const dayMeals=MEALS.map(([k,name,time,note])=>({name,time,note:(s.day===6&&k==='pr')?'Pasto libero consentito (porzione moderata)':note,items:T[k].map(([f,g,fl2])=>{const flag=!!fl2&&(s.day===4||s.day===5);return{f,g,ok:!flag,flag}})}));
+    const steps=STEPS.map((label,i)=>({label,done:i<s.step,current:i===s.step,pending:i>s.step}));
+    const formFields=FF.map(([k,label,unit,ph])=>({label,unit,ph,value:s.form[k]||'',onChange:e=>{const val=e.target.value;this.setState(st=>({form:{...st.form,[k]:val}}))}}));
+    const msg=encodeURIComponent('Ciao Giulia, ecco il tuo nuovo piano nutrizionale. Aprilo dal link e aggiungilo alla schermata Home: https://app.diet.it/p/gF7k2q9X — Dott.ssa Marchi');
+    return {
+      tabs,kpis,measRows,visitRows,measTable,measTotal,timeline,payments,payRecent:payments.slice(0,3),dayTabs,dayMeals,steps,formFields,
+      ...this.chart(),chartRef:this.chartRef,clearHover:()=>this.setState({hover:null}),
+      isOverview:s.tab==='overview',isVisits:s.tab==='visits',isDiet:s.tab==='diet',isPay:s.tab==='pay',
+      goDiet:()=>this.setState({tab:'diet'}),goPay:()=>this.setState({tab:'pay'}),
+      modeCm:s.mode==='cm',modePct:s.mode==='pct',setCm:()=>this.setState({mode:'cm'}),setPct:()=>this.setState({mode:'pct'}),
+      upIdle:s.upload==='idle',upProcessing:s.upload==='processing',upReady:s.upload==='ready',fileName:s.fileName,progress:Math.min(100,s.step*25+8),scanY:s.scan,
+      dragOver:s.dragOver,notDrag:!s.dragOver,
+      onDragOver:e=>{e.preventDefault();if(!this.state.dragOver)this.setState({dragOver:true})},
+      onDragLeave:()=>this.setState({dragOver:false}),
+      onDrop:e=>{e.preventDefault();const f=e.dataTransfer.files&&e.dataTransfer.files[0];this.startUpload(f&&f.name)},
+      onFile:e=>{const f=e.target.files&&e.target.files[0];this.startUpload(f&&f.name)},
+      useSample:e=>{e.preventDefault();e.stopPropagation();this.startUpload()},
+      resetUpload:()=>this.setState({upload:'idle',step:0}),
+      share:s.share,openShare:()=>this.setState({share:true,copied:false}),closeShare:()=>this.setState({share:false}),stop:e=>e.stopPropagation(),
+      copied:s.copied,notCopied:!s.copied,copyLink:()=>{try{navigator.clipboard.writeText('https://app.diet.it/p/gF7k2q9X')}catch(e){}this.setState({copied:true})},
+      waHref:'https://wa.me/393472185590?text='+msg,mailHref:'mailto:giulia.ferrante@mail.it?subject='+encodeURIComponent('Il tuo piano nutrizionale')+'&body='+msg,
+      linkOn:s.linkOn,linkOff:!s.linkOn,linkLabel:s.linkOn?'Attivo':'Disattivato',toggleLink:()=>this.setState(st=>({linkOn:!st.linkOn})),
+      drawer:s.drawer,form:s.form,openDrawer:()=>this.setState({drawer:true}),closeDrawer:()=>this.setState({drawer:false}),
+      onDate:e=>{const v=e.target.value;this.setState(st=>({form:{...st.form,date:v}}))},
+      onNote:e=>{const v=e.target.value;this.setState(st=>({form:{...st.form,note:v}}))},
+      onGoal:e=>{const v=e.target.value;this.setState(st=>({form:{...st.form,goal:v}}))},
+      saveVisit:()=>{const f=this.state.form,num=(k,d)=>{const v=parseFloat(String(f[k]||'').replace(',','.'));return isNaN(v)?d:v};const last=this.state.visits[this.state.visits.length-1];
+        const nv={date:f.date||'2026-10-21',kg:num('kg',last.kg),fat:num('fat',last.fat),type:'Controllo',note:f.note||'Visita registrata.',goal:f.goal||last.goal};KEYS.forEach(k=>nv[k]=num(k,last[k]));
+        this.setState(st=>({visits:[...st.visits,nv],drawer:false,form:{date:'2026-10-21',note:'',goal:''}}));this.flash('Visita salvata · grafico e misure aggiornati')},
+      toast:s.toast
+    };
+  }
+}
+</script>
+</body>
+</html>

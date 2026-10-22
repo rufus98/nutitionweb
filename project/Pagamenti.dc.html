@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"><style>body{margin:0;background:#F5F4F0;-webkit-font-smoothing:antialiased}*{box-sizing:border-box}a{color:#1E5A5F;text-decoration:none}a:hover{color:#0F3B40;text-decoration:underline}input,button,select{font-family:inherit}</style></helmet>
+<div style="display:grid;grid-template-columns:232px minmax(0,1fr);min-height:100vh;min-width:1280px;background:#F5F4F0;font-family:'Figtree',sans-serif;color:#18211F;font-size:14px;line-height:1.45">
+
+<aside style="background:#0F3B40;color:#DCE7E2;padding:22px 14px;display:flex;flex-direction:column;gap:28px;position:sticky;top:0;height:100vh">
+  <div style="display:flex;align-items:center;gap:10px;padding:0 8px">
+    <div style="width:28px;height:28px;border-radius:8px;background:#A9C6B1;color:#0F3B40;display:grid;place-items:center;font-weight:700;font-size:15px">n</div>
+    <div style="font-weight:600;font-size:16px;color:#fff;letter-spacing:-.01em">Nutrea <span style="color:#8FB3A6;font-weight:500">Studio</span></div>
+  </div>
+  <nav style="display:flex;flex-direction:column;gap:2px">
+    <div style="padding:9px 10px;border-radius:8px;color:#B7CCC5">Oggi</div>
+    <a href="Lista Pazienti.dc.html" style="padding:9px 10px;border-radius:8px;color:#B7CCC5;text-decoration:none;display:flex;justify-content:space-between" style-hover="background:rgba(255,255,255,.06);color:#fff;text-decoration:none">Pazienti<span style="font:500 11px 'IBM Plex Mono';color:#8FB3A6">128</span></a>
+    <a href="Agenda.dc.html" style="padding:9px 10px;border-radius:8px;color:#B7CCC5;text-decoration:none" style-hover="background:rgba(255,255,255,.06);color:#fff;text-decoration:none">Agenda</a>
+    <div style="padding:9px 10px;border-radius:8px;color:#B7CCC5">Piani nutrizionali</div>
+    <div style="padding:9px 10px;border-radius:8px;background:rgba(169,198,177,.16);color:#fff;font-weight:600">Pagamenti</div>
+    <a href="Impostazioni.dc.html" style="padding:9px 10px;border-radius:8px;color:#B7CCC5;text-decoration:none" style-hover="background:rgba(255,255,255,.06);color:#fff;text-decoration:none">Impostazioni</a>
+  </nav>
+  <div style="margin-top:auto;padding:12px 10px;border-top:1px solid rgba(255,255,255,.1);display:flex;gap:10px;align-items:center">
+    <div style="width:32px;height:32px;border-radius:50%;background:#2F6B6E;color:#fff;display:grid;place-items:center;font-size:12px;font-weight:600">EM</div>
+    <div><div style="color:#fff;font-weight:500;font-size:13px">Dott.ssa Elena Marchi</div><div style="font-size:12px;color:#8FB3A6">Biologa nutrizionista</div></div>
+  </div>
+</aside>
+
+<main style="padding:24px 32px 48px;display:flex;flex-direction:column;gap:18px;min-width:0">
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap">
+    <div><h1 style="margin:0;font-size:28px;font-weight:600;letter-spacing:-.02em">Pagamenti</h1><div style="color:#5E6866;font-size:13px;margin-top:2px">Ottobre 2026 · aggiornato oggi</div></div>
+    <div style="display:flex;gap:8px">
+      <button style="padding:10px 14px;border-radius:10px;border:1px solid #DAD8D1;background:#fff;font-weight:500;font-size:13px;cursor:pointer" style-hover="background:#FAF9F6">Esporta per commercialista</button>
+      <button onClick="{{ openNew }}" style="padding:10px 16px;border-radius:10px;background:#1E5A5F;color:#fff;border:0;font-weight:600;font-size:13px;cursor:pointer" style-hover="background:#0F3B40">+ Registra pagamento</button>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px">
+    <div style="background:#fff;border:1px solid #E4E2DC;border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:6px"><div style="font:500 11px 'IBM Plex Mono';letter-spacing:.06em;text-transform:uppercase;color:#6B7472">Incassato ottobre</div><div style="font-size:24px;font-weight:600;letter-spacing:-.02em">€ {{ kIn }}</div><div style="font-size:12px;color:#2E6B47;font-weight:500">{{ kInSub }}</div></div>
+    <div style="background:#FBF5EC;border:1px solid #EFDFC6;border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:6px"><div style="font:500 11px 'IBM Plex Mono';letter-spacing:.06em;text-transform:uppercase;color:#8A5418">Da incassare</div><div style="font-size:24px;font-weight:600;letter-spacing:-.02em;color:#7A4A14">€ {{ kDue }}</div><div style="font-size:12px;color:#8A5418;font-weight:500">{{ kDueSub }}</div></div>
+    <div style="background:#fff;border:1px solid #E4E2DC;border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:6px"><div style="font:500 11px 'IBM Plex Mono';letter-spacing:.06em;text-transform:uppercase;color:#6B7472">Incassato 2026</div><div style="font-size:24px;font-weight:600;letter-spacing:-.02em">€ {{ kYear }}</div><div style="font-size:12px;color:#5E6866">gen – ott</div></div>
+    <div style="background:#fff;border:1px solid #E4E2DC;border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:6px"><div style="font:500 11px 'IBM Plex Mono';letter-spacing:.06em;text-transform:uppercase;color:#6B7472">Fatture emesse</div><div style="font-size:24px;font-weight:600;letter-spacing:-.02em">{{ kInv }}</div><div style="font-size:12px;color:#5E6866">ottobre · inviate a SdI</div></div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:minmax(0,2fr) minmax(280px,1fr);gap:20px;align-items:stretch">
+    <div style="background:#fff;border:1px solid #E4E2DC;border-radius:16px;padding:18px 22px;display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline"><div style="font-weight:600;font-size:16px">Incassi mensili</div><div style="font-size:12px;color:#6B7472">{{ hoverLabel }}</div></div>
+      <div onMouseLeave="{{ clearHover }}" style="display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:10px;align-items:end;height:170px">
+        <sc-for list="{{ months }}" as="m" hint-placeholder-count="12">
+          <div onMouseEnter="{{ m.onEnter }}" style="height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:6px;cursor:default">
+            <sc-if value="{{ m.cur }}"><div style="width:100%;height:{{ m.h }}%;border-radius:6px 6px 2px 2px;background:#1E5A5F"></div></sc-if>
+            <sc-if value="{{ m.past }}"><div style="width:100%;height:{{ m.h }}%;border-radius:6px 6px 2px 2px;background:{{ m.bg }}"></div></sc-if>
+            <sc-if value="{{ m.future }}"><div style="width:100%;height:4px;border-radius:2px;background:#EEECE6"></div></sc-if>
+            <span style="font:400 11px 'IBM Plex Mono';color:#8A928F">{{ m.l }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    <div style="background:#fff;border:1px solid #E4E2DC;border-radius:16px;padding:18px 20px;display:flex;flex-direction:column;gap:12px">
+      <div style="font-weight:600;font-size:16px">Metodi · ottobre</div>
+      <div style="display:flex;height:10px;border-radius:5px;overflow:hidden;gap:2px">
+        <sc-for list="{{ methods }}" as="m"><div style="width:{{ m.pct }}%;background:{{ m.c }}"></div></sc-for>
+      </div>
+      <sc-for list="{{ methods }}" as="m" hint-placeholder-count="5">
+        <div style="display:flex;align-items:center;gap:10px;font-size:13px"><span style="width:10px;height:10px;border-radius:3px;background:{{ m.c }}"></span><span style="flex:1">{{ m.l }}</span><span style="font-variant-numeric:tabular-nums;font-weight:600">€ {{ m.v }}</span><span style="font:400 12px 'IBM Plex Mono';color:#6B7472;width:36px;text-align:right">{{ m.pct }}%</span></div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #DAD8D1;border-radius:10px;padding:0 12px;width:300px"><span style="width:12px;height:12px;border-radius:50%;border:1.8px solid #8A928F;flex:none"></span><input value="{{ q }}" onChange="{{ onQ }}" placeholder="Cerca paziente o n. fattura…" style="flex:1;border:0;outline:0;padding:10px 0;font-size:13.5px;background:none"></div>
+    <div style="display:flex;gap:6px">
+      <sc-for list="{{ filters }}" as="f" hint-placeholder-count="3">
+        <sc-if value="{{ f.active }}"><button style="padding:7px 12px;border-radius:99px;border:1px solid #1E5A5F;background:#1E5A5F;color:#fff;font-size:13px;font-weight:600;display:flex;gap:7px;align-items:center;white-space:nowrap">{{ f.label }}<span style="font:500 11px 'IBM Plex Mono';color:#BFD6CE">{{ f.count }}</span></button></sc-if>
+        <sc-if value="{{ f.inactive }}"><button onClick="{{ f.onClick }}" style="padding:7px 12px;border-radius:99px;border:1px solid #DAD8D1;background:#fff;color:#3E4846;font-size:13px;font-weight:500;cursor:pointer;display:flex;gap:7px;align-items:center;white-space:nowrap" style-hover="border-color:#7FA08A">{{ f.label }}<span style="font:500 11px 'IBM Plex Mono';color:#8A928F">{{ f.count }}</span></button></sc-if>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="background:#fff;border:1px solid #E4E2DC;border-radius:16px;overflow:hidden">
+    <div style="display:grid;grid-template-columns:96px minmax(180px,1.4fr) minmax(160px,1.6fr) 100px 100px 130px 130px;gap:10px;padding:10px 20px;background:#FAF9F6;border-bottom:1px solid #EEECE6;font:500 11px 'IBM Plex Mono';letter-spacing:.05em;text-transform:uppercase;color:#6B7472;white-space:nowrap"><span>Data</span><span>Paziente</span><span>Descrizione</span><span>Metodo</span><span style="text-align:right">Importo</span><span style="padding-left:14px">Stato</span><span style="text-align:right">Documento</span></div>
+    <sc-for list="{{ rows }}" as="p" hint-placeholder-count="10">
+      <div style="display:grid;grid-template-columns:96px minmax(180px,1.4fr) minmax(160px,1.6fr) 100px 100px 130px 130px;gap:10px;padding:12px 20px;border-bottom:1px solid #F3F1EC;align-items:center;font-size:13.5px" style-hover="background:#FAF9F6">
+        <span style="white-space:nowrap">{{ p.date }}</span>
+        <a href="Dashboard Nutrizionista.dc.html" style="color:#18211F;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.name }}</a>
+        <span style="color:#3E4846;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.desc }}</span>
+        <span style="color:#5E6866">{{ p.method }}</span>
+        <span style="text-align:right;font-weight:600;font-variant-numeric:tabular-nums">€ {{ p.amount }}</span>
+        <span style="padding-left:14px">
+          <sc-if value="{{ p.paid }}" hint-placeholder-val="{{ true }}"><span style="font-size:12px;font-weight:600;color:#2E6B47;background:#E3EFE6;padding:3px 9px;border-radius:99px;white-space:nowrap">Saldato</span></sc-if>
+          <sc-if value="{{ p.pending }}" hint-placeholder-val="{{ false }}"><button onClick="{{ p.onMark }}" title="Segna come saldato" style="font-size:12px;font-weight:600;color:#8A5418;background:#FAEEDD;padding:3px 9px;border-radius:99px;border:0;cursor:pointer;white-space:nowrap" style-hover="background:#F3E0C2">{{ p.age }}</button></sc-if>
+        </span>
+        <span style="text-align:right;white-space:nowrap">
+          <sc-if value="{{ p.paid }}" hint-placeholder-val="{{ true }}"><a href="#" style="font-size:13px;font-weight:500"><span style="font:400 11.5px 'IBM Plex Mono';color:#8A928F;margin-right:6px">{{ p.inv }}</span>↓</a></sc-if>
+          <sc-if value="{{ p.pending }}" hint-placeholder-val="{{ false }}"><a href="{{ p.wa }}" target="_blank" style="font-size:13px;font-weight:500;color:#8A5418">Sollecita</a></sc-if>
+        </span>
+      </div>
+    </sc-for>
+    <sc-if value="{{ empty }}"><div style="padding:40px 20px;text-align:center;color:#5E6866;font-size:13px">Nessun pagamento trovato.</div></sc-if>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 20px;font-size:13px;color:#5E6866"><span>{{ countLabel }}</span><span style="font-weight:600;color:#18211F">Totale filtrato € {{ totalF }}</span></div>
+  </div>
+</main>
+
+<sc-if value="{{ modal }}" hint-placeholder-val="{{ false }}">
+<div onClick="{{ closeNew }}" style="position:fixed;inset:0;background:rgba(15,30,32,.32);z-index:30;display:grid;place-items:center">
+  <div onClick="{{ stop }}" style="width:460px;background:#fff;border-radius:18px;box-shadow:0 24px 60px rgba(15,30,32,.25);padding:24px;display:flex;flex-direction:column;gap:14px">
+    <div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:19px;font-weight:600">Registra pagamento</div><button onClick="{{ closeNew }}" style="border:0;background:#F0EEE9;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:16px">×</button></div>
+    <label style="display:flex;flex-direction:column;gap:6px"><span style="font:500 11px 'IBM Plex Mono';letter-spacing:.06em;text-transform:uppercase;color:#6B7472">Paziente</span><select value="{{ form.name }}" onChange="{{ onName }}" style="padding:10px 12px;border:1px solid #DAD8D1;border-radius:10px;font-size:14px;background:#fff"><sc-for list="{{ patientOpts }}" as="o"><option value="{{ o }}">{{ o }}</option></sc-for></select></label>
+    <div style="display:flex;flex-direction:column;gap:6px"><span style="font:500 11px 'IBM Plex Mono';letter-spacing:.06em;text-transform:uppercase;color:#6B7472">Prestazione</span>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px">
+        <sc-for list="{{ services }}" as="o">
+          <sc-if value="{{ o.active }}"><button style="padding:9px 10px;border-radius:10px;border:1.5px solid #1E5A5F;background:#EEF4F2;font-weight:600;font-size:13px;color:#0F3B40;text-align:left;display:flex;justify-content:space-between">{{ o.l }}<span>€ {{ o.p }}</span></button></sc-if>
+          <sc-if value="{{ o.inactive }}"><button onClick="{{ o.onClick }}" style="padding:9px 10px;border-radius:10px;border:1px solid #DAD8D1;background:#fff;font-weight:500;font-size:13px;cursor:pointer;text-align:left;display:flex;justify-content:space-between">{{ o.l }}<span style="color:#6B7472">€ {{ o.p }}</span></button></sc-if>
+        </sc-for>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <label style="display:flex;flex-direction:column;gap:6px"><span style="font:500 11px 'IBM Plex Mono';letter-spacing:.06em;text-transform:uppercase;color:#6B7472">Importo</span><div style="display:flex;align-items:center;border:1px solid #DAD8D1;border-radius:10px;padding:0 12px"><span style="color:#8A928F">€</span><input inputmode="decimal" value="{{ form.amount }}" onChange="{{ onAmount }}" style="flex:1;min-width:0;border:0;outline:0;padding:10px 6px;font-size:14px"></div></label>
+      <label style="display:flex;flex-direction:column;gap:6px"><span style="font:500 11px 'IBM Plex Mono';letter-spacing:.06em;text-transform:uppercase;color:#6B7472">Metodo</span><select value="{{ form.method }}" onChange="{{ onMethod }}" style="padding:10px 12px;border:1px solid #DAD8D1;border-radius:10px;font-size:14px;background:#fff"><sc-for list="{{ methodOpts }}" as="o"><option value="{{ o }}">{{ o }}</option></sc-for></select></label>
+    </div>
+    <div style="display:flex;background:#F0EEE9;border-radius:10px;padding:3px">
+      <sc-if value="{{ formPaid }}"><span style="flex:1;text-align:center;padding:7px;border-radius:8px;background:#fff;font-size:13px;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.08)">Saldato · emetti fattura</span><button onClick="{{ setPending }}" style="flex:1;padding:7px;border:0;background:none;font-size:13px;color:#5E6866;cursor:pointer">In sospeso</button></sc-if>
+      <sc-if value="{{ formPending }}"><button onClick="{{ setPaid }}" style="flex:1;padding:7px;border:0;background:none;font-size:13px;color:#5E6866;cursor:pointer">Saldato · emetti fattura</button><span style="flex:1;text-align:center;padding:7px;border-radius:8px;background:#fff;font-size:13px;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.08)">In sospeso</span></sc-if>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;padding-top:4px"><button onClick="{{ closeNew }}" style="padding:10px 16px;border-radius:10px;border:1px solid #DAD8D1;background:#fff;font-weight:500;cursor:pointer">Annulla</button><button onClick="{{ saveNew }}" style="padding:10px 18px;border-radius:10px;border:0;background:#1E5A5F;color:#fff;font-weight:600;cursor:pointer">Registra</button></div>
+  </div>
+</div>
+</sc-if>
+<sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}"><div style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0F3B40;color:#fff;padding:11px 18px;border-radius:12px;font-size:13.5px;font-weight:500;z-index:40">{{ toast }}</div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const MO=['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+const TODAY=new Date('2026-10-21');
+const eur=n=>n.toLocaleString('it-IT');
+const MONTHS=[2940,3380,4120,3860,4410,4050,3320,1980,4630,null,null,null];
+const METH={'POS':'#1E5A5F','Bonifico':'#7FA08A','Satispay':'#2F7A7D','Contanti':'#C9B99A','PayPal':'#A9C6B1'};
+const SERV=[['Prima visita + piano',120],['Controllo',70],['Controllo + nuovo piano',90],['Pacchetto 3 controlli',170],['Consulenza online',60],['Bioimpedenziometria',40]];
+const T0=[
+['2026-10-21','Francesca Greco','Prima visita + piano','POS',120,false],
+['2026-10-21','Simone Caruso','Prima visita + piano','Satispay',120,true],
+['2026-10-20','Sara Lombardo','Controllo','Bonifico',70,true],
+['2026-10-18','Valentina Moretti','Controllo + bioimpedenza','POS',110,true],
+['2026-10-17','Marco Bellini','Controllo','Contanti',70,true],
+['2026-10-16','Federica Gentile','Controllo','POS',70,true],
+['2026-10-15','Andrea Conti','Pacchetto 3 controlli','Bonifico',170,true],
+['2026-10-14','Giulia Ferrante','Controllo','Satispay',70,false],
+['2026-10-13','Elisa Ferri','Controllo','POS',70,true],
+['2026-10-11','Alessia Fontana','Controllo','PayPal',70,true],
+['2026-10-09','Chiara Rinaldi','Controllo + nuovo piano','Bonifico',90,false],
+['2026-10-08','Matteo Ricci','Consulenza online','PayPal',60,true],
+['2026-10-06','Roberto De Luca','Controllo','POS',70,false],
+['2026-10-02','Davide Santoro','Controllo + nuovo piano','Satispay',90,true],
+['2026-09-25','Giorgio Barbieri','Controllo','Contanti',70,true],
+['2026-09-19','Tommaso Villa','Consulenza online','Bonifico',60,false]];
+const PATS=[...new Set(T0.map(t=>t[1]))].sort();
+let invN=212;
+const ROWS0=[...T0].reverse().map((t,i)=>({id:i,date:t[0],name:t[1],desc:t[2],method:t[3],amount:t[4],paid:t[5],inv:t[5]?'FT '+(invN++)+'/26':''})).reverse();
+class Component extends DCLogic {
+  state={rows:ROWS0,f:'all',q:'',hover:null,modal:false,form:null,toast:null};
+  componentWillUnmount(){clearTimeout(this.tt)}
+  flash(t){this.setState({toast:t});clearTimeout(this.tt);this.tt=setTimeout(()=>this.setState({toast:null}),2400)}
+  nextInv(){const ns=this.state.rows.filter(r=>r.inv).map(r=>+r.inv.split(' ')[1].split('/')[0]);return 'FT '+(Math.max(211,...ns)+1)+'/26'}
+  renderVals(){
+    const s=this.state,R=s.rows,oct=R.filter(r=>r.date.startsWith('2026-10'));
+    const octIn=oct.filter(r=>r.paid).reduce((a,r)=>a+r.amount,0),due=R.filter(r=>!r.paid);
+    const months=MONTHS.map((v,i)=>i===9?octIn:v);const max=Math.max(...months.filter(Boolean),4800);
+    const year=months.filter(Boolean).reduce((a,b)=>a+b,0);
+    const mm=months.map((v,i)=>({l:MO[i],cur:i===9,past:v!=null&&i!==9,future:v==null,h:v?Math.max(3,Math.round(v/max*100)):0,bg:s.hover===i?'#7FA08A':'#C9D9CE',onEnter:()=>this.setState({hover:i})}));
+    const hv=s.hover!=null&&months[s.hover]!=null?`${['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre'][s.hover]}: € ${eur(months[s.hover])}${s.hover===9?' (in corso)':''}`:'Passa sopra le barre per i dettagli';
+    const byM={};oct.filter(r=>r.paid).forEach(r=>byM[r.method]=(byM[r.method]||0)+r.amount);
+    const methods=Object.entries(byM).sort((a,b)=>b[1]-a[1]).map(([l,v])=>({l,v:eur(v),c:METH[l]||'#ccc',pct:Math.round(v/octIn*100)}));
+    const F=[['all','Tutti',()=>true],['paid','Saldati',r=>r.paid],['pending','In sospeso',r=>!r.paid]];
+    const q=s.q.trim().toLowerCase();
+    const list=R.filter(F.find(f=>f[0]===s.f)[2]).filter(r=>!q||r.name.toLowerCase().includes(q)||r.inv.toLowerCase().includes(q)||r.desc.toLowerCase().includes(q));
+    const rows=list.map(r=>{const d=Math.round((TODAY-new Date(r.date))/864e5);const[y,m,dd]=r.date.split('-');
+      return{date:`${+dd} ${MO[m-1]}`,name:r.name,desc:r.desc,method:r.method,amount:eur(r.amount),paid:r.paid,pending:!r.paid,inv:r.inv,
+        age:d===0?'In sospeso · oggi':`In sospeso · ${d} gg`,wa:'https://wa.me/?text='+encodeURIComponent(`Gentile ${r.name.split(' ')[0]}, le ricordo il saldo di € ${r.amount} per "${r.desc}" del ${+dd} ${MO[m-1]}. Grazie! — Dott.ssa Marchi`),
+        onMark:()=>{const inv=this.nextInv();this.setState(st=>({rows:st.rows.map(x=>x.id===r.id?{...x,paid:true,inv}:x)}));this.flash(`Saldato · fattura ${inv} emessa`)}}});
+    const f=s.form,setF=(k,v)=>this.setState(st=>({form:{...st.form,[k]:v}}));
+    return {
+      kIn:eur(octIn),kInSub:`+${Math.round((octIn/(MONTHS[8]*0.68)-1)*100)}% vs stesso periodo di set`,kDue:eur(due.reduce((a,r)=>a+r.amount,0)),kDueSub:`${due.length} pagamenti · il più vecchio ${Math.round((TODAY-new Date(due.map(r=>r.date).sort()[0]||'2026-10-21'))/864e5)} gg`,
+      kYear:eur(year),kInv:oct.filter(r=>r.inv).length,
+      months:mm,hoverLabel:hv,clearHover:()=>this.setState({hover:null}),methods,
+      filters:F.map(([id,label,fn])=>({label,count:R.filter(fn).length,active:s.f===id,inactive:s.f!==id,onClick:()=>this.setState({f:id})})),
+      q:s.q,onQ:e=>this.setState({q:e.target.value}),rows,empty:!rows.length,countLabel:`${rows.length} movimenti`,totalF:eur(list.reduce((a,r)=>a+r.amount,0)),
+      modal:s.modal,form:f||{},openNew:()=>this.setState({modal:true,form:{name:PATS[0],svc:1,amount:'70',method:'POS',paid:true}}),closeNew:()=>this.setState({modal:false}),stop:e=>e.stopPropagation(),
+      patientOpts:PATS,methodOpts:Object.keys(METH),
+      services:SERV.map(([l,p],i)=>({l,p,active:f&&f.svc===i,inactive:!(f&&f.svc===i),onClick:()=>this.setState(st=>({form:{...st.form,svc:i,amount:String(p)}}))})),
+      onName:e=>setF('name',e.target.value),onAmount:e=>setF('amount',e.target.value),onMethod:e=>setF('method',e.target.value),
+      formPaid:!!(f&&f.paid),formPending:!!(f&&!f.paid),setPaid:()=>setF('paid',true),setPending:()=>setF('paid',false),
+      saveNew:()=>{const f2=this.state.form,amt=parseFloat(String(f2.amount).replace(',','.'))||0,inv=f2.paid?this.nextInv():'';
+        this.setState(st=>({rows:[{id:Date.now(),date:'2026-10-21',name:f2.name,desc:SERV[f2.svc][0],method:f2.method,amount:amt,paid:f2.paid,inv},...st.rows],modal:false}));
+        this.flash(f2.paid?`Pagamento registrato · fattura ${inv} emessa`:'Pagamento registrato come in sospeso')},
+      toast:s.toast
+    };
+  }
+}
+</script>
+</body>
+</html>
