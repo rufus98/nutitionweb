@@ -62,7 +62,17 @@ describe.skipIf(!pdfs.length)('PDF reali', () => {
     const cenaOff = r.plan.days[1].meals.find((m) => m.name === 'Cena')!;
     expect(cenaOff.items.find((i) => /Gnocchi/.test(i.f))?.g).toBe('260 g');
     expect(r.patientName).toBe('Andrea Damiani');
+    // Struttura come nel PDF: varianti, gruppi "scegli 1", parte fissa
+    const { sections } = await import('../lib/planGroups');
+    const kinds = (m: { items: any[] }) => sections(m.items).map((x) => x.kind + ':' + x.items.length);
+    expect(sections(on.meals[0].items).filter((x) => x.kind === 'variant')).toHaveLength(4);
+    expect(kinds(on.meals.find((m) => m.name === 'Pranzo')!)).toEqual(['choice:6', 'choice:8', 'fixed:2']);
+    const reset = r.plan.days[2];
+    expect(kinds(r.plan.days[1].meals.find((m) => m.name === 'Pranzo')!)).toEqual(['choice:6', 'choice:7', 'fixed:2']);
+    expect(kinds(reset.meals[0])).toEqual(['variant:5', 'variant:5']);
+    expect(kinds(reset.meals.find((m) => m.name === 'Pranzo')!)).toEqual(['choice:4', 'choice:4', 'fixed:2']);
+    for (const d of r.plan.days) for (const m of d.meals) console.log(d.label, m.name, kinds(m).join(' '));
     console.log(JSON.stringify(r.stats), r.warnings);
-    console.log(JSON.stringify(r.plan.days.map((d) => ({ d: d.label, m: d.meals.map((m) => ({ n: m.name, i: m.items.map((i) => (i.head ? '## ' : '') + i.f + (i.g ? ' = ' + i.g : '') + (i.flag ? ' [?]' : '')) })) })), null, 1));
+    if (process.env.DUMP) console.log(JSON.stringify(r.plan.days.map((d) => ({ d: d.label, m: d.meals.map((m) => ({ n: m.name, i: m.items.map((i) => (i.head ? '## ' : '') + i.f + (i.g ? ' = ' + i.g : '') + (i.flag ? ' [?]' : '')) })) })), null, 1));
   });
 });

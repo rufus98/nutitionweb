@@ -2,6 +2,7 @@
 import type { Patient, Payment, PlanData, Settings } from '../db/types';
 import { fmtDate, today } from './format';
 import { makePdf, type PdfLine } from './pdf';
+import { LETTERS, sections } from './planGroups';
 
 const MUTED: [number, number, number] = [0.37, 0.41, 0.4];
 const eur2 = (n: number) => '€ ' + n.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -115,9 +116,20 @@ export function planPdf(name: string, plan: PlanData, studio: string): Uint8Arra
     lines.push({ text: wk >= 0 ? ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'][wk] : 'Giorno ' + d.label, size: 14, bold: true, gap: i === 0 ? 30 : 0 });
     for (const m of d.meals) {
       lines.push({ text: `${m.name}${m.time ? `  (${m.time})` : ''}`, size: 11, bold: true, gap: 22 });
-      for (const it of m.items) {
-        if (it.head) lines.push({ text: it.f.toUpperCase(), size: 9, bold: true, x: 12, gap: 16, color: MUTED });
-        else wrap(`${it.sub ? '    –' : '•'}  ${it.f}${it.g ? ' — ' + it.g : ''}`, 92).forEach((t, k) => lines.push({ text: (k ? '     ' : '') + t, size: 10.5, x: 12, gap: k ? 13 : 15 }));
+      const secs = sections(m.items);
+      const variants = secs.filter((x) => x.kind === 'variant');
+      for (const sc of secs) {
+        if (sc.kind === 'variant') {
+          const k = variants.indexOf(sc);
+          if (k > 0) lines.push({ text: '— oppure —', size: 9, x: 12, gap: 16, color: MUTED });
+          lines.push({ text: `${variants.length > 1 ? 'Opzione ' + LETTERS[k] + ': ' : ''}${sc.head!.f}`, size: 9.5, bold: true, x: 12, gap: 16 });
+        } else if (sc.head) {
+          lines.push({ text: sc.kind === 'choice' ? `${sc.head.f} (scegli 1):` : sc.head.f.toUpperCase(), size: 9, bold: true, x: 12, gap: 16, color: MUTED });
+        }
+        for (const { it } of sc.items) {
+          const bullet = it.sub ? '    –' : sc.kind === 'choice' ? '   o' : '•';
+          wrap(`${bullet}  ${it.f}${it.g ? ' — ' + it.g : ''}`, 92).forEach((t, k) => lines.push({ text: (k ? '     ' : '') + t, size: 10.5, x: 12, gap: k ? 13 : 15 }));
+        }
       }
       if (m.note) wrap(m.note, 105).forEach((t) => lines.push({ text: t, size: 9.5, x: 12, gap: 13, color: MUTED }));
     }

@@ -230,7 +230,7 @@ function parseProgeo(items: TextItem[], fileName: string): ImportResult {
     const f = ltxt.replace(/^-\s*/, '');
     if (!q) {
       // Piatto composto (es. "Pasta e ceci") seguito da ingredienti "- …".
-      lastHead = { f, g: '', head: true };
+      lastHead = { f, g: '', head: true, kind: 'dish' };
       meal.items.push(lastHead);
       continue;
     }
@@ -294,12 +294,18 @@ function parseLayout(items: TextItem[], fileName: string): ImportResult {
 
   // Testo introduttivo → indicazioni generali (escluso l'esempio pratico).
   const intro: string[] = [];
-  let skip = false;
+  let example = false, keep = false;
   for (const r of R.slice(0, startIdx)) {
-    const t = clean(r.map((i) => i.s).join(' '));
-    if (/ESEMPIO PRATICO/i.test(t)) skip = true;
-    if (/^(il tuo pasto completo|grammature speciali)/i.test(t)) { skip = false; }
-    if (skip || t.length < 25 || isHeadingCaps(t) && t.length < 60) continue;
+    const t = clean(segments(r).map((x) => x.s).join(' '));
+    if (/ESEMPIO PRATICO/i.test(t)) example = true;
+    // Dopo l'esempio pratico tiene solo la regola sulle grammature speciali e le note.
+    if (example) {
+      if (/^\*?Grammature speciali|^Note?\s*:/i.test(t)) { intro.push(t); keep = !/\.$/.test(t); continue; }
+      if (keep && !isHeadingCaps(t)) { intro.push(t); keep = !/\.$/.test(t); continue; }
+      keep = false;
+      continue;
+    }
+    if (t.length < 12 && !/:$/.test(t) || isHeadingCaps(t) && t.length < 60) continue;
     intro.push(t);
   }
 
@@ -338,7 +344,7 @@ function parseLayout(items: TextItem[], fileName: string): ImportResult {
       if (second?.length) {
         // Due varianti affiancate: "Opzione 1" / "Opzione 2"
         const a = buildItems(lines, addNote), b = buildItems(second, addNote);
-        m.items.push(...(a[0]?.head ? a : [{ f: 'Opzione 1', g: '', head: true }, ...a]), ...(b[0]?.head ? b : [{ f: 'Opzione 2', g: '', head: true }, ...b]));
+        m.items.push(...(a[0]?.head ? a : [{ f: 'Opzione 1', g: '', head: true, kind: 'variant' as const }, ...a]), ...(b[0]?.head ? b : [{ f: 'Opzione 2', g: '', head: true, kind: 'variant' as const }, ...b]));
       } else m.items.push(...buildItems(lines, addNote));
     }
     block = {};
@@ -379,7 +385,12 @@ function parseLayout(items: TextItem[], fileName: string): ImportResult {
     // Riga "GIORNI DI RESET : …" → la sezione successiva è RESET
     const rm = /^GIORNI DI (\w+)/i.exec(t);
     if (rm) { flush(); mealName = ''; cols = { types: [rm[1].toUpperCase()], split: [] }; continue; }
-    if (!mealName) { if (isNote(t)) notes.push(t.replace(/^note?:?\s*/i, '')); continue; }
+    if (!mealName) {
+      // Note prima del primo pasto (anche su più righe)
+      if (isNote(t)) notes.push(t.replace(/^(nota|note)\s*:?\s*/i, ''));
+      else if (notes.length && !/[.;]$/.test(notes[notes.length - 1])) notes[notes.length - 1] += ' ' + t;
+      continue;
+    }
 
     // Assegna i segmenti alle colonne.
     const nCols = cols.types.length;
@@ -444,7 +455,7 @@ export function reflow(lines: string[]) {
     if (!l) continue;
     const head = /^[A-ZÀ-Ù][^.]{1,40}:$/.test(l);
     const prev = paras[paras.length - 1];
-    if (!prev || head || /:$/.test(prev) && /^[A-ZÀ-Ù]/.test(l) && prev.length < 45 || /^[-•\d]+[).]?\s/.test(l)) paras.push(l);
+    if (!prev || head || /^(\*|legenda\b|(ON|OFF|RESET)\s*\()/i.test(l) || /:$/.test(prev) && /^[A-ZÀ-Ù]/.test(l) && prev.length < 45 || /^[-•\d]+[).]?\s/.test(l)) paras.push(l);
     else paras[paras.length - 1] = /\w-$/.test(prev) ? prev.slice(0, -1) + l : prev + ' ' + l;
   }
   return paras.join('\n');
@@ -457,10 +468,11 @@ function buildItems(lines: Line[], addNote: (n: string) => void): PlanItem[] {
   const out: (PlanItem & { _y?: number })[] = [];
   let last: (PlanItem & { _y?: number }) | null = null;
   let lastY = -1, inNote = false;
+  let group: { gaps: number[]; n: number } | null = null;
   const capsStart = (t: string) => isHeadingCaps(t.split(/\s+/).slice(0, 2).join(' '));
   for (const l of lines) {
     const t = l.text;
-    if (isNote(t)) { addNote(t.replace(/^note?:?\s*/i, '')); last = null; inNote = true; continue; }
+    if (isNote(t)) { addNote(t.replace(/^(nota|note)\s*:?\s*/i, '')); last = null; inNote = true; continue; }
     if (inNote && !l.qty && t && !isGroup(t) && !capsStart(t)) { addNote(t); continue; }
     inNote = false;
     if (!l.qty) {
@@ -468,7 +480,8 @@ function buildItems(lines: Line[], addNote: (n: string) => void): PlanItem[] {
       if (/^\(/.test(t) && last?.head) { last.f += ' ' + t; continue; }           // "(PREALLENAMENTO)"
       if (last?.head && !isGroup(last.f) && l.y - lastY < 14 && (isHeadingCaps(t) || t.length < 26)) { last.f = clean(last.f + ' ' + t); lastY = l.y; continue; } // titolo su due righe
       if (isHeadingCaps(t) || capsStart(t) || isGroup(t)) {
-        last = { f: clean(t.replace(/:$/, '')), g: '', head: true };
+        last = { f: clean(t.replace(/:$/, '')), g: '', head: true, kind: isGroup(t) ? 'choice' : 'variant' };
+        group = last.kind === 'choice' ? { gaps: [], n: 0 } : null;
         out.push(last);
         lastY = l.y;
         continue;
@@ -497,6 +510,15 @@ function buildItems(lines: Line[], addNote: (n: string) => void): PlanItem[] {
     // Voce spezzata con due quantità ("tacchino-" 150 g / "pollo bresaola" 120 g)
     if (t && last && /-$/.test(last.f) && last.g && /^[a-zà-ù]/.test(t) && l.y - lastY < 16) {
       last.f = last.f.slice(0, -1) + '-' + t; last.g = last.g.replace(/\s*(g|ml)$/, '') + '/' + l.qty; lastY = l.y; continue;
+    }
+    // Fine di un gruppo "scegli tra": spazio verticale più ampio o voci come contorno/condimento → parte fissa del pasto.
+    // (una riga con sola quantità dopo il gruppo è la parte fissa: il testo è nella colonna accanto)
+    if (group) {
+      const gap = l.y - lastY, med = group.gaps.length ? median(group.gaps) : 18;
+      if (group.n >= 2 && (!t || gap > Math.max(26, med * 1.6) || /^(contorno|olio|condimento|verdur)/i.test(t))) {
+        out.push({ f: 'In aggiunta', g: '', head: true, kind: 'fixed' });
+        group = null;
+      } else { if (group.n) group.gaps.push(gap); group.n++; }
     }
     last = { f: t, g: l.qty, _y: Math.round(l.page * 10000 + l.y) };
     out.push(last);

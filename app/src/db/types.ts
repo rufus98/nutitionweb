@@ -95,6 +95,8 @@ export interface PlanItem {
   flag?: boolean;
   /** intestazione: variante del pasto, gruppo "a scelta tra" o piatto composto */
   head?: boolean;
+  /** tipo di intestazione: variante alternativa, gruppo "scegli 1 tra", parte fissa, piatto composto */
+  kind?: 'variant' | 'choice' | 'fixed' | 'dish';
   /** ingrediente di un piatto composto */
   sub?: boolean;
   /** alimenti alternativi con la quantità equivalente */

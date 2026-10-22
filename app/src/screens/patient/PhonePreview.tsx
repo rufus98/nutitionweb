@@ -3,6 +3,8 @@ import { useApp } from '../../app/store';
 import * as repo from '../../db/repo';
 import type { Appointment, Patient, Plan, Visit } from '../../db/types';
 import { useEscape } from '../../components/ui';
+import { LETTERS, sections } from '../../lib/planGroups';
+import type { PlanItem } from '../../db/types';
 import { fmtDate, MONTHS, n1, parseIso, today, WEEKDAYS, addDays, mondayOf } from '../../lib/format';
 
 // Anteprima fedele della PWA paziente (design "App Paziente"): sempre in tema chiaro, come sul telefono del paziente.
@@ -27,6 +29,7 @@ export function PhonePreview({ patient, plan, onClose }: { patient: Patient; pla
   const [next, setNext] = useState<Appointment | undefined>();
   const [scale, setScale] = useState(1);
   const [moreGen, setMoreGen] = useState(false);
+  const [pick, setPick] = useState<Record<string, number>>({});
   useEffect(() => {
     repo.listVisits(patient.id).then(setVisits);
     repo.patientAppointments(patient.id).then((a) => setNext(a.find((x) => x.date >= today())));
@@ -105,9 +108,7 @@ export function PhonePreview({ patient, plan, onClose }: { patient: Patient; pla
                         {s.app.checks && (ok ? <button onClick={() => setDone({ ...done, [day + ':' + i]: false })} className="w-11 h-11 rounded-full border-0 bg-[#1E5A5F] text-white text-[17px] font-bold">✓</button>
                           : <button onClick={() => setDone({ ...done, [day + ':' + i]: true })} className="w-11 h-11 rounded-full border-[1.5px] border-[#CFD8D4] bg-white" />)}
                       </div>
-                      {m.items.map((it, j) => it.head
-                        ? <div key={j} className="font-mono text-[10.5px] font-medium tracking-[.06em] uppercase pt-1" style={{ color: C.petrol }}>{it.f}</div>
-                        : <div key={j} className={'flex justify-between gap-2.5 text-sm leading-[1.3]' + (it.sub ? ' pl-3' : '')}><span style={{ color: C.ink2 }}>{it.sub ? '– ' : ''}{it.f}</span><span className="font-mono text-[12.5px] font-medium whitespace-nowrap" style={{ color: C.petrol }}>{it.g}</span></div>)}
+                      <MealBody items={m.items} pick={pick[day + ':' + i] ?? 0} setPick={(v) => setPick({ ...pick, [day + ':' + i]: v })} />
                       {m.note && <div className="text-[12.5px] text-[#7A5426] bg-[#F7F0E4] rounded-[9px] px-[9px] py-1.5">{m.note}</div>}
                     </div>
                   );
@@ -134,7 +135,7 @@ export function PhonePreview({ patient, plan, onClose }: { patient: Patient; pla
                       <span className="text-[13px] text-[#8A928F] font-medium">{open === i ? '−' : '+'}</span>
                     </button>
                     {open === i && <div className="px-4 pb-3.5 flex flex-col gap-3">
-                      {x.meals.map((m, j) => <div key={j} className="flex flex-col gap-[3px] border-t border-[#F0EEE9] pt-2.5"><div className="font-mono text-[11px] font-medium tracking-[.06em] uppercase" style={{ color: C.muted }}>{m.name}</div><div className="text-sm leading-[1.45]" style={{ color: C.ink2 }}>{m.items.filter((it) => !it.head).map((it) => `${it.f} ${it.g}`.trim()).join(' · ') || '—'}</div></div>)}
+                      {x.meals.map((m, j) => <div key={j} className="flex flex-col gap-[3px] border-t border-[#F0EEE9] pt-2.5"><div className="font-mono text-[11px] font-medium tracking-[.06em] uppercase" style={{ color: C.muted }}>{m.name}</div>{m.items.length ? <div className="flex flex-col gap-2 pt-1"><MealBody items={m.items} pick={0} setPick={() => {}} all /></div> : <div className="text-sm" style={{ color: C.ink2 }}>—</div>}</div>)}
                     </div>}
                   </div>
                 ))}
@@ -191,5 +192,54 @@ export function PhonePreview({ patient, plan, onClose }: { patient: Patient; pla
         </div>
       </div>
     </div>
+  );
+}
+
+const itemRow = (it: PlanItem, j: number, dot?: boolean) => (
+  <div key={j} className={'flex justify-between gap-2.5 text-sm leading-[1.3]' + (it.sub ? ' pl-3' : '')}>
+    <span className="flex gap-2" style={{ color: C.ink2 }}>{dot && <span className="w-2 h-2 rounded-full border-[1.5px] border-[#7FA08A] flex-none mt-[5px]" />}<span>{it.sub ? '– ' : ''}{it.f}</span></span>
+    <span className="font-mono text-[12.5px] font-medium whitespace-nowrap" style={{ color: C.petrol }}>{it.g}</span>
+  </div>
+);
+
+/** Corpo del pasto nell'app paziente: le varianti si scelgono con i chip A/B/C, i gruppi "scegli 1" sono elenchi di alternative. */
+function MealBody({ items, pick, setPick, all }: { items: PlanItem[]; pick: number; setPick: (v: number) => void; all?: boolean }) {
+  const secs = sections(items);
+  const variants = secs.filter((s) => s.kind === 'variant');
+  return (
+    <>
+      {variants.length > 1 && !all && (
+        <div className="flex gap-1.5 flex-wrap">
+          {variants.map((_, k) => (
+            <button key={k} onClick={() => setPick(k)} className={'h-8 px-3 rounded-full text-[12.5px] font-semibold border ' + (k === pick ? 'bg-[#1E5A5F] text-white border-[#1E5A5F]' : 'bg-white text-[#2C3533] border-[#E4E2DC]')}>Opzione {LETTERS[k]}</button>
+          ))}
+        </div>
+      )}
+      {secs.map((sc, si) => {
+        if (sc.kind === 'variant') {
+          const k = variants.indexOf(sc);
+          if (variants.length > 1 && k !== pick && !all) return null;
+          return (
+            <div key={si} className="flex flex-col gap-2">
+              {all && k > 0 && <div className="text-center font-mono text-[10px] uppercase tracking-[.08em]" style={{ color: C.subtle }}>— oppure —</div>}
+              <div className="font-mono text-[10.5px] font-medium tracking-[.06em] uppercase" style={{ color: C.petrol }}>{all && variants.length > 1 ? `Opzione ${LETTERS[k]} · ` : ''}{sc.head!.f}</div>
+              {sc.items.map(({ it, idx }) => itemRow(it, idx))}
+            </div>
+          );
+        }
+        if (sc.kind === 'choice') return (
+          <div key={si} className="rounded-[12px] bg-[#F3F6F3] px-3 py-2.5 flex flex-col gap-1.5">
+            <div className="flex justify-between items-center gap-2"><span className="text-[12.5px] font-semibold text-[#245C3B]">{sc.head!.f}</span><span className="text-[11px] font-semibold text-[#245C3B] bg-white rounded-full px-2 py-0.5">scegli 1</span></div>
+            {sc.items.map(({ it, idx }) => itemRow(it, idx, true))}
+          </div>
+        );
+        return (
+          <div key={si} className="flex flex-col gap-2">
+            {sc.head && <div className="font-mono text-[10.5px] font-medium tracking-[.06em] uppercase pt-1" style={{ color: sc.kind === 'fixed' ? C.muted : C.petrol }}>{sc.kind === 'fixed' ? '+ ' : ''}{sc.head.f}</div>}
+            {sc.items.map(({ it, idx }) => itemRow(it, idx))}
+          </div>
+        );
+      })}
+    </>
   );
 }
