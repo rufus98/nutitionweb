@@ -1,0 +1,21 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Permessi della finestra principale",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "sql:default",
+    "sql:allow-execute",
+    "dialog:default",
+    "fs:default",
+    "fs:allow-write-file",
+    "fs:allow-write-text-file",
+    "fs:allow-read-file",
+    { "identifier": "fs:scope", "allow": [{ "path": "$DOWNLOAD/**" }, { "path": "$DOCUMENT/**" }, { "path": "$DESKTOP/**" }, { "path": "$HOME/**" }, { "path": "$TEMP/**" }, { "path": "$APPDATA/**" }] },
+    "opener:default",
+    { "identifier": "opener:allow-open-url", "allow": [{ "url": "https://wa.me/*" }, { "url": "https://*" }, { "url": "mailto:*" }, { "url": "tel:*" }] },
+    { "identifier": "opener:allow-open-path", "allow": [{ "path": "$TEMP/**" }, { "path": "$APPDATA/**" }, { "path": "$DOWNLOAD/**" }, { "path": "$DOCUMENT/**" }, { "path": "$DESKTOP/**" }, { "path": "$HOME/**" }] },
+    "window-state:default"
+  ]
+}
