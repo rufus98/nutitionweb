@@ -1,5 +1,5 @@
 import type { PlanData, PlanMeal } from '../../db/types';
-import { cx } from '../../components/ui';
+import { cx, TimeInput } from '../../components/ui';
 
 /** Griglia giorno → pasti del piano (dal design "Anteprima piano digitalizzato"). In modalità modifica i campi sono editabili. */
 export function DayTabs({ plan, day, setDay }: { plan: PlanData; day: number; setDay: (d: number) => void }) {
@@ -34,7 +34,7 @@ export function MealsGrid({ plan, day, onChange }: { plan: PlanData; day: number
           <div className="flex justify-between items-baseline gap-2">
             {edit ? <input className={cx(inp, 'font-semibold min-w-0 flex-1 -ml-1 px-1')} value={m.name} onChange={(e) => upMeal(mi, (x) => ({ ...x, name: e.target.value }))} aria-label="Nome pasto" />
               : <span className="font-semibold">{m.name}</span>}
-            {edit ? <input type="time" className={cx(inp, 'font-mono text-[11px] text-subtle w-[74px] px-1')} value={m.time} onChange={(e) => upMeal(mi, (x) => ({ ...x, time: e.target.value }))} aria-label="Orario" />
+            {edit ? <TimeInput className={cx(inp, 'text-[11px] text-subtle w-[46px] px-1 text-right')} value={m.time} onChange={(v) => upMeal(mi, (x) => ({ ...x, time: v }))} ariaLabel="Orario" />
               : <span className="font-mono text-[11px] text-subtle">{m.time}</span>}
           </div>
           {m.items.map((it, ii) => {

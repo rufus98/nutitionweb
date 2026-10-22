@@ -5,7 +5,7 @@ import { DEFAULT_SETTINGS } from './defaults';
 import { today } from '../lib/format';
 
 // ---------- conversioni riga ↔ oggetto ----------
-const b = (v: unknown) => v === 1 || v === true || v === '1';
+const b = (v: unknown) => v === 1 || v === true || v === '1' || v === 'true';
 const toPatient = (r: Row): Patient => ({
   ...(r as any),
   tags: safeJson<string[]>(r.tags, []),
@@ -109,7 +109,10 @@ export async function getPatient(id: number): Promise<Patient | null> {
   return rows[0] ? toPatient(rows[0]) : null;
 }
 export async function deletePatient(id: number) {
-  await (await db()).execute('DELETE FROM patients WHERE id = ?', [id]);
+  const d = await db();
+  // Cancellazione esplicita: con il pool di connessioni del plugin SQL il PRAGMA foreign_keys non vale per tutte le connessioni.
+  for (const t of ['visits', 'payments', 'appointments', 'plans']) await d.execute(`DELETE FROM ${t} WHERE patient_id = ?`, [id]);
+  await d.execute('DELETE FROM patients WHERE id = ?', [id]);
 }
 export async function revokeAllLinks() {
   return (await (await db()).execute('UPDATE patients SET link_on = 0 WHERE link_on = 1')).rowsAffected;

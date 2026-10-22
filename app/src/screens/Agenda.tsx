@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useApp, useLoad, type Route } from '../app/store';
 import * as repo from '../db/repo';
 import type { Appointment, ApptType, Hours } from '../db/types';
-import { Avatar, Checkbox, cx, Field, Modal, ModalHeader, Page } from '../components/ui';
+import { Avatar, Checkbox, cx, Field, Modal, ModalHeader, Page, TimeInput } from '../components/ui';
 import { addDays, fillTemplate, fmtShort, initialsOf, mondayOf, MONTHS, parseIso, telLink, today, toHHMM, toMin, waLink, WEEKDAYS } from '../lib/format';
 import { openExternal } from '../lib/platform';
 import { goalLabel } from './PatientList';
@@ -238,7 +238,7 @@ function BookModal({ init, hours, onClose, onSaved }: { init: { id?: number; pid
   }, [h, st, en]);
 
   const save = async () => {
-    if (!f.pid || !f.date || !f.time) return;
+    if (!f.pid || !f.date || !/^\d{2}:\d{2}$/.test(f.time)) return;
     const a = { patient_id: f.pid, date: f.date, time: f.time, type: f.type, duration: dur, remind: f.remind, note: null };
     let id = f.id;
     if (id) await repo.updateAppointment(id, a);
@@ -255,7 +255,7 @@ function BookModal({ init, hours, onClose, onSaved }: { init: { id?: number; pid
         <Field label="Paziente"><select className="field" value={f.pid} onChange={(e) => setF({ ...f, pid: +e.target.value })}>{patients.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
         <div className="grid grid-cols-2 gap-2.5">
           <Field label="Giorno"><input type="date" className="field py-[9px]" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} /></Field>
-          <Field label="Ora"><input type="time" step={900} className="field py-[9px]" value={f.time} onChange={(e) => setF({ ...f, time: e.target.value })} /></Field>
+          <Field label="Ora"><TimeInput className="field py-[9px]" value={f.time} onChange={(v) => setF({ ...f, time: v })} /></Field>
         </div>
         <div className="flex flex-col gap-1.5"><span className="label">Tipo</span>
           <div className="grid grid-cols-3 gap-1.5">

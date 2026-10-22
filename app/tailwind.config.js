@@ -17,7 +17,8 @@ export default {
         mono: ['"IBM Plex Mono"', 'ui-monospace', 'monospace'],
       },
       borderRadius: { tag: '6px', ctl: '10px', card: '16px' },
-      fontSize: { label: ['11px', { letterSpacing: '.06em' }] },
+      // Il fontSize "label" del bundle (11px mono, .06em) è nella classe .label di src/index.css:
+      // come utility andrebbe in conflitto con il colore "label" (text-label).
     },
   },
   plugins: [],

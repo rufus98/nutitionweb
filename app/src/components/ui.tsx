@@ -155,3 +155,26 @@ export function Breadcrumb({ items }: { items: { label: string; onClick?: () => 
     </div>
   );
 }
+
+/** Campo orario sempre a 24 ore (gli input nativi seguono la lingua di Windows e possono mostrare AM/PM).
+ *  Accetta "930", "9.30", "09:30"; frecce ↑/↓ = ±15 minuti. */
+export function TimeInput({ value, onChange, className = '', ariaLabel }: { value: string; onChange: (v: string) => void; className?: string; ariaLabel?: string }) {
+  const norm = (s: string) => {
+    const d = s.replace(/\D/g, '');
+    if (!d) return '';
+    const [h, m] = d.length <= 2 ? [+d, 0] : [+d.slice(0, d.length - 2), +d.slice(-2)];
+    return String(Math.min(23, h)).padStart(2, '0') + ':' + String(Math.min(59, m)).padStart(2, '0');
+  };
+  const step = (k: number) => {
+    const [h, m] = (norm(value) || '09:00').split(':').map(Number);
+    const t = (h * 60 + m + k + 1440) % 1440;
+    onChange(String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0'));
+  };
+  return (
+    <input value={value} inputMode="numeric" maxLength={5} placeholder="--:--" aria-label={ariaLabel}
+      onChange={(e) => onChange(e.target.value.replace(/[^\d:.]/g, ''))}
+      onBlur={() => { const n = norm(value); if (n !== value) onChange(n); }}
+      onKeyDown={(e) => { if (e.key === 'ArrowUp') { e.preventDefault(); step(15); } if (e.key === 'ArrowDown') { e.preventDefault(); step(-15); } }}
+      className={cx('font-mono tabular-nums', className)} />
+  );
+}

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useApp } from '../app/store';
 import * as repo from '../db/repo';
 import type { Plan, Patient, Settings } from '../db/types';
-import { cx, Field, Page, Toggle } from '../components/ui';
+import { cx, Field, Page, TimeInput, Toggle } from '../components/ui';
 import { PhonePreview } from './patient/PhonePreview';
 import { b64ToBytes } from '../lib/pdf';
 import { makeZip } from '../lib/zip';
@@ -138,7 +138,7 @@ export function SettingsScreen() {
             <Card className="gap-3.5">
               <Head title="Orari di ricevimento" sub="Definiscono gli slot prenotabili in Agenda." />
               {d.hours.map((h, i) => {
-                const t = (k: 'a' | 'b' | 'c' | 'd') => <input type="time" step={900} value={h[k]} onChange={(e) => up((x) => { x.hours[i][k] = e.target.value; })} className="px-2.5 py-1.5 border border-ctl rounded-lg font-mono text-[13px] bg-surface outline-none focus:border-primary" aria-label={`${h.day} ${k}`} />;
+                const t = (k: 'a' | 'b' | 'c' | 'd') => <TimeInput value={h[k]} onChange={(v) => up((x) => { x.hours[i][k] = v; })} className="w-[64px] px-2.5 py-1.5 border border-ctl rounded-lg text-[13px] bg-surface outline-none focus:border-primary text-center" ariaLabel={`${h.day} ${k}`} />;
                 return (
                   <div key={h.day} className="grid grid-cols-[120px_52px_1fr] gap-3.5 items-center py-2 border-t border-line2">
                     <span className="font-medium">{h.day}</span>

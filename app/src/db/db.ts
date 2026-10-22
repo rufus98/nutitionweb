@@ -11,14 +11,17 @@ export interface Db {
 
 export const isTauri = () => typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 
+// I booleani diventano 1/0 in entrambi i backend: tauri-plugin-sql altrimenti li salverebbe come testo 'true'/'false'.
+const norm = (params: unknown[]) => params.map((p) => (p === undefined ? null : typeof p === 'boolean' ? (p ? 1 : 0) : p)) as any[];
+
 async function tauriDb(): Promise<Db> {
   const { default: Database } = await import('@tauri-apps/plugin-sql');
   const db = await Database.load('sqlite:nutrea.db');
   await db.execute('PRAGMA foreign_keys = ON');
   return {
-    select: (sql, params = []) => db.select(sql, params),
+    select: (sql, params = []) => db.select(sql, norm(params)),
     execute: async (sql, params = []) => {
-      const r = await db.execute(sql, params);
+      const r = await db.execute(sql, norm(params));
       return { lastInsertId: Number(r.lastInsertId ?? 0), rowsAffected: r.rowsAffected };
     },
   };
@@ -55,7 +58,6 @@ export async function sqlJsDb(persist = true): Promise<Db> {
     clearTimeout(timer);
     timer = setTimeout(() => { idb('readwrite', (s) => s.put(db.export(), 'main')).catch(() => {}); }, 150);
   };
-  const norm = (params: unknown[]) => params.map((p) => (p === undefined ? null : typeof p === 'boolean' ? (p ? 1 : 0) : p)) as any[];
   return {
     async select(sql, params = []) {
       const st = db.prepare(sql);
