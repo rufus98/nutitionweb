@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useApp } from '../../app/store';
 import * as repo from '../../db/repo';
 import type { Patient, Plan, PlanData } from '../../db/types';
-import { cx, Field } from '../../components/ui';
+import { cx, Field, Modal, ModalHeader } from '../../components/ui';
 import { DayMacros, DayTabs, MealsGrid } from './PlanGrid';
 import { extractText, parsePlanText } from '../../lib/pdfImport';
 import { ShareModal } from './ShareModal';
@@ -22,7 +22,8 @@ export function DietTab({ patient, plans }: { patient: Patient; plans: Plan[] })
   const [preview, setPreview] = useState(false);
   const [importing, setImporting] = useState<{ name: string; step: number } | null>(null);
 
-  const startDraft = async (file: File | null, from?: Plan) => {
+  const [chooser, setChooser] = useState(false);
+  const startDraft = async (file: File | null, from?: Plan, kind?: repo.PlanKind) => {
     let pdfName: string | null = null, pdfB64: string | null = null;
     let data: PlanData | null = null;
     if (file) {
@@ -37,7 +38,7 @@ export function DietTab({ patient, plans }: { patient: Patient; plans: Plan[] })
       pdfB64 = await repo.getPlanPdf(from.id);
     }
     const base = from ?? active;
-    if (!data) data = base ? structuredClone(base.data) : repo.emptyPlanData();
+    if (!data) data = kind ? repo.emptyPlanData(kind) : base ? structuredClone(base.data) : repo.emptyPlanData();
     if (from || !file) delete data.import;
     await repo.createPlan(patient.id, data, pdfName, pdfB64);
     setViewing(null);
@@ -89,7 +90,7 @@ export function DietTab({ patient, plans }: { patient: Patient; plans: Plan[] })
 
   return <>
     <div className="grid grid-cols-[minmax(0,2fr)_minmax(300px,1fr)] gap-5 items-start">
-      <DropZone onFile={(f) => startDraft(f)} onEmpty={() => startDraft(null)} hasActive={!!active} />
+      <DropZone onFile={(f) => startDraft(f)} onEmpty={() => setChooser(true)} hasActive={!!active} />
       <div className="flex flex-col gap-5">
         {active && (
           <div className="card px-5 py-[18px] flex flex-col gap-3">
@@ -121,9 +122,42 @@ export function DietTab({ patient, plans }: { patient: Patient; plans: Plan[] })
         </div>
       </div>
     </div>
+    {chooser && <PlanKindModal active={active} onClose={() => setChooser(false)} onPick={(k) => { setChooser(false); k === 'copy' ? startDraft(null, active) : startDraft(null, undefined, k); }} />}
     {share && <ShareModal patient={patient} onClose={() => setShare(false)} />}
     {preview && active && <PhonePreview patient={patient} plan={active} onClose={() => setPreview(false)} />}
   </>;
+}
+
+/** Scelta della tipologia quando si crea un piano senza PDF. */
+function PlanKindModal({ active, onClose, onPick }: { active?: Plan; onClose: () => void; onPick: (k: repo.PlanKind | 'copy') => void }) {
+  const [k, setK] = useState<repo.PlanKind | 'copy'>('weekly');
+  const opts: { id: repo.PlanKind | 'copy'; title: string; body: string; tags: string[] }[] = [
+    { id: 'weekly', title: 'Classico settimanale', body: 'Un menu per ogni giorno, da lunedì a domenica, con colazione, spuntino, pranzo, merenda e cena.', tags: ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'] },
+    { id: 'onoff', title: 'Flessibile ON / OFF / RESET', body: 'Giorni tipo: allenamento (ON), riposo (OFF) e recupero dopo un pasto libero (RESET). Pasti a opzioni e gruppi "scegli 1 tra".', tags: ['ON', 'OFF', 'RESET'] },
+    ...(active ? [{ id: 'copy' as const, title: `Parti dal piano attivo (v${active.version})`, body: 'Copia struttura e alimenti della versione attiva e modifica solo ciò che cambia.', tags: active.data.days.map((d) => d.label) }] : []),
+  ];
+  return (
+    <Modal onClose={onClose} width={560}>
+      <ModalHeader title="Nuovo piano nutrizionale" sub="Scegli la tipologia di dieta: potrai comunque modificare giorni e pasti." onClose={onClose} />
+      <div className="flex flex-col gap-2.5" role="radiogroup">
+        {opts.map((o) => (
+          <button key={o.id} role="radio" aria-checked={k === o.id} onClick={() => setK(o.id)} onDoubleClick={() => onPick(o.id)}
+            className={cx('text-left rounded-xl p-4 flex gap-3 items-start', k === o.id ? 'border-[1.5px] border-primary bg-tint2' : 'border border-ctl bg-surface hover:border-sage-500')}>
+            <span className={cx('w-[18px] h-[18px] rounded-full flex-none mt-0.5 grid place-items-center', k === o.id ? 'border-[5px] border-primary bg-surface' : 'border-[1.5px] border-ctl')} />
+            <span className="flex-1 min-w-0 flex flex-col gap-1.5">
+              <span className={cx('font-semibold text-[14.5px]', k === o.id && 'text-strong')}>{o.title}</span>
+              <span className="text-[13px] text-muted leading-snug">{o.body}</span>
+              <span className="flex gap-1 flex-wrap">{o.tags.map((t) => <span key={t} className="font-mono text-[11px] font-medium px-1.5 py-px rounded-[5px] bg-sunken text-label">{t}</span>)}</span>
+            </span>
+          </button>
+        ))}
+      </div>
+      <div className="flex justify-end gap-2.5">
+        <button className="btn-secondary px-4" onClick={onClose}>Annulla</button>
+        <button className="btn-primary px-[18px]" onClick={() => onPick(k)} autoFocus>Crea bozza</button>
+      </div>
+    </Modal>
+  );
 }
 
 function DropZone({ onFile, onEmpty, hasActive }: { onFile: (f: File) => void; onEmpty: () => void; hasActive: boolean }) {
@@ -145,7 +179,7 @@ function DropZone({ onFile, onEmpty, hasActive }: { onFile: (f: File) => void; o
           <div className="text-muted max-w-[380px] [text-wrap:pretty]">Riconosciamo giorni, pasti, alimenti e grammature. Potrai verificare tutto prima di inviarlo.</div>
           <div className="flex gap-2 mt-1.5">
             <span className="btn-primary px-3.5 py-[9px]">Scegli file</span>
-            <button onClick={(e) => { e.stopPropagation(); onEmpty(); }} className="btn-secondary py-[9px]">{hasActive ? 'Modifica senza PDF' : 'Inizia senza PDF'}</button>
+            <button onClick={(e) => { e.stopPropagation(); onEmpty(); }} className="btn-secondary py-[9px]">{hasActive ? 'Nuovo piano senza PDF' : 'Inizia senza PDF'}</button>
           </div>
           <div className="font-mono text-[11px] text-subtle">PDF · max {MAX_MB} MB · anche scansioni</div>
         </div>

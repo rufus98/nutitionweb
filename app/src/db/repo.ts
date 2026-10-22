@@ -1,6 +1,6 @@
 import { getDb, type Row } from './db';
 import { migrate } from './schema';
-import type { Appointment, ApptType, Patient, PatientRow, Payment, Plan, PlanData, Settings, Visit } from './types';
+import type { Appointment, ApptType, Patient, PatientRow, Payment, Plan, PlanData, PlanItem, Settings, Visit } from './types';
 import { DEFAULT_SETTINGS } from './defaults';
 import { today } from '../lib/format';
 
@@ -24,13 +24,38 @@ function safeJson<T>(s: unknown, fallback: T): T {
   try { return JSON.parse(s) as T; } catch { return fallback; }
 }
 
-export function emptyPlanData(): PlanData {
-  const meals = [['col', 'Colazione', '07:30'], ['sp', 'Spuntino', '10:30'], ['pr', 'Pranzo', '13:00'], ['me', 'Merenda', '16:30'], ['ce', 'Cena', '20:00']];
+export type PlanKind = 'weekly' | 'onoff';
+
+/** Piano vuoto: settimanale (Lun–Dom, pasti semplici) oppure a giorni tipo ON/OFF/RESET
+ *  con colazione e spuntini a opzioni e pranzo/cena a gruppi "scegli 1 tra". */
+export function emptyPlanData(kind: PlanKind = 'weekly'): PlanData {
+  const base = { title: '', kcal: null, protein: null, carbs: null, fat: null };
+  if (kind === 'weekly') {
+    const meals = [['col', 'Colazione', '07:30'], ['sp', 'Spuntino', '10:30'], ['pr', 'Pranzo', '13:00'], ['me', 'Merenda', '16:30'], ['ce', 'Cena', '20:00']];
+    return {
+      ...base, general: '',
+      days: ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'].map((label) => ({
+        label, meals: meals.map(([key, name, time]) => ({ key, name, time, note: '', items: [] })),
+      })),
+    };
+  }
+  const options = (): PlanItem[] => [{ f: 'Opzione A', g: '', head: true, kind: 'variant' }, { f: '', g: '' }];
+  const choices = (): PlanItem[] => [
+    { f: 'Seleziona una fonte di carboidrati tra', g: '', head: true, kind: 'choice' }, { f: '', g: '' },
+    { f: 'Aggiungi una fonte proteica tra', g: '', head: true, kind: 'choice' }, { f: '', g: '' },
+    { f: 'In aggiunta', g: '', head: true, kind: 'fixed' }, { f: 'Contorno a scelta', g: '200 g' }, { f: 'Olio evo', g: '10 g' },
+  ];
+  const meals = () => [
+    { key: 'colazione', name: 'Colazione', time: '07:30', note: '', items: options() },
+    { key: 'spuntino', name: 'Spuntino', time: '10:30', note: '', items: [{ f: 'Frutto a scelta', g: '150 g' }] },
+    { key: 'pranzo', name: 'Pranzo', time: '13:00', note: '', items: choices() },
+    { key: 'spuntino', name: 'Spuntino', time: '16:30', note: '', items: options() },
+    { key: 'cena', name: 'Cena', time: '20:00', note: '', items: choices() },
+  ];
   return {
-    title: '', kcal: null, protein: null, carbs: null, fat: null, general: '',
-    days: ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'].map((label) => ({
-      label, meals: meals.map(([key, name, time]) => ({ key, name, time, note: '', items: [] })),
-    })),
+    ...base,
+    general: 'ON: giorni di allenamento.\nOFF: giorni di riposo.\nRESET: da seguire il giorno successivo a un pasto libero.',
+    days: ['ON', 'OFF', 'RESET'].map((label) => ({ label, meals: meals() })),
   };
 }
 

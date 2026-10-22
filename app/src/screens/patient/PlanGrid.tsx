@@ -161,7 +161,7 @@ export function MealsGrid({ plan, day, onChange }: { plan: PlanData; day: number
             {edit && (
               <div className="flex gap-3 flex-wrap">
                 <button className="border-0 bg-transparent text-accent text-[12.5px] font-medium p-0 hover:underline" onClick={() => upMeal(mi, (x) => ({ ...x, items: [...x.items, { f: '', g: '' }] }))}>+ alimento</button>
-                <button className="border-0 bg-transparent text-accent text-[12.5px] font-medium p-0 hover:underline" onClick={() => upMeal(mi, (x) => ({ ...x, items: [...x.items, { f: 'NUOVA OPZIONE', g: '', head: true, kind: 'variant' }, { f: '', g: '' }] }))}>+ opzione</button>
+                <button className="border-0 bg-transparent text-accent text-[12.5px] font-medium p-0 hover:underline" onClick={() => upMeal(mi, (x) => ({ ...x, items: [...x.items, { f: `Opzione ${LETTERS[x.items.filter((i) => i.head && headKind(i) === 'variant').length] ?? ''}`.trim(), g: '', head: true, kind: 'variant' }, { f: '', g: '' }] }))}>+ opzione</button>
                 <button className="border-0 bg-transparent text-accent text-[12.5px] font-medium p-0 hover:underline" onClick={() => upMeal(mi, (x) => ({ ...x, items: [...x.items, { f: 'Scegli una fonte tra', g: '', head: true, kind: 'choice' }, { f: '', g: '' }] }))}>+ gruppo "scegli 1"</button>
               </div>
             )}

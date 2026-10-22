@@ -25,6 +25,18 @@ describe('formattazione', () => {
   });
 });
 
+describe('piani vuoti', () => {
+  it('settimanale e ON/OFF/RESET', async () => {
+    const { sections } = await import('../lib/planGroups');
+    expect(repo.emptyPlanData().days.map((d) => d.label)).toEqual(['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom']);
+    const f = repo.emptyPlanData('onoff');
+    expect(f.days.map((d) => d.label)).toEqual(['ON', 'OFF', 'RESET']);
+    const pranzo = f.days[0].meals.find((m) => m.name === 'Pranzo')!;
+    expect(sections(pranzo.items).map((x) => x.kind)).toEqual(['choice', 'choice', 'fixed']);
+    expect(sections(f.days[0].meals[0].items).map((x) => x.kind)).toEqual(['variant']);
+  });
+});
+
 describe('documenti', () => {
   it('PDF valido', () => {
     const pdf = new TextDecoder('latin1').decode(makePdf([[{ text: 'Totale € 70 — già' }]]));
