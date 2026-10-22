@@ -45,9 +45,10 @@ function Shell() {
         const n = NAV.find((x) => x.key === e.key);
         if (n) { e.preventDefault(); go({ name: n.id } as Route); return; }
         // Disattiva le scorciatoie del browser che non hanno senso in un'app (stampa, salva pagina, ricarica…).
-        if (['p', 'r', 'u', 'g', 'j', 'o'].includes(e.key.toLowerCase())) e.preventDefault();
+        if (['p', 'r', 'u', 'g', 'j', 'o', 'f', 'h', 'd'].includes(e.key.toLowerCase())) e.preventDefault();
       }
-      if (e.key === 'F5') e.preventDefault();
+      // Tasti del browser (ricarica, trova, navigazione con cursore) non pertinenti in un'app desktop.
+      if (['F3', 'F5', 'F7', 'BrowserBack', 'BrowserForward'].includes(e.key)) e.preventDefault();
       if (e.key === 'F1') { e.preventDefault(); setHelp(true); }
       if (e.altKey && e.key === 'ArrowLeft') { e.preventDefault(); back(); }
     };
