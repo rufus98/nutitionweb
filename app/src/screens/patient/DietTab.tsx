@@ -3,10 +3,11 @@ import { useApp } from '../../app/store';
 import * as repo from '../../db/repo';
 import type { Patient, Plan, PlanData } from '../../db/types';
 import { cx, Field } from '../../components/ui';
-import { DayTabs, MealsGrid } from './PlanGrid';
+import { DayMacros, DayTabs, MealsGrid } from './PlanGrid';
+import { extractText, parsePlanText } from '../../lib/pdfImport';
 import { ShareModal } from './ShareModal';
 import { PhonePreview } from './PhonePreview';
-import { fmtDate, fmtShort } from '../../lib/format';
+import { fmtDate, fmtShort, parseIso } from '../../lib/format';
 import { b64ToBytes, bytesToB64 } from '../../lib/pdf';
 import { openPdf, readFileAsBytes } from '../../lib/platform';
 
@@ -19,23 +20,56 @@ export function DietTab({ patient, plans }: { patient: Patient; plans: Plan[] })
   const [viewing, setViewing] = useState<Plan | null>(null);
   const [share, setShare] = useState(false);
   const [preview, setPreview] = useState(false);
+  const [importing, setImporting] = useState<{ name: string; step: number } | null>(null);
 
   const startDraft = async (file: File | null, from?: Plan) => {
     let pdfName: string | null = null, pdfB64: string | null = null;
+    let data: PlanData | null = null;
     if (file) {
       if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) { toast('Il file deve essere un PDF'); return; }
       if (file.size > MAX_MB * 1024 * 1024) { toast(`Il PDF supera i ${MAX_MB} MB`); return; }
       pdfName = file.name;
-      pdfB64 = bytesToB64(await readFileAsBytes(file));
+      const bytes = await readFileAsBytes(file);
+      pdfB64 = bytesToB64(bytes);
+      data = await digitize(bytes, file.name);
     } else if (from?.has_pdf) {
       pdfName = from.pdf_name;
       pdfB64 = await repo.getPlanPdf(from.id);
     }
     const base = from ?? active;
-    await repo.createPlan(patient.id, base ? structuredClone(base.data) : repo.emptyPlanData(), pdfName, pdfB64);
+    if (!data) data = base ? structuredClone(base.data) : repo.emptyPlanData();
+    if (from || !file) delete data.import;
+    await repo.createPlan(patient.id, data, pdfName, pdfB64);
     setViewing(null);
     bump();
   };
+
+  /** Lettura del PDF: testo → giorni e pasti → alimenti e grammature. Restituisce null se non riconosciuto. */
+  const digitize = async (bytes: Uint8Array, name: string): Promise<PlanData | null> => {
+    const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    setImporting({ name, step: 0 });
+    try {
+      await pause(250);
+      setImporting({ name, step: 1 });
+      const items = await extractText(bytes);
+      if (!items.length) { toast('Il PDF non contiene testo leggibile (forse è una scansione): trascrivi il piano a mano'); return null; }
+      setImporting({ name, step: 2 });
+      await pause(300);
+      const r = parsePlanText(items, name);
+      setImporting({ name, step: 3 });
+      await pause(350);
+      if (!r.plan.days.length) { toast(r.warnings[0] ?? 'Formato del piano non riconosciuto: trascrivilo a mano'); return null; }
+      return { ...r.plan, import: { file: name, format: r.format, patientName: r.patientName, visit: r.visit, stats: r.stats, warnings: r.warnings } };
+    } catch (e) {
+      console.error(e);
+      toast('Non sono riuscito a leggere il PDF: trascrivi il piano a mano');
+      return null;
+    } finally {
+      setImporting(null);
+    }
+  };
+
+  if (importing) return <Digitizing name={importing.name} step={importing.step} />;
 
   if (draft && !viewing) return <>
     <DraftEditor key={draft.id} patient={patient} draft={draft} active={active} onPublished={() => setShare(true)} onPreview={() => setPreview(true)} onReplacePdf={startDraft} />
@@ -71,7 +105,7 @@ export function DietTab({ patient, plans }: { patient: Patient; plans: Plan[] })
         )}
         <div className="card px-5 py-[18px] flex flex-col gap-3">
           <div className="font-semibold text-[15px]">Come funziona</div>
-          {['Carica il PDF che già usi in studio', 'Trascrivi giorni, pasti e grammature con il PDF affiancato', 'Genera il link personale e invialo su WhatsApp o email'].map((t, i) => (
+          {['Carica il PDF che già usi in studio', 'Verifica il piano strutturato (campi incerti evidenziati)', 'Genera il link personale e invialo su WhatsApp o email'].map((t, i) => (
             <div key={i} className="flex gap-2.5"><span className="font-mono text-xs font-semibold text-accent">0{i + 1}</span><span className="text-[13px]">{t}</span></div>
           ))}
         </div>
@@ -108,7 +142,7 @@ function DropZone({ onFile, onEmpty, hasActive }: { onFile: (f: File) => void; o
         <div className="border-2 border-dashed border-ctl bg-surface rounded-[18px] min-h-[340px] flex flex-col items-center justify-center gap-3 text-center p-8 hover:border-sage-500 hover:bg-surface2">
           <div className="w-14 h-[68px] rounded-lg border-[1.5px] border-ctl bg-tint grid place-items-end justify-center pb-2 font-mono text-[11px] font-semibold text-accent">PDF</div>
           <div className="text-lg font-semibold">Trascina qui il PDF della dieta</div>
-          <div className="text-muted max-w-[380px] [text-wrap:pretty]">Lo trovi affiancato all'editor mentre trascrivi giorni, pasti, alimenti e grammature. Potrai verificare tutto prima di inviarlo.</div>
+          <div className="text-muted max-w-[380px] [text-wrap:pretty]">Riconosciamo giorni, pasti, alimenti e grammature. Potrai verificare tutto prima di inviarlo.</div>
           <div className="flex gap-2 mt-1.5">
             <span className="btn-primary px-3.5 py-[9px]">Scegli file</span>
             <button onClick={(e) => { e.stopPropagation(); onEmpty(); }} className="btn-secondary py-[9px]">{hasActive ? 'Modifica senza PDF' : 'Inizia senza PDF'}</button>
@@ -165,7 +199,7 @@ function DraftEditor({ patient, draft, active, onPublished, onPreview, onReplace
 
   const meals = plan.days[0]?.meals.length ?? 0;
   const flagged = plan.days.reduce((a, d) => a + d.meals.reduce((b, m) => b + m.items.filter((i) => i.flag).length, 0), 0);
-  const items = plan.days.reduce((a, d) => a + d.meals.reduce((b, m) => b + m.items.filter((i) => i.f.trim()).length, 0), 0);
+  const items = plan.days.reduce((a, d) => a + d.meals.reduce((b, m) => b + m.items.filter((i) => i.f.trim() && !i.head).length, 0), 0);
   const emptyDays = plan.days.filter((d) => !d.meals.some((m) => m.items.some((i) => i.f.trim()))).map((d) => d.label);
   const macro = (g: number | null, k: number) => (g && plan.kcal ? ` · ${Math.round((g * k * 100) / plan.kcal)}%` : '');
   const setNum = (k: 'kcal' | 'protein' | 'carbs' | 'fat', v: string) => change({ ...plan, [k]: v ? parseInt(v.replace(/\D/g, '')) || null : null });
@@ -195,6 +229,7 @@ function DraftEditor({ patient, draft, active, onPublished, onPreview, onReplace
 
   return (
     <div className="grid grid-cols-[minmax(0,1fr)_300px] gap-5 items-start">
+      {plan.import && <ImportBanner patient={patient} plan={plan} onClose={() => { const { import: _, ...rest } = plan; change(rest as PlanData); }} />}
       <div className={cx('grid gap-4 min-w-0', showPdf && pdfUrl ? 'grid-cols-[minmax(0,.9fr)_minmax(0,1.1fr)]' : 'grid-cols-1')}>
         {showPdf && pdfUrl && (
           <div className="card overflow-hidden sticky top-5 h-[calc(100vh-120px)] min-h-[480px] flex flex-col">
@@ -206,7 +241,7 @@ function DraftEditor({ patient, draft, active, onPublished, onPreview, onReplace
           <div className="px-[22px] py-[18px] flex justify-between items-center gap-3 flex-wrap border-b border-line2">
             <div>
               <div className="font-semibold text-base">Piano in preparazione · bozza v{draft.version}</div>
-              <div className="text-xs text-label">{[draft.pdf_name, '7 giorni', meals + ' pasti/giorno'].filter(Boolean).join(' · ')}</div>
+              <div className="text-xs text-label">{[draft.pdf_name, plan.days.length + (plan.days.length === 1 ? ' giorno' : ' giorni'), meals + ' pasti/giorno'].filter(Boolean).join(' · ')}</div>
             </div>
             <div className="flex gap-2 items-center">
               <span className="text-xs text-label">{saved ? 'Salvato' : 'Salvataggio…'}</span>
@@ -215,6 +250,7 @@ function DraftEditor({ patient, draft, active, onPublished, onPreview, onReplace
             </div>
           </div>
           <DayTabs plan={plan} day={day} setDay={setDay} />
+          <DayMacros plan={plan} day={day} />
           <div className="flex gap-2 items-center px-[22px] pt-3.5 text-[13px] flex-wrap">
             {draft.has_pdf && <button className="btn-secondary py-1.5 text-[12.5px]" onClick={() => setShowPdf(!showPdf)}>{showPdf ? 'Nascondi PDF' : 'Mostra PDF'}</button>}
             <select className="field py-1.5 text-[12.5px]" value="" onChange={(e) => { const v = e.target.value; if (v) copyDay(v === 'all' ? 'all' : +v); }} aria-label="Copia giorno">
@@ -222,7 +258,7 @@ function DraftEditor({ patient, draft, active, onPublished, onPreview, onReplace
               {plan.days.map((d, i) => i !== day && <option key={i} value={i}>{d.label}</option>)}
               <option value="all">Tutti gli altri giorni</option>
             </select>
-            {active && <span className="text-xs text-label ml-auto">Partito dalla v{active.version}: modifica solo ciò che cambia</span>}
+            {active && !plan.import && <span className="text-xs text-label ml-auto">Partito dalla v{active.version}: modifica solo ciò che cambia</span>}
           </div>
           <MealsGrid plan={plan} day={day} onChange={change} />
         </div>
@@ -246,7 +282,7 @@ function DraftEditor({ patient, draft, active, onPublished, onPreview, onReplace
               </span>
             </div>
           ))}
-          <Field label="Indicazioni generali"><textarea rows={3} className="field py-2 resize-y text-[13px]" value={plan.general} onChange={(e) => change({ ...plan, general: e.target.value })} placeholder="Acqua, cotture, pasti liberi…" /></Field>
+          <Field label="Indicazioni generali"><textarea rows={plan.general.length > 200 ? 8 : 3} className="field py-2 resize-y text-[13px]" value={plan.general} onChange={(e) => change({ ...plan, general: e.target.value })} placeholder="Acqua, cotture, pasti liberi…" /></Field>
         </div>
         <button className="btn-secondary" onClick={async () => { await flush(); onPreview(); }}>Anteprima app paziente</button>
         <input ref={fileInput} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onReplacePdf(f); e.target.value = ''; }} />
@@ -255,6 +291,74 @@ function DraftEditor({ patient, draft, active, onPublished, onPreview, onReplace
           <button className="btn-secondary !text-err" onClick={discard}>Elimina bozza</button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/** Schermata "Digitalizzazione in corso…" (dal design), con i passi reali della lettura. */
+function Digitizing({ name, step }: { name: string; step: number }) {
+  const STEPS = ['Caricamento PDF', 'Riconoscimento testo', 'Struttura giorni e pasti', 'Estrazione alimenti e grammature'];
+  return (
+    <div className="card rounded-[18px] p-8 grid grid-cols-[200px_1fr] gap-8 items-center max-w-[860px]">
+      <div className="w-[200px] h-[250px] rounded-[10px] border border-line relative overflow-hidden grid place-items-center" style={{ background: 'repeating-linear-gradient(0deg, rgb(var(--canvas)) 0 10px, rgb(var(--surface)) 10px 20px)' }}>
+        <span className="font-mono text-[11px] font-medium text-subtle bg-surface px-1.5 py-[3px] rounded">anteprima pagina 1</span>
+        <div className="absolute left-0 right-0 h-0.5 bg-[#2F7A7D] shadow-[0_0_12px_4px_rgba(47,122,125,.35)] animate-[scan_1.6s_ease-in-out_infinite_alternate]" />
+      </div>
+      <div className="flex flex-col gap-4">
+        <div><div className="font-mono text-xs text-label truncate">{name}</div><div className="text-xl font-semibold mt-0.5">Digitalizzazione in corso…</div></div>
+        <div className="h-1.5 rounded-[3px] bg-line2 overflow-hidden"><div className="h-full bg-primary rounded-[3px] transition-[width] duration-700 ease-out" style={{ width: Math.min(100, step * 25 + 8) + '%' }} /></div>
+        <div className="flex flex-col gap-2.5">
+          {STEPS.map((l, i) => (
+            <div key={l} className="flex items-center gap-2.5 text-sm">
+              {i < step ? <><span className="w-5 h-5 rounded-full bg-ok-bg text-ok grid place-items-center text-xs font-bold">✓</span><span className="text-ink2">{l}</span></>
+                : i === step ? <><span className="w-5 h-5 rounded-full border-2 border-line border-t-primary animate-[spin_.8s_linear_infinite]" /><span className="font-semibold">{l}</span></>
+                  : <><span className="w-5 h-5 rounded-full border-2 border-line" /><span className="text-subtle">{l}</span></>}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Riepilogo della lettura del PDF nell'editor: cosa è stato letto, avvisi, visita da registrare. */
+function ImportBanner({ patient, plan, onClose }: { patient: Patient; plan: PlanData; onClose: () => void }) {
+  const { bump, toast } = useApp();
+  const imp = plan.import!;
+  const [added, setAdded] = useState(false);
+  const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[^a-z]/g, '');
+  const other = imp.patientName && !norm(imp.patientName).includes(norm(patient.last).slice(0, 5)) ? imp.patientName : null;
+  const v = imp.visit;
+  const addVisit = async () => {
+    if (!v?.date) return;
+    const existing = await repo.listVisits(patient.id);
+    if (existing.some((x) => x.date === v.date)) { toast('Esiste già una visita in quella data'); setAdded(true); return; }
+    await repo.addVisit({ patient_id: patient.id, date: v.date, type: 'Visita', kg: v.kg, fat: null, vita: null, fianchi: null, torace: null, braccio: null, coscia: null, polso: null, note: `Dati letti dal piano "${imp.file}".`, goal: plan.title || null });
+    if (v.height && !patient.height) await repo.updatePatient(patient.id, { height: v.height });
+    setAdded(true);
+    bump();
+    toast('Visita aggiunta alla cartella');
+  };
+  return (
+    <div className="col-span-2 rounded-card border border-sage-400 bg-tint px-5 py-3.5 flex items-start gap-4">
+      <span className="w-8 h-8 rounded-full bg-ok-bg text-ok grid place-items-center font-bold flex-none mt-0.5">✓</span>
+      <div className="flex-1 min-w-0 flex flex-col gap-1.5 text-[13px]">
+        <div className="text-[14.5px] font-semibold">Piano letto dal PDF{imp.format === 'progeo' ? ' (Progeo Medical)' : ''}</div>
+        <div className="text-ink2">
+          {imp.stats.days} {imp.stats.days === 1 ? 'giorno' : 'giorni'} · {imp.stats.meals} pasti · {imp.stats.items} alimenti
+          {imp.stats.flagged ? <> · <span className="text-warn font-semibold">{imp.stats.flagged} da verificare</span> (evidenziati in ambra)</> : ' · nessun campo incerto'}
+          {plan.days.some((d) => d.meals.some((m) => m.items.some((i) => i.alts?.length))) && ' · alternative incluse'}
+        </div>
+        {other && <div className="text-warn">Attenzione: il PDF è intestato a <b>{other}</b>, non a {patient.first} {patient.last}.</div>}
+        {imp.warnings.map((w, i) => <div key={i} className="text-warn">{w}</div>)}
+        {v?.date && (
+          <div className="flex items-center gap-3 pt-0.5">
+            <span className="text-ink2">Nel PDF c'è anche la visita del {parseIso(v.date).toLocaleDateString('it-IT')}{v.kg ? ` · ${String(v.kg).replace('.', ',')} kg` : ''}{v.height ? ` · ${v.height} cm` : ''}.</span>
+            {added ? <span className="text-ok font-semibold">Aggiunta ✓</span> : <button className="link-btn" onClick={addVisit}>Aggiungi alla cartella</button>}
+          </div>
+        )}
+      </div>
+      <button className="btn-x !w-7 !h-7 flex-none" onClick={onClose} title="Chiudi riepilogo" aria-label="Chiudi riepilogo">×</button>
     </div>
   );
 }
@@ -272,6 +376,7 @@ function PlanViewer({ plan, isActive, onBack, onEdit, onPreview, onShare }: { pl
           {isActive ? <span className="pill-ok">Attivo</span> : <span className="pill-neutral">Archiviato</span>}
         </div>
         <DayTabs plan={plan.data} day={day} setDay={setDay} />
+        <DayMacros plan={plan.data} day={day} />
         <MealsGrid plan={plan.data} day={day} />
       </div>
       <div className="sticky top-5 flex flex-col gap-2.5">

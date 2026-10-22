@@ -19,8 +19,22 @@ export function DayTabs({ plan, day, setDay }: { plan: PlanData; day: number; se
   );
 }
 
+export function DayMacros({ plan, day }: { plan: PlanData; day: number }) {
+  const d = plan.days[day];
+  if (!d?.kcal) return null;
+  return (
+    <div className="px-[22px] pt-3 flex gap-4 text-xs text-label">
+      <span><b className="text-ink font-semibold">{d.kcal.toLocaleString('it-IT')}</b> kcal</span>
+      {d.protein != null && <span>Proteine <b className="text-ink font-semibold">{d.protein} g</b></span>}
+      {d.carbs != null && <span>Carboidrati <b className="text-ink font-semibold">{d.carbs} g</b></span>}
+      {d.fat != null && <span>Grassi <b className="text-ink font-semibold">{d.fat} g</b></span>}
+    </div>
+  );
+}
+
 export function MealsGrid({ plan, day, onChange }: { plan: PlanData; day: number; onChange?: (p: PlanData) => void }) {
   const d = plan.days[day];
+  if (!d) return null;
   const edit = !!onChange;
   const upMeal = (mi: number, fn: (m: PlanMeal) => PlanMeal) => {
     const days = plan.days.map((x, i) => (i !== day ? x : { ...x, meals: x.meals.map((m, j) => (j === mi ? fn(m) : m)) }));
@@ -38,25 +52,44 @@ export function MealsGrid({ plan, day, onChange }: { plan: PlanData; day: number
               : <span className="font-mono text-[11px] text-subtle">{m.time}</span>}
           </div>
           {m.items.map((it, ii) => {
-            const set = (k: 'f' | 'g', v: string) => upMeal(mi, (x) => ({ ...x, items: x.items.map((y, j) => (j === ii ? { f: y.f, g: y.g, [k]: v } : y)) }));
+            // Modificare una voce toglie il segno "da verificare".
+            const set = (k: 'f' | 'g', v: string) => upMeal(mi, (x) => ({ ...x, items: x.items.map((y, j) => (j === ii ? { ...y, [k]: v, flag: undefined } : y)) }));
+            const remove = () => upMeal(mi, (x) => ({ ...x, items: x.items.filter((_, j) => j !== ii) }));
+            const del = <button className="w-5 h-5 border-0 bg-transparent text-subtle opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-err flex-none" title="Rimuovi" aria-label="Rimuovi" onClick={remove}>×</button>;
+            if (it.head) return edit ? (
+              <div key={ii} className="group flex items-center gap-1 -mx-1.5 px-1.5 pt-1">
+                <textarea rows={1} className={cx(inp, 'flex-1 min-w-0 px-1 py-px resize-none [field-sizing:content] font-mono text-[10.5px] font-medium uppercase tracking-[.05em] text-accent leading-snug')} value={it.f} onChange={(e) => set('f', e.target.value.replace(/\n/g, ' '))} aria-label="Intestazione" />{del}
+              </div>
+            ) : <div key={ii} className="font-mono text-[10.5px] font-medium uppercase tracking-[.05em] text-accent pt-1 leading-snug">{it.f}</div>;
+            const alts = it.alts?.length ? (
+              <details className="text-[11.5px] text-label -mt-1 pl-1">
+                <summary className="cursor-pointer select-none list-none hover:text-accent">⇄ {it.alts.length} alternative</summary>
+                <div className="flex flex-col gap-0.5 pt-1 pb-0.5">{it.alts.map((a, k) => <div key={k} className="flex justify-between gap-2"><span>{a.f}</span><span className="font-mono">{a.g}</span></div>)}</div>
+              </details>
+            ) : null;
             if (!edit) return (
-              <div key={ii} className={cx('flex justify-between gap-2 text-[13px]', it.flag && 'bg-warn-bg -mx-1.5 px-1.5 py-[3px] rounded-md')}>
-                <span>{it.f}</span><span className="font-mono text-xs font-medium text-accent whitespace-nowrap">{it.g}</span>
+              <div key={ii} className="flex flex-col gap-1">
+                <div className={cx('flex justify-between gap-2 text-[13px]', it.flag && 'bg-warn-bg -mx-1.5 px-1.5 py-[3px] rounded-md', it.sub && 'pl-3 text-ink2')}>
+                  <span>{it.sub && <span className="text-subtle mr-1">–</span>}{it.f}</span><span className="font-mono text-xs font-medium text-accent whitespace-nowrap">{it.g}</span>
+                </div>
+                {alts}
               </div>
             );
             return (
-              <div key={ii} className={cx('group flex justify-between items-center gap-1 text-[13px] -mx-1.5 px-1.5 rounded-md', it.flag && 'bg-warn-bg py-[3px]')} title={it.flag ? 'Da verificare' : undefined}>
-                <input className={cx(inp, 'flex-1 min-w-0 px-1 py-px')} value={it.f} onChange={(e) => set('f', e.target.value)} placeholder="Alimento" autoFocus={!it.f && !it.g} aria-label="Alimento" />
-                <input className={cx(inp, 'w-[68px] text-right font-mono text-xs font-medium px-1 py-px', it.flag ? 'border-warn-line bg-surface text-warn' : 'text-accent')} value={it.g} onChange={(e) => set('g', e.target.value)} placeholder="g" aria-label="Quantità"
-                  onKeyDown={(e) => { if (e.key === 'Enter') upMeal(mi, (x) => ({ ...x, items: [...x.items, { f: '', g: '' }] })); }} />
-                <button className="w-5 h-5 border-0 bg-transparent text-subtle opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-err" title="Rimuovi" aria-label="Rimuovi alimento"
-                  onClick={() => upMeal(mi, (x) => ({ ...x, items: x.items.filter((_, j) => j !== ii) }))}>×</button>
+              <div key={ii} className="flex flex-col gap-1">
+                <div className={cx('group flex justify-between items-start gap-1 text-[13px] -mx-1.5 px-1.5 rounded-md', it.flag && 'bg-warn-bg py-[3px]', it.sub && 'pl-4')} title={it.flag ? 'Da verificare: controlla con il PDF' : undefined}>
+                  <textarea rows={1} className={cx(inp, 'flex-1 min-w-0 px-1 py-px resize-none [field-sizing:content] leading-snug', it.sub && 'text-ink2')} value={it.f} onChange={(e) => set('f', e.target.value.replace(/\n/g, ' '))} placeholder="Alimento" autoFocus={!it.f && !it.g} aria-label="Alimento" />
+                  <input className={cx(inp, 'text-right font-mono text-xs font-medium px-1 py-px flex-none self-start', it.flag ? 'border-warn-line bg-surface text-warn' : 'text-accent')} style={{ width: `${Math.max(5, it.g.length + 1.5)}ch` }} value={it.g} onChange={(e) => set('g', e.target.value)} placeholder="g" aria-label="Quantità"
+                    onKeyDown={(e) => { if (e.key === 'Enter') upMeal(mi, (x) => ({ ...x, items: [...x.items.slice(0, ii + 1), { f: '', g: '' }, ...x.items.slice(ii + 1)] })); }} />
+                  {del}
+                </div>
+                {alts}
               </div>
             );
           })}
           {edit && <button className="self-start border-0 bg-transparent text-accent text-[12.5px] font-medium p-0 hover:underline" onClick={() => upMeal(mi, (x) => ({ ...x, items: [...x.items, { f: '', g: '' }] }))}>+ alimento</button>}
           {edit ? (
-            <input className={cx(inp, 'text-xs text-muted italic border-t border-dashed !border-t-line pt-[7px] px-1 rounded-none')} value={m.note} placeholder="Nota (facoltativa)" onChange={(e) => upMeal(mi, (x) => ({ ...x, note: e.target.value }))} />
+            <textarea rows={m.note.length > 60 ? 3 : 1} className={cx(inp, 'text-xs text-muted italic border-t border-dashed !border-t-line pt-[7px] px-1 rounded-none resize-y')} value={m.note} placeholder="Nota (facoltativa)" onChange={(e) => upMeal(mi, (x) => ({ ...x, note: e.target.value }))} />
           ) : m.note ? <div className="text-xs text-muted border-t border-dashed border-line pt-[7px] italic">{m.note}</div> : null}
         </div>
       ))}

@@ -88,9 +88,20 @@ export interface Appointment {
   goal?: string | null;
 }
 
-export interface PlanItem { f: string; g: string; flag?: boolean }
+export interface PlanItem {
+  f: string;
+  g: string;
+  /** da verificare (lettura del PDF incerta) */
+  flag?: boolean;
+  /** intestazione: variante del pasto, gruppo "a scelta tra" o piatto composto */
+  head?: boolean;
+  /** ingrediente di un piatto composto */
+  sub?: boolean;
+  /** alimenti alternativi con la quantità equivalente */
+  alts?: { f: string; g: string }[];
+}
 export interface PlanMeal { key: string; name: string; time: string; note: string; items: PlanItem[] }
-export interface PlanDay { label: string; meals: PlanMeal[] }
+export interface PlanDay { label: string; meals: PlanMeal[]; kcal?: number; protein?: number; carbs?: number; fat?: number }
 export interface PlanData {
   title: string;
   kcal: number | null;
@@ -99,6 +110,15 @@ export interface PlanData {
   fat: number | null;
   general: string;
   days: PlanDay[];
+  /** Riepilogo della lettura automatica del PDF (mostrato nell'editor finché non viene chiuso). */
+  import?: {
+    file: string;
+    format: 'progeo' | 'layout';
+    patientName: string | null;
+    visit: { date: string | null; kg: number | null; height: number | null } | null;
+    stats: { days: number; meals: number; items: number; flagged: number };
+    warnings: string[];
+  };
 }
 export interface Plan {
   id: number;

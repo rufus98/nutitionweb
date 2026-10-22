@@ -47,7 +47,7 @@ Altri comandi:
 | Comando | A cosa serve |
 |---|---|
 | `npm run dev` | Solo l'interfaccia nel browser (http://localhost:1420). Al posto di SQLite usa sql.js salvato nel browser: utile per lavorare sulla grafica. |
-| `npm test` | Test unitari (formattazione, PDF, ZIP, database con dati demo). |
+| `npm test` | Test unitari (formattazione, PDF, ZIP, database con dati demo, lettura dei piani). Con `NUTREA_PDF_DIR=/cartella/con/pdf npm test` verifica anche la lettura di PDF reali (non inclusi nel repository). |
 | `npm run build` | Controllo dei tipi e build del frontend. |
 
 Al primo avvio l'app chiede se partire con un **archivio vuoto** o con i **dati di esempio** del design (20 pazienti, agenda, pagamenti, piani). I dati di esempio si eliminano da *Impostazioni → Privacy & sicurezza*.
@@ -127,10 +127,11 @@ Rispetto al prototipo, dove tutto era dimostrativo:
 | Promemoria WhatsApp del giorno prima | ✅ da *Oggi*, un clic per paziente (apre WhatsApp con il messaggio) |
 | Pagamenti, numerazione fatture, fattura PDF, sollecito su WhatsApp | ✅ |
 | Esportazione CSV per il commercialista ed esportazione completa ZIP | ✅ |
-| Piano nutrizionale: PDF allegato, editor giorno × pasto con il PDF affiancato, versioni | ✅ inserimento manuale |
+| Piano nutrizionale: PDF allegato, editor giorno × pasto con il PDF affiancato, versioni | ✅ |
+| Lettura automatica del PDF della dieta (giorni, pasti, alimenti, grammature, alternative, macro) | ✅ per PDF con testo: formato Progeo Medical e piani impaginati a colonne (es. giorni ON/OFF/RESET). Le righe incerte sono evidenziate in ambra |
 | Anteprima dell'app paziente (Oggi, La mia dieta, Progressi, Studio) | ✅ con i dati reali |
 | Blocco con PIN all'avvio | ✅ |
-| Digitalizzazione automatica del PDF (OCR) | ⏳ non inclusa, come concordato: i dati si inseriscono a mano |
+| PDF scansionati (immagini senza testo) | ⏳ serve l'OCR: per ora il piano si trascrive a mano con il PDF affiancato |
 | App paziente online (`app.diet.it/p/{token}`), registro accessi, consenso digitale | ⏳ serve un server: i link vengono generati e revocati, ma non sono ancora raggiungibili. Intanto si invia il PDF del piano |
 | Invio telematico a SdI e Sistema TS | ⏳ serve un intermediario: per ora PDF ed esportazione CSV |
 

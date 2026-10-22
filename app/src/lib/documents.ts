@@ -72,23 +72,56 @@ export function consentPdf(p: Patient, s: Settings): Uint8Array {
   return makePdf([lines]);
 }
 
+/** Spezza un testo in righe di larghezza massima approssimata (caratteri). */
+function wrap(text: string, max: number): string[] {
+  const out: string[] = [];
+  for (const para of text.split('\n')) {
+    let line = '';
+    for (const w of para.split(/\s+/)) {
+      if ((line + ' ' + w).trim().length > max) { if (line) out.push(line); line = w; }
+      else line = (line + ' ' + w).trim();
+    }
+    out.push(line);
+  }
+  return out;
+}
+
+/** Impagina le righe su più pagine A4 quando superano l'altezza utile. */
+function paginate(blocks: PdfLine[][], height = 720): PdfLine[][] {
+  const pages: PdfLine[][] = [];
+  for (const block of blocks) {
+    let page: PdfLine[] = [], used = 0;
+    for (const l of block) {
+      const g = l.gap ?? (l.size ?? 10.5) * 1.5;
+      if (used + g > height && page.length) { pages.push(page); page = []; used = 0; }
+      page.push(page.length ? l : { ...l, gap: 0 });
+      used += page.length === 1 ? 0 : g;
+    }
+    if (page.length) pages.push(page);
+  }
+  return pages;
+}
+
 export function planPdf(name: string, plan: PlanData, studio: string): Uint8Array {
-  const pages = plan.days.map((d, i) => {
+  const blocks = plan.days.map((d, i) => {
     const lines: PdfLine[] = [];
     if (i === 0) {
       lines.push({ text: studio, size: 9, color: MUTED, gap: 0 });
       lines.push({ text: `Piano nutrizionale — ${name}`, size: 18, bold: true, gap: 26 });
       lines.push({ text: `${plan.title}${plan.kcal ? ' · ' + plan.kcal.toLocaleString('it-IT') + ' kcal' : ''}`, size: 11, gap: 18 });
-      lines.push({ text: plan.general, size: 9.5, color: MUTED, gap: 16 });
+      wrap(plan.general, 105).forEach((t, k) => lines.push({ text: t, size: 9.5, color: MUTED, gap: k ? 12 : 16 }));
     }
-    lines.push({ text: ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'][i], size: 14, bold: true, gap: i === 0 ? 30 : 0 });
+    const wk = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'].indexOf(d.label);
+    lines.push({ text: wk >= 0 ? ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'][wk] : 'Giorno ' + d.label, size: 14, bold: true, gap: i === 0 ? 30 : 0 });
     for (const m of d.meals) {
-      lines.push({ text: `${m.name}  (${m.time})`, size: 11, bold: true, gap: 22 });
-      for (const it of m.items) lines.push({ text: `•  ${it.f} — ${it.g}`, size: 10.5, x: 12, gap: 15 });
-      if (m.note) lines.push({ text: m.note, size: 9.5, x: 12, gap: 14, color: MUTED });
+      lines.push({ text: `${m.name}${m.time ? `  (${m.time})` : ''}`, size: 11, bold: true, gap: 22 });
+      for (const it of m.items) {
+        if (it.head) lines.push({ text: it.f.toUpperCase(), size: 9, bold: true, x: 12, gap: 16, color: MUTED });
+        else wrap(`${it.sub ? '    –' : '•'}  ${it.f}${it.g ? ' — ' + it.g : ''}`, 92).forEach((t, k) => lines.push({ text: (k ? '     ' : '') + t, size: 10.5, x: 12, gap: k ? 13 : 15 }));
+      }
+      if (m.note) wrap(m.note, 105).forEach((t) => lines.push({ text: t, size: 9.5, x: 12, gap: 13, color: MUTED }));
     }
     return lines;
   });
-  return makePdf(pages);
+  return makePdf(paginate(blocks));
 }
-

@@ -16,13 +16,17 @@ export function PhonePreview({ patient, plan, onClose }: { patient: Patient; pla
   const showProg = s.app.weight || s.app.meas;
   const [tab, setTab] = useState<T>('oggi');
   const [banner, setBanner] = useState(s.app.install);
-  const todayIdx = (parseIso(today()).getDay() + 6) % 7;
+  // Piano settimanale (Lun…Dom) oppure a "giorni tipo" (es. ON / OFF / RESET).
+  const weekly = plan.data.days.length === 7 && plan.data.days.every((d, i) => d.label === ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'][i]);
+  const todayIdx = weekly ? (parseIso(today()).getDay() + 6) % 7 : 0;
+  const dayName = (i: number) => (weekly ? WEEKDAYS[(i + 1) % 7] : `Giorno ${plan.data.days[i]?.label ?? ''}`);
   const [day, setDay] = useState(todayIdx);
   const [done, setDone] = useState<Record<string, boolean>>({});
   const [open, setOpen] = useState<number>(todayIdx);
   const [visits, setVisits] = useState<Visit[]>([]);
   const [next, setNext] = useState<Appointment | undefined>();
   const [scale, setScale] = useState(1);
+  const [moreGen, setMoreGen] = useState(false);
   useEffect(() => {
     repo.listVisits(patient.id).then(setVisits);
     repo.patientAppointments(patient.id).then((a) => setNext(a.find((x) => x.date >= today())));
@@ -81,14 +85,14 @@ export function PhonePreview({ patient, plan, onClose }: { patient: Patient; pla
               {tab === 'oggi' && <>
                 <div className="flex justify-between items-end pt-1">
                   <div><div className="text-[13px]" style={{ color: C.muted }}>{WEEKDAYS[parseIso(today()).getDay()]} {parseIso(today()).getDate()} {MONTHS[parseIso(today()).getMonth()]}</div><div className="text-[28px] font-semibold tracking-[-.02em] leading-[1.15]">Ciao {patient.first}</div></div>
-                  {s.app.checks && <div className="text-right"><div className="font-semibold text-xl" style={{ color: C.petrol }}>{doneCount}/{d.meals.length}</div><div className="text-[11.5px]" style={{ color: C.muted }}>pasti di {WEEKDAYS[(day + 1) % 7].toLowerCase()}</div></div>}
+                  {s.app.checks && <div className="text-right"><div className="font-semibold text-xl" style={{ color: C.petrol }}>{doneCount}/{d.meals.length}</div><div className="text-[11.5px]" style={{ color: C.muted }}>pasti {weekly ? 'di ' + dayName(day).toLowerCase() : 'giorno ' + plan.data.days[day].label}</div></div>}
                 </div>
                 <div className="flex gap-[5px]">
                   {plan.data.days.map((x, i) => {
-                    const n = parseIso(addDays(mon, i)).getDate();
+                    const n = weekly ? parseIso(addDays(mon, i)).getDate() : '';
                     return i === day
                       ? <button key={i} className="flex-1 h-[58px] border-0 rounded-[14px] bg-[#1E5A5F] text-white flex flex-col items-center justify-center gap-0.5"><span className="text-[11px] text-[#BFD6CE]">{x.label}</span><span className="font-semibold text-base">{n}</span></button>
-                      : <button key={i} onClick={() => setDay(i)} className="flex-1 h-[58px] border border-[#E4E2DC] rounded-[14px] bg-white text-[#18211F] flex flex-col items-center justify-center gap-0.5 relative"><span className="text-[11px] text-[#8A928F]">{x.label}</span><span className="font-semibold text-base">{n}</span>{i === todayIdx && <span className="absolute bottom-1.5 w-1 h-1 rounded-full bg-[#1E5A5F]" />}</button>;
+                      : <button key={i} onClick={() => setDay(i)} className="flex-1 h-[58px] border border-[#E4E2DC] rounded-[14px] bg-white text-[#18211F] flex flex-col items-center justify-center gap-0.5 relative"><span className="text-[11px] text-[#8A928F]">{x.label}</span><span className="font-semibold text-base">{n}</span>{weekly && i === todayIdx && <span className="absolute bottom-1.5 w-1 h-1 rounded-full bg-[#1E5A5F]" />}</button>;
                   })}
                 </div>
                 {s.app.checks && <div className="h-1.5 rounded-[3px] bg-[#E6E4DE] overflow-hidden"><div className="h-full bg-[#7FA08A] rounded-[3px] transition-[width] duration-300" style={{ width: (doneCount / Math.max(1, d.meals.length)) * 100 + '%' }} /></div>}
@@ -101,7 +105,9 @@ export function PhonePreview({ patient, plan, onClose }: { patient: Patient; pla
                         {s.app.checks && (ok ? <button onClick={() => setDone({ ...done, [day + ':' + i]: false })} className="w-11 h-11 rounded-full border-0 bg-[#1E5A5F] text-white text-[17px] font-bold">✓</button>
                           : <button onClick={() => setDone({ ...done, [day + ':' + i]: true })} className="w-11 h-11 rounded-full border-[1.5px] border-[#CFD8D4] bg-white" />)}
                       </div>
-                      {m.items.map((it, j) => <div key={j} className="flex justify-between gap-2.5 text-sm leading-[1.3]"><span style={{ color: C.ink2 }}>{it.f}</span><span className="font-mono text-[12.5px] font-medium whitespace-nowrap" style={{ color: C.petrol }}>{it.g}</span></div>)}
+                      {m.items.map((it, j) => it.head
+                        ? <div key={j} className="font-mono text-[10.5px] font-medium tracking-[.06em] uppercase pt-1" style={{ color: C.petrol }}>{it.f}</div>
+                        : <div key={j} className={'flex justify-between gap-2.5 text-sm leading-[1.3]' + (it.sub ? ' pl-3' : '')}><span style={{ color: C.ink2 }}>{it.sub ? '– ' : ''}{it.f}</span><span className="font-mono text-[12.5px] font-medium whitespace-nowrap" style={{ color: C.petrol }}>{it.g}</span></div>)}
                       {m.note && <div className="text-[12.5px] text-[#7A5426] bg-[#F7F0E4] rounded-[9px] px-[9px] py-1.5">{m.note}</div>}
                     </div>
                   );
@@ -114,15 +120,21 @@ export function PhonePreview({ patient, plan, onClose }: { patient: Patient; pla
                   {s.app.pdf && plan.has_pdf && <span className="flex items-center justify-center gap-2 h-12 rounded-[14px] bg-white border border-[#E4E2DC] font-semibold text-sm"><span className="font-mono text-[9px] font-semibold text-[#1E5A5F] border-[1.5px] border-[#1E5A5F] rounded-[3px] px-[3px] py-0.5">PDF</span>Originale</span>}
                   <span className="flex items-center justify-center h-12 rounded-[14px] bg-white border border-[#E4E2DC] font-semibold text-sm">Lista spesa</span>
                 </div>
-                {plan.data.general && <div className="bg-[#EEF3EE] rounded-2xl px-4 py-3.5 text-[13.5px] text-[#2C4A3A] leading-normal"><b>Indicazioni generali</b><br />{plan.data.general}</div>}
+                {plan.data.general && (
+                  <div className="bg-[#EEF3EE] rounded-2xl px-4 py-3.5 text-[13.5px] text-[#2C4A3A] leading-normal">
+                    <b>Indicazioni generali</b>
+                    <div className={'whitespace-pre-line' + (moreGen ? '' : ' line-clamp-4')}>{plan.data.general}</div>
+                    {plan.data.general.length > 180 && <button onClick={() => setMoreGen(!moreGen)} className="border-0 bg-transparent p-0 mt-1 font-semibold text-[#1E5A5F] text-[13px]">{moreGen ? 'Mostra meno' : 'Leggi tutto'}</button>}
+                  </div>
+                )}
                 {plan.data.days.map((x, i) => (
                   <div key={i} className="bg-white border rounded-[18px] overflow-hidden" style={{ borderColor: C.card }}>
                     <button onClick={() => setOpen(open === i ? -1 : i)} className="w-full border-0 bg-transparent px-4 h-14 flex items-center justify-between text-base font-semibold text-[#18211F]">
-                      <span>{WEEKDAYS[(i + 1) % 7]}{i === todayIdx && <span className="ml-2 text-[11px] font-semibold text-[#1E5A5F] bg-[#E6EFEC] px-[7px] py-0.5 rounded-full">Oggi</span>}</span>
+                      <span>{dayName(i)}{weekly && i === todayIdx && <span className="ml-2 text-[11px] font-semibold text-[#1E5A5F] bg-[#E6EFEC] px-[7px] py-0.5 rounded-full">Oggi</span>}</span>
                       <span className="text-[13px] text-[#8A928F] font-medium">{open === i ? '−' : '+'}</span>
                     </button>
                     {open === i && <div className="px-4 pb-3.5 flex flex-col gap-3">
-                      {x.meals.map((m, j) => <div key={j} className="flex flex-col gap-[3px] border-t border-[#F0EEE9] pt-2.5"><div className="font-mono text-[11px] font-medium tracking-[.06em] uppercase" style={{ color: C.muted }}>{m.name}</div><div className="text-sm leading-[1.45]" style={{ color: C.ink2 }}>{m.items.map((it) => `${it.f} ${it.g}`).join(' · ') || '—'}</div></div>)}
+                      {x.meals.map((m, j) => <div key={j} className="flex flex-col gap-[3px] border-t border-[#F0EEE9] pt-2.5"><div className="font-mono text-[11px] font-medium tracking-[.06em] uppercase" style={{ color: C.muted }}>{m.name}</div><div className="text-sm leading-[1.45]" style={{ color: C.ink2 }}>{m.items.filter((it) => !it.head).map((it) => `${it.f} ${it.g}`.trim()).join(' · ') || '—'}</div></div>)}
                     </div>}
                   </div>
                 ))}
