@@ -131,7 +131,7 @@ Rispetto al prototipo, dove tutto era dimostrativo:
 | Promemoria WhatsApp del giorno prima | ✅ da *Oggi*, un clic per paziente (apre WhatsApp con il messaggio) |
 | Pagamenti, numerazione fatture, fattura PDF, sollecito su WhatsApp | ✅ |
 | Esportazione CSV per il commercialista ed esportazione completa ZIP | ✅ |
-| Piano nutrizionale: PDF allegato, editor giorno × pasto con il PDF affiancato, versioni | ✅ |
+| Piano nutrizionale: PDF allegato, editor giorno × pasto con il PDF affiancato, versioni; "Salva piano" e poi "Condividi" solo quando il piano convince | ✅ |
 | Lettura automatica del PDF della dieta (giorni, pasti, alimenti, grammature, alternative, macro) | ✅ per PDF con testo: formato Progeo Medical e piani impaginati a colonne (es. giorni ON/OFF/RESET). Le righe incerte sono evidenziate in ambra |
 | Anteprima dell'app paziente (Oggi, La mia dieta, Progressi, Studio) | ✅ con i dati reali |
 | Blocco con PIN all'avvio | ✅ |

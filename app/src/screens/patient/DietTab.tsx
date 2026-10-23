@@ -71,8 +71,11 @@ export function DietTab({ patient, plans }: { patient: Patient; plans: Plan[] })
 
   if (importing) return <Digitizing name={importing.name} step={importing.step} />;
 
+  // Bozza: prima si prepara e si salva; la condivisione con il paziente è un passo separato, quando si è soddisfatti.
   if (draft && !viewing) return <>
-    <DraftEditor key={draft.id} patient={patient} draft={draft} active={active} onPublished={() => setShare(true)} onPreview={() => setPreview(true)} onReplacePdf={startDraft} />
+    {draft.saved_at
+      ? <SavedPlan key={draft.id} patient={patient} draft={draft} active={active} onShared={() => setShare(true)} onPreview={() => setPreview(true)} />
+      : <DraftEditor key={draft.id} patient={patient} draft={draft} active={active} onPreview={() => setPreview(true)} onReplacePdf={startDraft} />}
     {share && <ShareModal patient={patient} onClose={() => setShare(false)} />}
     {preview && <PhonePreview patient={patient} plan={draft} onClose={() => setPreview(false)} />}
   </>;
@@ -105,7 +108,7 @@ export function DietTab({ patient, plans }: { patient: Patient; plans: Plan[] })
         )}
         <div className="card px-5 py-[18px] flex flex-col gap-3">
           <div className="font-semibold text-[15px]">Come funziona</div>
-          {['Carica il PDF che già usi in studio', 'Verifica il piano strutturato (campi incerti evidenziati)', 'Genera il link personale e invialo su WhatsApp o email'].map((t, i) => (
+          {['Carica il PDF che già usi in studio, o crea il piano da zero', 'Verifica il piano (campi incerti evidenziati) e salvalo', 'Quando il piano ti convince, condividilo: link personale via WhatsApp o email'].map((t, i) => (
             <div key={i} className="flex gap-2.5"><span className="font-mono text-xs font-semibold text-accent">0{i + 1}</span><span className="text-[13px]">{t}</span></div>
           ))}
         </div>
@@ -203,7 +206,7 @@ async function openOriginal(plan: Plan) {
   if (b) await openPdf(plan.pdf_name || 'piano.pdf', b64ToBytes(b));
 }
 
-function DraftEditor({ patient, draft, active, onPublished, onPreview, onReplacePdf }: { patient: Patient; draft: Plan; active?: Plan; onPublished: () => void; onPreview: () => void; onReplacePdf: (f: File) => void }) {
+function DraftEditor({ patient, draft, active, onPreview, onReplacePdf }: { patient: Patient; draft: Plan; active?: Plan; onPreview: () => void; onReplacePdf: (f: File) => void }) {
   const { bump, toast, confirm, setGuard } = useApp();
   const [plan, setPlan] = useState<PlanData>(draft.data);
   const [day, setDay] = useState(0);
@@ -237,15 +240,15 @@ function DraftEditor({ patient, draft, active, onPublished, onPreview, onReplace
   const macro = (g: number | null, k: number) => (g && plan.kcal ? ` · ${Math.round((g * k * 100) / plan.kcal)}%` : '');
   const setNum = (k: 'kcal' | 'protein' | 'carbs' | 'fat', v: string) => change({ ...plan, [k]: v ? parseInt(v.replace(/\D/g, '')) || null : null });
 
-  const publish = async () => {
+  /** "Salva piano": la bozza diventa un piano finito, da rivedere e condividere quando si è soddisfatti. */
+  const savePlan = async () => {
     if (!items) { toast('Il piano è vuoto: aggiungi almeno un alimento'); return; }
-    if (flagged && !(await confirm({ title: `${flagged} ${flagged === 1 ? 'campo' : 'campi'} da verificare`, body: 'Alcune grammature sono segnate come da verificare. Vuoi pubblicare comunque?', ok: 'Pubblica comunque' }))) return;
-    if (emptyDays.length && !(await confirm({ title: 'Giorni senza alimenti', body: `${emptyDays.join(', ')}: nessun alimento inserito. Pubblicare comunque?`, ok: 'Pubblica comunque' }))) return;
+    if (flagged && !(await confirm({ title: `${flagged} ${flagged === 1 ? 'campo' : 'campi'} da verificare`, body: 'Alcune grammature sono segnate come da verificare. Vuoi salvare comunque il piano?', ok: 'Salva comunque' }))) return;
+    if (emptyDays.length && !(await confirm({ title: 'Giorni senza alimenti', body: `${emptyDays.join(', ')}: nessun alimento inserito. Salvare comunque il piano?`, ok: 'Salva comunque' }))) return;
     await flush();
-    await repo.publishPlan(draft.id);
+    await repo.markPlanSaved(draft.id);
     bump();
-    toast(`Piano v${draft.version} pubblicato`);
-    onPublished();
+    toast(`Piano v${draft.version} salvato · ${patient.first} non lo vede finché non lo condividi`);
   };
   const copyDay = (to: number | 'all') => {
     const src = plan.days[day];
@@ -299,10 +302,10 @@ function DraftEditor({ patient, draft, active, onPublished, onPreview, onReplace
 
       <div className="sticky top-5 flex flex-col gap-3.5">
         <div className="bg-[#0F3B40] text-white rounded-card p-5 flex flex-col gap-3">
-          <div className="font-mono text-[11px] font-medium tracking-[.06em] uppercase text-sage-400">Pronto per {patient.first}</div>
-          <div className="text-[17px] font-semibold leading-[1.3] [text-wrap:pretty]">Il piano sarà visibile nell'app paziente, insieme al PDF originale.</div>
-          <button onClick={publish} className="py-3 px-3.5 rounded-[11px] border-0 bg-sage-400 text-[#0F3B40] font-bold text-sm hover:bg-[#BFD6C5]">Genera e Condividi Link Paziente</button>
-          <div className="text-xs text-sage-400">{active ? `Sostituisce la v${active.version} · il link resta lo stesso` : 'Prima versione · crea il link personale'}</div>
+          <div className="font-mono text-[11px] font-medium tracking-[.06em] uppercase text-sage-400">Piano per {patient.first}</div>
+          <div className="text-[17px] font-semibold leading-[1.3] [text-wrap:pretty]">Hai finito? Salva il piano: potrai rivederlo e condividerlo solo quando ti convince.</div>
+          <button onClick={savePlan} className="py-3 px-3.5 rounded-[11px] border-0 bg-sage-400 text-[#0F3B40] font-bold text-sm hover:bg-[#BFD6C5]">Salva piano</button>
+          <div className="text-xs text-sage-400">Le modifiche sono salvate automaticamente come bozza · {patient.first} non vede nulla finché non condividi</div>
         </div>
         <div className="card px-[18px] py-4 flex flex-col gap-2.5 text-[13px]">
           <Field label="Titolo"><input className="field py-2" value={plan.title} placeholder="Es. Ricomposizione" onChange={(e) => change({ ...plan, title: e.target.value })} /></Field>
@@ -392,6 +395,53 @@ function ImportBanner({ patient, plan, onClose }: { patient: Patient; plan: Plan
         )}
       </div>
       <button className="btn-x !w-7 !h-7 flex-none" onClick={onClose} title="Chiudi riepilogo" aria-label="Chiudi riepilogo">×</button>
+    </div>
+  );
+}
+
+/** Piano salvato e non ancora condiviso: si rivede, si modifica ancora oppure, se si è soddisfatti, si condivide. */
+function SavedPlan({ patient, draft, active, onShared, onPreview }: { patient: Patient; draft: Plan; active?: Plan; onShared: () => void; onPreview: () => void }) {
+  const { bump, toast, confirm } = useApp();
+  const [day, setDay] = useState(0);
+  const share = async () => {
+    await repo.publishPlan(draft.id);
+    bump();
+    toast(`Piano v${draft.version} condiviso con ${patient.first}`);
+    onShared();
+  };
+  const edit = async () => { await repo.reopenPlan(draft.id); bump(); };
+  const discard = async () => {
+    if (!(await confirm({ title: 'Eliminare il piano salvato?', body: `Il piano v${draft.version} non è mai stato condiviso e andrà perso.${active ? ` ${patient.first} continua a vedere la v${active.version}.` : ''}`, ok: 'Elimina', danger: true }))) return;
+    await repo.deletePlan(draft.id);
+    bump();
+  };
+  return (
+    <div className="grid grid-cols-[minmax(0,1fr)_300px] gap-5 items-start">
+      <div className="card overflow-hidden min-w-0">
+        <div className="px-[22px] py-[18px] flex justify-between items-center gap-3 border-b border-line2">
+          <div>
+            <div className="font-semibold text-base">v{draft.version}{draft.data.title ? ' · ' + draft.data.title : ''}</div>
+            <div className="text-xs text-label">Salvato il {fmtDate(draft.saved_at!)}{draft.pdf_name ? ' · ' + draft.pdf_name : ''}</div>
+          </div>
+          <span className="pill-warn">Da condividere</span>
+        </div>
+        <DayTabs plan={draft.data} day={day} setDay={setDay} />
+        <DayMacros plan={draft.data} day={day} />
+        <MealsGrid plan={draft.data} day={day} />
+      </div>
+      <div className="sticky top-5 flex flex-col gap-2.5">
+        <div className="bg-[#0F3B40] text-white rounded-card p-5 flex flex-col gap-3">
+          <div className="font-mono text-[11px] font-medium tracking-[.06em] uppercase text-sage-400">Piano salvato</div>
+          <div className="text-[17px] font-semibold leading-[1.3] [text-wrap:pretty]">Il piano ti convince? Condividilo con {patient.first}.</div>
+          <button onClick={share} className="py-3 px-3.5 rounded-[11px] border-0 bg-sage-400 text-[#0F3B40] font-bold text-sm hover:bg-[#BFD6C5]">Condividi con {patient.first}</button>
+          <div className="text-xs text-sage-400">{active ? `Sostituisce la v${active.version} che vede ora · il link resta lo stesso` : 'Prima versione · crea il link personale'}</div>
+        </div>
+        <button className="btn-secondary" onClick={edit}>Modifica ancora</button>
+        <button className="btn-secondary" onClick={onPreview}>Anteprima app paziente</button>
+        {draft.has_pdf && <button className="btn-secondary" onClick={() => openOriginal(draft)}>Apri PDF originale</button>}
+        <button className="btn-secondary !text-err" onClick={discard}>Elimina piano</button>
+        {draft.data.general && <div className="card px-4 py-3 text-[13px] text-ink2"><div className="label mb-1">Indicazioni generali</div>{draft.data.general}</div>}
+      </div>
     </div>
   );
 }

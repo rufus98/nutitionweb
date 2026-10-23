@@ -85,7 +85,7 @@ CREATE TABLE plans (
   data          TEXT    NOT NULL CHECK (json_valid(data)),
   created_at    TEXT    NOT NULL CHECK (date(created_at) IS created_at),
   published_at  TEXT    CHECK (published_at IS NULL OR date(published_at) IS published_at),
-  updated_at    TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  updated_at    TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')), saved_at TEXT CHECK (saved_at IS NULL OR date(saved_at) IS saved_at),
   UNIQUE (patient_id, version),
   CHECK (status = 'draft' OR published_at IS NOT NULL)
 );
@@ -145,7 +145,8 @@ SELECT p.*,
   (SELECT min(a.date) FROM appointments a WHERE a.patient_id = p.id AND a.date >= date('now', 'localtime')) AS next_visit,
   (SELECT v.kg FROM visits v WHERE v.patient_id = p.id AND v.kg IS NOT NULL ORDER BY v.date DESC, v.id DESC LIMIT 1) AS kg,
   (SELECT v.kg FROM visits v WHERE v.patient_id = p.id AND v.kg IS NOT NULL ORDER BY v.date ASC, v.id ASC LIMIT 1) AS kg_start,
-  (SELECT pl.status FROM plans pl WHERE pl.patient_id = p.id AND pl.status <> 'archived' ORDER BY pl.version DESC LIMIT 1) AS plan_status,
+  (SELECT CASE WHEN pl.status = 'draft' AND pl.saved_at IS NOT NULL THEN 'ready' ELSE pl.status END
+     FROM plans pl WHERE pl.patient_id = p.id AND pl.status <> 'archived' ORDER BY pl.version DESC LIMIT 1) AS plan_status,
   (SELECT coalesce(sum(y.amount_cents), 0) / 100.0 FROM payments y WHERE y.patient_id = p.id AND y.paid = 0) AS due
 FROM patients p;
 

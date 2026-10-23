@@ -20,7 +20,7 @@ export function Plans() {
   const [q, setQ] = useState('');
   const plans = data?.plans ?? [], missing = data?.missing ?? [];
   const state = (p: typeof plans[number]): F => (p.status === 'draft' ? 'draft' : p.link_on ? 'on' : 'off');
-  const FILTERS: [F, string, number][] = [['all', 'Tutti', plans.length], ['on', 'Link attivo', plans.filter((p) => state(p) === 'on').length], ['draft', 'Bozze da inviare', plans.filter((p) => p.status === 'draft').length], ['off', 'Link revocato', plans.filter((p) => state(p) === 'off').length], ['none', 'Pazienti senza piano', missing.length]];
+  const FILTERS: [F, string, number][] = [['all', 'Tutti', plans.length], ['on', 'Link attivo', plans.filter((p) => state(p) === 'on').length], ['draft', 'Da condividere', plans.filter((p) => p.status === 'draft').length], ['off', 'Link revocato', plans.filter((p) => state(p) === 'off').length], ['none', 'Pazienti senza piano', missing.length]];
   const list = useMemo(() => {
     const s = q.trim().toLowerCase();
     return plans.filter((p) => f === 'all' || state(p) === f).filter((p) => !s || p.name.toLowerCase().includes(s) || p.data.title.toLowerCase().includes(s));
@@ -29,7 +29,7 @@ export function Plans() {
 
   return (
     <Page gap="gap-[18px]">
-      <div><h1 className="m-0 text-[28px] font-semibold tracking-[-.02em]">Piani nutrizionali</h1><div className="text-muted text-[13px] mt-0.5">{plans.filter((p) => p.status === 'published').length} pubblicati · {plans.filter((p) => p.status === 'draft').length} in bozza</div></div>
+      <div><h1 className="m-0 text-[28px] font-semibold tracking-[-.02em]">Piani nutrizionali</h1><div className="text-muted text-[13px] mt-0.5">{plans.filter((p) => p.status === 'published').length} pubblicati · {plans.filter((p) => p.status === 'draft').length} da condividere</div></div>
       <div className="flex items-center gap-3 flex-wrap">
         <div className="flex items-center gap-2 bg-surface border border-ctl rounded-ctl px-3 w-[300px] focus-within:border-primary">
           <span className="w-3 h-3 rounded-full border-[1.8px] border-subtle flex-none" />
@@ -63,8 +63,8 @@ export function Plans() {
                 className={cx(G, 'py-3 border-b border-line2 text-[13.5px] row-hover cursor-pointer outline-none focus-visible:bg-surface2')}>
                 <div className="flex gap-[11px] items-center min-w-0"><Avatar text={initialsOf(p.name)} /><span className="font-semibold truncate">{p.name}</span></div>
                 <div className="min-w-0"><div className="truncate">v{p.version}{p.data.title ? ' · ' + p.data.title : ''}</div><div className="text-xs text-label">{p.data.kcal ? p.data.kcal.toLocaleString('it-IT') + ' kcal · ' : ''}{p.data.days.length} giorni</div></div>
-                <div>{st === 'on' ? <span className="pill-ok">Link attivo</span> : st === 'draft' ? <span className="pill-neutral">Non inviato</span> : <span className="pill-neutral">Link revocato</span>}</div>
-                <span>{fmtSmart(p.published_at ?? p.created_at)}</span>
+                <div>{st === 'on' ? <span className="pill-ok">Link attivo</span> : st === 'draft' ? (p.saved_at ? <span className="pill-warn">Salvato</span> : <span className="pill-neutral">In preparazione</span>) : <span className="pill-neutral">Link revocato</span>}</div>
+                <span>{fmtSmart(p.published_at ?? p.saved_at ?? p.created_at)}</span>
                 <span className="text-xs text-label truncate">{p.has_pdf ? <span className="font-mono text-[11px] font-semibold text-accent border-[1.5px] border-accent rounded-[3px] px-[3px] py-px mr-1.5">PDF</span> : null}{p.has_pdf ? 'originale' : '—'}</span>
                 <span className="text-subtle text-base text-right">›</span>
               </div>

@@ -14,7 +14,7 @@ const FILTERS: [F, string, (r: PatientRow) => boolean][] = [
   ['active', 'In percorso', (r) => r.active],
   ['recall', 'Da ricontattare', (r) => r.active && !r.next_visit],
   ['pending', 'Pagamenti in sospeso', (r) => r.due > 0],
-  ['draft', 'Piano da inviare', (r) => r.plan === 'draft'],
+  ['draft', 'Piano da inviare', (r) => r.plan === 'ready' || r.plan === 'draft'],
 ];
 type SortKey = 'name' | 'phone' | 'last' | 'next' | 'delta' | 'plan' | 'due';
 const COLS: [SortKey, string][] = [['name', 'Paziente'], ['phone', 'Telefono'], ['last', 'Ultima visita'], ['next', 'Prossima'], ['delta', 'Peso · Δ'], ['plan', 'Piano'], ['due', 'Pagamenti']];
@@ -60,7 +60,7 @@ export function PatientList() {
 
   const exportCsv = async () => {
     const head = ['ID', 'Nome', 'Cognome', 'Telefono', 'Email', 'Data di nascita', 'Codice fiscale', 'Obiettivo', 'Ultima visita', 'Prossima visita', 'Peso attuale', 'Peso iniziale', 'Piano', 'In sospeso (€)', 'Consenso privacy'];
-    const planL = { on: 'Link attivo', off: 'Link revocato', draft: 'Non inviato', none: '' };
+    const planL = { on: 'Link attivo', off: 'Link revocato', ready: 'Salvato, da condividere', draft: 'In preparazione', none: '' };
     const esc = (v: unknown) => { const s = v == null ? '' : String(v); return /[;"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
     const lines = list.map((r) => [r.code, r.first, r.last, r.phone, r.email, r.dob, r.cf, goalLabel(r), r.last_visit, r.next_visit, r.kg != null ? n1(r.kg) : '', r.kg_start != null ? n1(r.kg_start) : '', planL[r.plan], r.due || '', r.consent_privacy ? 'sì' : 'da firmare'].map(esc).join(';'));
     const path = await saveFile(`Pazienti_${today()}.csv`, '﻿' + [head.join(';'), ...lines].join('\r\n'), [{ name: 'CSV', extensions: ['csv'] }]);
@@ -130,7 +130,8 @@ export function PatientList() {
               <div>
                 {r.plan === 'on' && <span className="pill-ok">Link attivo</span>}
                 {r.plan === 'off' && <span className="pill-neutral">Link revocato</span>}
-                {r.plan === 'draft' && <span className="pill-neutral">Non inviato</span>}
+                {r.plan === 'ready' && <span className="pill-warn">Da condividere</span>}
+                {r.plan === 'draft' && <span className="pill-neutral">In preparazione</span>}
                 {r.plan === 'none' && <span className="text-xs text-subtle">—</span>}
               </div>
               <div>{r.due > 0 ? <span className="pill-warn">€ {r.due} in sospeso</span> : <span className="text-xs font-semibold text-ok">Saldato</span>}</div>

@@ -6,6 +6,7 @@ import { resetConnection } from '../db/connection';
 import { currentVersion, LATEST_VERSION, migrate, MIGRATIONS } from '../db/migrate';
 import * as repo from '../db/repo';
 import { seedDemo } from '../db/seed';
+import { today } from '../lib/format';
 
 let d: Driver;
 async function freshDb() {
@@ -61,8 +62,8 @@ describe('migrazioni', () => {
     await db.execute("INSERT INTO settings VALUES ('main', '{\"prof\":{\"name\":\"Dott.ssa Test\"}}'), ('onboarded', '1'), ('rem-1', '1')");
 
     const backups: string[] = [];
-    expect(await migrate(db, { beforeMigrate: async (f, t) => { backups.push(`${f}->${t}`); } })).toEqual([3]);
-    expect(backups).toEqual(['2->3']);
+    expect(await migrate(db, { beforeMigrate: async (f, t) => { backups.push(`${f}->${t}`); } })).toEqual([3, 4]);
+    expect(backups).toEqual(['2->4']);
 
     setDriver(db); resetConnection();
     const [g, m] = await repo.listPatients().then((l) => [l.find((p) => p.code === 'PZ-0401')!, l.find((p) => p.code === 'PZ-0402')!]);
@@ -74,7 +75,7 @@ describe('migrazioni', () => {
     expect(await repo.nextInvoice('2026-12-01')).toBe('FT 8/26');
     expect((await repo.patientAppointments(g.id))[0].reminder_sent_at).toBeTruthy();
     const plans = await repo.listPlans(g.id);
-    expect(plans.map((p) => [p.version, p.status, p.has_pdf])).toEqual([[3, 'draft', false], [2, 'published', false], [1, 'archived', true]]);
+    expect(plans.map((p) => [p.version, p.status, p.has_pdf, !!p.saved_at])).toEqual([[3, 'draft', false, false], [2, 'published', false, true], [1, 'archived', true, true]]);
     expect(plans[0].data.days).toEqual([]);                                 // JSON illeggibile → piano vuoto
     expect(await repo.getPlanPdf(plans[2].id)).toBe('QUJD');
     expect((await repo.getSettings()).prof.name).toBe('Dott.ssa Test');
@@ -178,6 +179,25 @@ describe('repository', () => {
     expect((await d.query('SELECT * FROM documents')).length).toBe(1);   // ancora usato dalla v2
     await repo.deletePlan(v2b);
     expect((await d.query('SELECT * FROM documents')).length).toBe(0);   // nessuno lo usa più
+  });
+
+  it('piani: salvare non condivide; il paziente vede il piano solo dopo la condivisione', async () => {
+    const p = await repo.createPatient(newPatient());
+    const id = await repo.createPlan(p.id, repo.emptyPlanData());
+    expect((await repo.getPatientRow(p.id))!.plan).toBe('draft');
+    await repo.markPlanSaved(id);
+    let [plan] = await repo.listPlans(p.id);
+    expect([plan.status, plan.saved_at]).toEqual(['draft', today()]);
+    expect((await repo.getPatientRow(p.id))!.plan).toBe('ready');
+    await repo.reopenPlan(id);                                           // "Modifica ancora"
+    expect((await repo.listPlans(p.id))[0].saved_at).toBeNull();
+    await repo.markPlanSaved(id);
+    await repo.publishPlan(id);                                          // "Condividi"
+    [plan] = await repo.listPlans(p.id);
+    expect([plan.status, plan.saved_at, plan.published_at]).toEqual(['published', today(), today()]);
+    expect((await repo.getPatientRow(p.id))!.plan).toBe('on');
+    await repo.reopenPlan(id);                                           // non tocca un piano già condiviso
+    expect((await repo.listPlans(p.id))[0].saved_at).toBe(today());
   });
 
   it('agenda: spostare un appuntamento azzera il promemoria inviato', async () => {

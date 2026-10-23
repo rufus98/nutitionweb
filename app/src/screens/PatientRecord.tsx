@@ -50,7 +50,7 @@ export function PatientRecord({ id, tab: initialTab, action }: { id: number; tab
     }
   };
 
-  const tabs: [Tab, string, string | number][] = [['overview', 'Overview', '—'], ['visits', 'Visite & Misure', visits.length], ['diet', 'Piano nutrizionale', active ? 'v' + active.version : draft ? 'bozza' : '—'], ['pay', 'Pagamenti', pays.length]];
+  const tabs: [Tab, string, string | number][] = [['overview', 'Overview', '—'], ['visits', 'Visite & Misure', visits.length], ['diet', 'Piano nutrizionale', active ? 'v' + active.version : draft ? (draft.saved_at ? 'salvato' : 'bozza') : '—'], ['pay', 'Pagamenti', pays.length]];
 
   return (
     <Page pt="pt-5">
@@ -137,11 +137,11 @@ export function PatientRecord({ id, tab: initialTab, action }: { id: number; tab
             <NoteCliniche p={p} onEdit={() => setEdit(true)} />
             <div className="card px-5 py-[18px] flex flex-col gap-3">
               <div className="flex justify-between items-center"><div className="font-semibold text-[15px]">Piano attivo</div>
-                {active ? (p.link_on ? <span className="pill-ok py-0.5 px-2">Link attivo</span> : <span className="pill-neutral py-0.5 px-2">Link revocato</span>) : draft ? <span className="pill-neutral py-0.5 px-2">Bozza</span> : null}</div>
+                {active ? (p.link_on ? <span className="pill-ok py-0.5 px-2">Link attivo</span> : <span className="pill-neutral py-0.5 px-2">Link revocato</span>) : draft ? (draft.saved_at ? <span className="pill-warn py-0.5 px-2">Da condividere</span> : <span className="pill-neutral py-0.5 px-2">Bozza</span>) : null}</div>
               {active ? <>
                 <div className="text-[13px] text-ink2">{[active.data.title, active.data.kcal && active.data.kcal.toLocaleString('it-IT') + ' kcal', `v${active.version} del ${fmtDate(active.published_at ?? active.created_at)}`].filter(Boolean).join(' · ')}</div>
                 <div className="flex items-center gap-2 bg-canvas rounded-ctl px-2.5 py-2"><span className="flex-1 font-mono text-xs text-ink2 truncate selectable">{settings?.appDomain}/p/{p.token}</span><span className="text-xs text-label">{settings?.appServer ? '' : 'non pubblicato'}</span></div>
-              </> : <div className="text-[13px] text-label">{draft ? 'Bozza in preparazione, non ancora condivisa.' : 'Nessun piano ancora caricato.'}</div>}
+              </> : <div className="text-[13px] text-label">{draft ? (draft.saved_at ? `Piano v${draft.version} salvato, non ancora condiviso.` : 'Bozza in preparazione, non ancora condivisa.') : 'Nessun piano ancora caricato.'}</div>}
               <button className="btn-secondary py-[9px]" onClick={() => setTab('diet')}>{active ? 'Aggiorna piano →' : 'Prepara piano →'}</button>
             </div>
             <div className="card px-5 py-[18px] flex flex-col gap-2.5">

@@ -29,7 +29,7 @@ export const toPatient = (r: Row): Patient => ({
 
 const toPatientRow = (r: Row): PatientRow => {
   const p = toPatient(r);
-  const plan = r.plan_status === 'published' ? (p.link_on ? 'on' : 'off') : r.plan_status === 'draft' ? 'draft' : 'none';
+  const plan = r.plan_status === 'published' ? (p.link_on ? 'on' : 'off') : r.plan_status === 'ready' || r.plan_status === 'draft' ? r.plan_status : 'none';
   return { ...p, last_visit: r.last_visit ?? null, next_visit: r.next_visit ?? null, kg: num(r.kg), kg_start: num(r.kg_start), plan, due: Number(r.due ?? 0) };
 };
 

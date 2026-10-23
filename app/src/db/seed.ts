@@ -235,6 +235,8 @@ export async function seedDemo() {
       if (r[7] === 'on') {
         await repo.publishPlan(id);
         await rawDate(id, D(date));
+      } else if (r[0] === 'Francesca Greco') {
+        await repo.markPlanSaved(id); // un piano salvato in attesa di condivisione, l'altro ancora in preparazione
       }
     }
   }
@@ -247,5 +249,5 @@ export async function seedDemo() {
 
 /** I dati demo hanno date storiche: le versioni dei piani le riportano. */
 async function rawDate(planId: number, date: string) {
-  await (await db()).execute('UPDATE plans SET created_at = ?, published_at = ? WHERE id = ?', [date, date, planId]);
+  await (await db()).execute('UPDATE plans SET created_at = ?, saved_at = ?, published_at = ? WHERE id = ?', [date, date, date, planId]);
 }

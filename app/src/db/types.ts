@@ -37,7 +37,8 @@ export interface Patient {
   created_at: string;
 }
 
-export type PlanStatus = 'on' | 'off' | 'draft' | 'none';
+/** Stato del piano nella lista pazienti: link attivo/revocato, salvato da condividere, bozza in preparazione, nessuno. */
+export type PlanStatus = 'on' | 'off' | 'ready' | 'draft' | 'none';
 
 /** Riga dell'elenco pazienti: anagrafica + dati derivati da visite, agenda, piani e pagamenti. */
 export interface PatientRow extends Patient {
@@ -148,6 +149,8 @@ export interface Plan {
   has_pdf: boolean;
   data: PlanData;
   created_at: string;
+  /** Bozza finita e salvata, da condividere (null = ancora in preparazione) */
+  saved_at: string | null;
   published_at: string | null;
 }
 

@@ -34,7 +34,7 @@ schema_migrations             migrazioni applicate
 ```
 
 - **patients**: anagrafica, consensi, `active` (0 = archiviato), `token` e `link_on` per il link dell'app paziente. `code` è progressivo (`PZ-0401`, `PZ-0402`, …).
-- **plans**: `version` cresce per paziente. `status` vale `draft`, `published` o `archived`. Due indici unici parziali garantiscono che per ogni paziente ci siano **al massimo una bozza e un piano pubblicato**. Pubblicando una nuova versione, la precedente passa ad `archived`. Il contenuto (giorni, pasti, alimenti, alternative) è un documento JSON in `data`, descritto da `PlanData` in `types.ts` e normalizzato da `normalizePlanData`.
+- **plans**: `version` cresce per paziente. `status` vale `draft`, `published` o `archived`. Due indici unici parziali garantiscono che per ogni paziente ci siano **al massimo una bozza e un piano pubblicato**. Una bozza finita viene *salvata* (`saved_at`, "Salva piano") ma il paziente non la vede finché non viene *condivisa*: solo allora diventa `published` ("Condividi"), e la versione pubblicata precedente passa ad `archived`. "Modifica ancora" azzera `saved_at`. Nel riepilogo paziente lo stato `ready` indica un piano salvato e da condividere. Il contenuto (giorni, pasti, alimenti, alternative) è un documento JSON in `data`, descritto da `PlanData` in `types.ts` e normalizzato da `normalizePlanData`.
 - **documents**: i PDF allegati ai piani, salvati in base64. Più versioni dello stesso piano puntano allo stesso documento. Un trigger lo elimina quando nessun piano lo usa più.
 - **payments**:
   - l'importo è in **centesimi** (`amount_cents`), così non ci sono errori di arrotondamento;
@@ -68,7 +68,7 @@ Le chiavi esterne sono attive (`PRAGMA foreign_keys = ON`) su tutte le connessio
 
 1. Crea `src/db/migrations/NNNN_descrizione.sql` con il numero successivo (es. `0004_note_visite.sql`). Il nome può contenere solo lettere, numeri, `_` e `-`.
 2. Scrivi l'SQL. Il runner lo esegue in una transazione, con le chiavi esterne disattivate (serve per ricostruire le tabelle). Prima del commit verifica `pragma_foreign_key_check`: se un riferimento non è valido, la migrazione viene annullata.
-   - Aggiungere una colonna: `ALTER TABLE visits ADD COLUMN ...`.
+   - Aggiungere una colonna: `ALTER TABLE visits ADD COLUMN ...` (esempio: `0004_piano_salvato.sql`, che aggiorna anche una vista).
    - Cambiare vincoli o tipi: crea `new_x`, copia i dati con `INSERT ... SELECT`, poi `DROP TABLE x` e `ALTER TABLE new_x RENAME TO x`. Infine ricrea indici, trigger e viste che ne dipendono (in `0003_schema_con_vincoli.sql` c'è un esempio completo).
 3. Aggiorna i tipi (`types.ts`) e le repository interessate.
 4. Esegui `npm run db:schema` per rigenerare `schema.sql`, poi `npm test`. Il test "aggiornano un archivio della prima versione" controlla che un database vecchio arrivi all'ultima versione senza perdere dati: se la migrazione trasforma dati esistenti, aggiungi lì un controllo.

@@ -35,7 +35,7 @@ export function Today() {
   const kpis = [
     { label: 'Appuntamenti oggi', value: String(appts.length), sub: appts.length ? (nextIdx >= 0 ? `prossimo alle ${appts[nextIdx].time}` : 'giornata conclusa') : 'agenda libera', onClick: () => go({ name: 'agenda' }) },
     { label: 'Da incassare', value: '€ ' + eur(due.reduce((a, p) => a + p.amount, 0)), sub: `${due.length} in sospeso`, onClick: () => go({ name: 'payments' }), warn: due.length > 0 },
-    { label: 'Piani da inviare', value: String(drafts.length), sub: drafts.length ? 'bozze non pubblicate' : 'tutto inviato', onClick: () => go({ name: 'plans' }) },
+    { label: 'Piani da inviare', value: String(drafts.length), sub: drafts.length ? `${drafts.filter((p) => p.saved_at).length} salvati · ${drafts.filter((p) => !p.saved_at).length} in preparazione` : 'tutto condiviso', onClick: () => go({ name: 'plans' }) },
     { label: 'Da ricontattare', value: String(recall.length), sub: 'senza visita da oltre 30 gg', onClick: () => go({ name: 'patients' }) },
   ];
 
@@ -111,10 +111,10 @@ export function Today() {
               </div>
             ))}
           </TodoCard>
-          <TodoCard title="Piani da inviare" empty="Nessuna bozza in sospeso.">
+          <TodoCard title="Piani da inviare" empty="Nessun piano in attesa.">
             {drafts.slice(0, 4).map((p) => (
               <button key={p.id} onClick={() => go({ name: 'patient', id: p.patient_id, tab: 'diet' })} className="flex items-center justify-between gap-3 py-2 border-0 border-t border-line2 bg-transparent text-left text-[13px] hover:text-accent">
-                <span className="font-medium truncate">{p.name}</span><span className="text-xs text-label flex-none">bozza v{p.version} · {fmtShort(p.created_at)}</span>
+                <span className="font-medium truncate">{p.name}</span><span className="text-xs text-label flex-none">{p.saved_at ? `salvato v${p.version} · ${fmtShort(p.saved_at)}` : `in preparazione v${p.version}`}</span>
               </button>
             ))}
           </TodoCard>

@@ -1,4 +1,5 @@
-// Piani nutrizionali: versioni (bozza → pubblicata → archiviata) e PDF originali (tabella documents).
+// Piani nutrizionali: versioni (bozza → salvata → condivisa/pubblicata → archiviata) e PDF originali (tabella documents).
+// Una bozza salvata (saved_at) è pronta ma il paziente non la vede finché non viene pubblicata con publishPlan.
 // Regole garantite dal database: al massimo una bozza e una versione pubblicata per paziente,
 // numeri di versione univoci, PDF eliminato quando nessuna versione lo usa più.
 import { db } from '../connection';
@@ -10,14 +11,14 @@ import type { Plan, PlanData } from '../types';
 import { today } from '../../lib/format';
 
 const PLAN_SELECT = `SELECT pl.id, pl.patient_id, pl.version, pl.status, pl.document_id, d.name AS pdf_name, (pl.document_id IS NOT NULL) AS has_pdf,
-  pl.data, pl.created_at, pl.published_at FROM plans pl LEFT JOIN documents d ON d.id = pl.document_id`;
+  pl.data, pl.created_at, pl.saved_at, pl.published_at FROM plans pl LEFT JOIN documents d ON d.id = pl.document_id`;
 
 const toPlan = (r: Row): Plan => {
   let raw: unknown = null;
   try { raw = JSON.parse(r.data); } catch { /* documento illeggibile: piano vuoto */ }
   return {
     id: r.id, patient_id: r.patient_id, version: r.version, status: r.status, document_id: r.document_id ?? null,
-    pdf_name: r.pdf_name ?? null, has_pdf: bool(r.has_pdf), data: normalizePlanData(raw), created_at: r.created_at, published_at: r.published_at ?? null,
+    pdf_name: r.pdf_name ?? null, has_pdf: bool(r.has_pdf), data: normalizePlanData(raw), created_at: r.created_at, saved_at: r.saved_at ?? null, published_at: r.published_at ?? null,
   };
 };
 
@@ -75,16 +76,26 @@ export async function savePlanData(id: number, data: PlanData) {
   await (await db()).execute('UPDATE plans SET data = ? WHERE id = ?', [JSON.stringify(data), id]);
 }
 
+/** "Salva piano": la bozza è pronta, in attesa di essere condivisa con il paziente. */
+export async function markPlanSaved(id: number) {
+  await (await db()).execute("UPDATE plans SET saved_at = ? WHERE id = ? AND status = 'draft'", [today(), id]);
+}
+
+/** Riapre una bozza salvata per modificarla. */
+export async function reopenPlan(id: number) {
+  await (await db()).execute("UPDATE plans SET saved_at = NULL WHERE id = ? AND status = 'draft'", [id]);
+}
+
 export async function deletePlan(id: number) {
   await (await db()).execute('DELETE FROM plans WHERE id = ?', [id]);
 }
 
-/** Pubblica la bozza: archivia la versione pubblicata precedente e attiva il link del paziente (stesso token). */
+/** Condivide (pubblica) la bozza: archivia la versione pubblicata precedente e attiva il link del paziente (stesso token). */
 export async function publishPlan(id: number) {
   const patient = '(SELECT patient_id FROM plans WHERE id = ?)';
   await (await db()).transaction([
     { sql: `UPDATE plans SET status = 'archived' WHERE patient_id = ${patient} AND status = 'published'`, params: [id] },
-    { sql: "UPDATE plans SET status = 'published', published_at = ? WHERE id = ? AND status = 'draft'", params: [today(), id] },
+    { sql: "UPDATE plans SET status = 'published', published_at = ?, saved_at = coalesce(saved_at, ?) WHERE id = ? AND status = 'draft'", params: [today(), today(), id] },
     { sql: `UPDATE patients SET link_on = 1, token = coalesce(token, ?) WHERE id = ${patient}`, params: [randomToken(), id] },
   ]);
 }

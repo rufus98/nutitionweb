@@ -38,7 +38,7 @@ export function ShareModal({ patient, onClose }: { patient: Patient; onClose: ()
 
   return (
     <Modal onClose={onClose} labelledBy="share-title">
-      <ModalHeader id="share-title" title={live ? 'Link paziente pronto' : 'Piano pubblicato'} onClose={onClose}
+      <ModalHeader id="share-title" title={live ? 'Link paziente pronto' : 'Invia il piano'} onClose={onClose}
         sub={live ? `${patient.first} potrà aprirlo senza password e aggiungerlo alla Home.` : `Il link personale di ${patient.first} è pronto e si attiverà con il server dell'app paziente.`} />
       <div className="flex gap-2 items-center border border-ctl rounded-xl py-1.5 pr-1.5 pl-3.5">
         <span className={'flex-1 font-mono text-[13.5px] font-medium selectable ' + (live && linkOn ? 'text-strong' : 'text-subtle')}>{link}</span>
