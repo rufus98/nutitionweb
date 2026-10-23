@@ -23,7 +23,8 @@ app/
     theme/tokens.css    design token del bundle come variabili CSS (chiaro + scuro)
     components/         Sidebar, card, campi, modali, drawer, grafico peso, ricerca rapida…
     db/                 SQLite: migrazioni .sql, repository per dominio, dati demo — vedi src/db/README.md
-    lib/                formattazione all'italiana, PDF (fatture, consenso, piano), ZIP, integrazione con il sistema
+    lib/                formattazione all'italiana, PDF (fatture, consenso), ZIP, integrazione con il sistema
+    lib/planPdf/        PDF del piano nello stile dello studio: settimanale o ON/OFF/RESET (pdf-lib + carattere Carlito)
     screens/            Oggi, Pazienti, Nuovo paziente, Scheda paziente, Agenda, Piani, Pagamenti, Impostazioni
     test/               test unitari (Vitest)
   tailwind.config.js    token del bundle (petrol, sage, ink, line, canvas…) collegati alle variabili CSS
@@ -132,6 +133,8 @@ Rispetto al prototipo, dove tutto era dimostrativo:
 | Pagamenti, numerazione fatture, fattura PDF, sollecito su WhatsApp | ✅ |
 | Esportazione CSV per il commercialista ed esportazione completa ZIP | ✅ |
 | Piano nutrizionale: PDF allegato, editor giorno × pasto con il PDF affiancato, versioni; "Salva piano" e poi "Condividi" solo quando il piano convince | ✅ |
+| Indicazioni generali divise in sezioni (Acqua, Metodi di cottura, Legenda ON/OFF/RESET…), con modelli pronti | ✅ |
+| "Esporta PDF" del piano con lo stesso impianto dei piani dello studio: settimanale (riepilogo e apporti, norme generali, un giorno per pagina, alternative, lista della spesa) oppure flessibile ON/OFF/RESET (tabelle affiancate per pasto). Il PDF esportato si può anche reimportare | ✅ |
 | Lettura automatica del PDF della dieta (giorni, pasti, alimenti, grammature, alternative, macro) | ✅ per PDF con testo: formato Progeo Medical e piani impaginati a colonne (es. giorni ON/OFF/RESET). Le righe incerte sono evidenziate in ambra |
 | Anteprima dell'app paziente (Oggi, La mia dieta, Progressi, Studio) | ✅ con i dati reali |
 | Blocco con PIN all'avvio | ✅ |

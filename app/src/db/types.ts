@@ -120,13 +120,17 @@ export interface PlanItem {
 }
 export interface PlanMeal { key: string; name: string; time: string; note: string; items: PlanItem[] }
 export interface PlanDay { label: string; meals: PlanMeal[]; kcal?: number; protein?: number; carbs?: number; fat?: number }
+/** Sezione delle indicazioni generali. Titolo vuoto = testo introduttivo senza intestazione.
+ *  Nel testo, le righe che iniziano con "- " sono elenchi puntati. */
+export interface PlanNote { title: string; text: string }
 export interface PlanData {
   title: string;
   kcal: number | null;
   protein: number | null;
   carbs: number | null;
   fat: number | null;
-  general: string;
+  /** Indicazioni generali divise in sezioni (es. "Acqua", "Metodi di cottura"), come nei PDF di riferimento. */
+  notes: PlanNote[];
   days: PlanDay[];
   /** Riepilogo della lettura automatica del PDF (mostrato nell'editor finché non viene chiuso). */
   import?: {

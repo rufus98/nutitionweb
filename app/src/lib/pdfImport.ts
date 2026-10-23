@@ -5,6 +5,7 @@
 //    Lunedì…), quantità allineate a destra, varianti e gruppi "a scelta".
 // Le parti incerte vengono segnate "da verificare" (flag) per il controllo nell'editor.
 import type { PlanData, PlanDay, PlanItem, PlanMeal } from '../db/types';
+import { notesFromText } from '../db/planData';
 
 export interface TextItem { page: number; x: number; y: number; w: number; h: number; s: string }
 export interface ImportResult {
@@ -47,7 +48,8 @@ export async function extractWith(pdfjs: any, bytes: Uint8Array): Promise<TextIt
 
 export function parsePlanText(items: TextItem[], fileName = ''): ImportResult {
   const all = items.map((i) => i.s).join(' ');
-  if (/Progeo Medical/i.test(all) && /Piano alimentare\s*-\s*\w+/i.test(all)) return parseProgeo(items, fileName);
+  // Stesso impianto anche nei PDF esportati da Nutrea Studio con il modello settimanale.
+  if (/Progeo Medical|PIANO ALIMENTARE PERSONALIZZATO/i.test(all) && /Piano alimentare\s*-\s*\w+/i.test(all)) return parseProgeo(items, fileName);
   return parseLayout(items, fileName);
 }
 
@@ -147,7 +149,7 @@ function parseProgeo(items: TextItem[], fileName: string): ImportResult {
     if (h) { cur = h[1]; alts[cur] = []; continue; }
     if (!cur) continue;
     if (/^Alimento\b/.test(t)) continue;
-    if (/Elaborato da|Powered by|Unità di misura|^\d+$/.test(t)) { if (/Unità di misura/.test(t)) cur = null; continue; }
+    if (/Elaborato da|Powered by|Unità di misura|Alimenti assegnati|^\d+( \/ \d+)?$/.test(t)) { if (/Unità di misura|Alimenti assegnati/.test(t)) cur = null; continue; }
     const segs = segments(r, 9).map((x) => x.s);
     // "g" e il numero possono essere frammenti separati: "g   150" → "g 150"
     const parts: string[] = [];
@@ -187,6 +189,7 @@ function parseProgeo(items: TextItem[], fileName: string): ImportResult {
   for (const r of R) {
     const t = text(r);
     const dmatch = /^Piano alimentare\s*-\s*(\S+)/i.exec(t);
+    if (dmatch && /\(segue\)\s*$/i.test(t) && day) continue; // stesso giorno, pagina successiva
     if (dmatch) {
       const wi = WEEKDAY.indexOf(dmatch[1].toLowerCase());
       day = { label: wi >= 0 ? WD_SHORT[wi] : cap(dmatch[1]), meals: [] };
@@ -197,6 +200,8 @@ function parseProgeo(items: TextItem[], fileName: string): ImportResult {
       continue;
     }
     if (!day) continue;
+    if (/^(Alternative alimentari|Alimenti assegnati nella settimana)/i.test(t)) { day = null; continue; }
+    if (t === patientName || /^\d+ \/ \d+$/.test(t)) continue; // intestazione e numero di pagina
     if (/^Alimento\b/.test(t)) {
       qtyX = (r.find((i) => /Quantit/.test(i.s))?.x ?? 400) - 25;
       altX = (r.find((i) => /^Alt\.?$/.test(i.s))?.x ?? 480) - 10;
@@ -246,11 +251,17 @@ function parseProgeo(items: TextItem[], fileName: string): ImportResult {
     meal.items.push(item);
   }
 
+  // Apporti del singolo giorno dalla tabella "Apporti energetici", se mancano quelli assegnati nella pagina del giorno.
+  days.forEach((d, i) => {
+    const at = (k: string) => (macro[k]?.length === days.length ? macro[k][i] : undefined);
+    const v = { kcal: at('Totale kcal'), protein: at('Protidi g'), carbs: at('Glucidi g'), fat: at('Lipidi g') };
+    for (const k of ['kcal', 'protein', 'carbs', 'fat'] as const) if (v[k] != null && d[k] == null) d[k] = v[k]; // il profilo della pagina del giorno ha la precedenza
+  });
   const avg = (k: string) => (macro[k]?.length ? Math.round(macro[k].reduce((a, b) => a + b, 0) / macro[k].length) : null);
   const plan: PlanData = {
     title: titleFromFile(fileName, patientName) || 'Piano alimentare',
     kcal: avg('Totale kcal'), protein: avg('Protidi g'), carbs: avg('Glucidi g'), fat: avg('Lipidi g'),
-    general: reflow(general.join('\n').split('\n')),
+    notes: notesFromText(reflow(general.join('\n').split('\n'))),
     days,
   };
   if (!days.length) warnings.push('Nessuna pagina giornaliera trovata');
@@ -289,7 +300,7 @@ function parseLayout(items: TextItem[], fileName: string): ImportResult {
     return i >= 0 ? i : R.findIndex((r) => MEAL_RE.test(clean(r.map((x) => x.s).join(' '))));
   })();
   if (startIdx < 0) {
-    return { plan: { title: titleFromFile(fileName, patientName) || 'Piano alimentare', kcal: null, protein: null, carbs: null, fat: null, general: '', days: [] }, format: 'layout', patientName, visit: null, stats: { days: 0, meals: 0, items: 0, flagged: 0 }, warnings: ['Nel PDF non ho trovato pasti riconoscibili (Colazione, Pranzo, Cena…).'] };
+    return { plan: { title: titleFromFile(fileName, patientName) || 'Piano alimentare', kcal: null, protein: null, carbs: null, fat: null, notes: [], days: [] }, format: 'layout', patientName, visit: null, stats: { days: 0, meals: 0, items: 0, flagged: 0 }, warnings: ['Nel PDF non ho trovato pasti riconoscibili (Colazione, Pranzo, Cena…).'] };
   }
 
   // Testo introduttivo → indicazioni generali (escluso l'esempio pratico).
@@ -433,7 +444,8 @@ function parseLayout(items: TextItem[], fileName: string): ImportResult {
   const plan: PlanData = {
     title: titleFromFile(fileName, patientName) || 'Piano alimentare',
     kcal: null, protein: null, carbs: null, fat: null,
-    general: [reflow(intro), ...notes].filter(Boolean).join('\n'),
+    // L'introduzione si divide in sezioni; le note sparse tra i pasti restano sezioni a sé.
+    notes: [...notesFromText(reflow(intro)), ...notes.flatMap(notesFromText)],
     days,
   };
   if (!days.length) warnings.push('Nessun pasto riconosciuto: controlla il PDF.');

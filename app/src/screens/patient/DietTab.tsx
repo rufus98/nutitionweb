@@ -7,6 +7,8 @@ import { DayMacros, DayTabs, MealsGrid } from './PlanGrid';
 import { extractText, parsePlanText } from '../../lib/pdfImport';
 import { ShareModal } from './ShareModal';
 import { PhonePreview } from './PhonePreview';
+import { NotesEditor, NotesView } from './PlanNotes';
+import { savePlanPdf } from '../../lib/planExport';
 import { fmtDate, fmtShort, parseIso } from '../../lib/format';
 import { b64ToBytes, bytesToB64 } from '../../lib/pdf';
 import { openPdf, readFileAsBytes } from '../../lib/platform';
@@ -15,6 +17,7 @@ const MAX_MB = 20;
 
 export function DietTab({ patient, plans }: { patient: Patient; plans: Plan[] }) {
   const { bump, toast, confirm } = useApp();
+  const exportPdf = useExportPdf(patient);
   const draft = plans.find((p) => p.status === 'draft');
   const active = plans.find((p) => p.status === 'published');
   const [viewing, setViewing] = useState<Plan | null>(null);
@@ -81,7 +84,7 @@ export function DietTab({ patient, plans }: { patient: Patient; plans: Plan[] })
   </>;
 
   if (viewing) return <>
-    <PlanViewer plan={viewing} isActive={viewing.id === active?.id} onBack={() => setViewing(null)} onPreview={() => setPreview(true)} onShare={() => setShare(true)}
+    <PlanViewer patient={patient} plan={viewing} isActive={viewing.id === active?.id} onBack={() => setViewing(null)} onPreview={() => setPreview(true)} onShare={() => setShare(true)}
       onEdit={async () => {
         if (draft && !(await confirm({ title: 'Sostituire la bozza esistente?', body: 'Esiste già una bozza non pubblicata: verrà sostituita da una copia di questa versione.', ok: 'Sostituisci' }))) return;
         await startDraft(null, viewing);
@@ -103,6 +106,7 @@ export function DietTab({ patient, plans }: { patient: Patient; plans: Plan[] })
               <button className="btn-secondary py-[9px]" onClick={() => setPreview(true)}>Anteprima app</button>
               <button className="btn-secondary py-[9px]" onClick={() => setShare(true)}>Condividi</button>
               <button className="btn-secondary py-[9px]" onClick={() => startDraft(null, active)}>Modifica</button>
+              <button className="btn-secondary py-[9px] col-span-2" onClick={() => exportPdf(active)}>Esporta PDF</button>
             </div>
           </div>
         )}
@@ -201,6 +205,19 @@ function usePdfUrl(planId: number, has: boolean) {
   return url;
 }
 
+/** "Esporta PDF": il piano impaginato nello stile dello studio (settimanale o ON/OFF/RESET). */
+function useExportPdf(patient: Patient) {
+  const { settings, toast } = useApp();
+  return async (plan: Pick<Plan, 'data' | 'version'>) => {
+    try {
+      const path = await savePlanPdf(patient, plan, settings!);
+      if (path) toast('PDF del piano salvato');
+    } catch (e: any) {
+      toast(`PDF non creato: ${e?.message ?? e}`);
+    }
+  };
+}
+
 async function openOriginal(plan: Plan) {
   const b = await repo.getPlanPdf(plan.id);
   if (b) await openPdf(plan.pdf_name || 'piano.pdf', b64ToBytes(b));
@@ -208,6 +225,7 @@ async function openOriginal(plan: Plan) {
 
 function DraftEditor({ patient, draft, active, onPreview, onReplacePdf }: { patient: Patient; draft: Plan; active?: Plan; onPreview: () => void; onReplacePdf: (f: File) => void }) {
   const { bump, toast, confirm, setGuard } = useApp();
+  const exportPdf = useExportPdf(patient);
   const [plan, setPlan] = useState<PlanData>(draft.data);
   const [day, setDay] = useState(0);
   const [saved, setSaved] = useState(true);
@@ -266,6 +284,7 @@ function DraftEditor({ patient, draft, active, onPreview, onReplacePdf }: { pati
   return (
     <div className="grid grid-cols-[minmax(0,1fr)_300px] gap-5 items-start">
       {plan.import && <ImportBanner patient={patient} plan={plan} onClose={() => { const { import: _, ...rest } = plan; change(rest as PlanData); }} />}
+      <div className="flex flex-col gap-5 min-w-0">
       <div className={cx('grid gap-4 min-w-0', showPdf && pdfUrl ? 'grid-cols-[minmax(0,.9fr)_minmax(0,1.1fr)]' : 'grid-cols-1')}>
         {showPdf && pdfUrl && (
           <div className="card overflow-hidden sticky top-5 h-[calc(100vh-120px)] min-h-[480px] flex flex-col">
@@ -299,6 +318,8 @@ function DraftEditor({ patient, draft, active, onPreview, onReplacePdf }: { pati
           <MealsGrid plan={plan} day={day} onChange={change} />
         </div>
       </div>
+      <NotesEditor notes={plan.notes} kind={repo.planKindOf(plan)} onChange={(notes) => change({ ...plan, notes })} />
+      </div>
 
       <div className="sticky top-5 flex flex-col gap-3.5">
         <div className="bg-[#0F3B40] text-white rounded-card p-5 flex flex-col gap-3">
@@ -318,9 +339,14 @@ function DraftEditor({ patient, draft, active, onPreview, onReplacePdf }: { pati
               </span>
             </div>
           ))}
-          <Field label="Indicazioni generali"><textarea rows={plan.general.length > 200 ? 8 : 3} className="field py-2 resize-y text-[13px]" value={plan.general} onChange={(e) => change({ ...plan, general: e.target.value })} placeholder="Acqua, cotture, pasti liberi…" /></Field>
+          <button className="flex justify-between items-center border-0 border-t border-line2 bg-transparent pt-2.5 text-left text-[13px] hover:text-accent" onClick={() => document.getElementById('indicazioni-generali')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+            <span className="text-label">Indicazioni generali</span><span className="font-semibold">{plan.notes.length} {plan.notes.length === 1 ? 'sezione' : 'sezioni'} ↓</span>
+          </button>
         </div>
-        <button className="btn-secondary" onClick={async () => { await flush(); onPreview(); }}>Anteprima app paziente</button>
+        <div className="grid grid-cols-2 gap-2">
+          <button className="btn-secondary" onClick={async () => { await flush(); onPreview(); }}>Anteprima app</button>
+          <button className="btn-secondary" onClick={async () => { await flush(); await exportPdf({ data: latest.current, version: draft.version }); }}>Esporta PDF</button>
+        </div>
         <input ref={fileInput} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onReplacePdf(f); e.target.value = ''; }} />
         <div className="grid grid-cols-2 gap-2">
           <button className="btn-secondary" onClick={() => fileInput.current?.click()}>Carica un altro PDF</button>
@@ -402,6 +428,7 @@ function ImportBanner({ patient, plan, onClose }: { patient: Patient; plan: Plan
 /** Piano salvato e non ancora condiviso: si rivede, si modifica ancora oppure, se si è soddisfatti, si condivide. */
 function SavedPlan({ patient, draft, active, onShared, onPreview }: { patient: Patient; draft: Plan; active?: Plan; onShared: () => void; onPreview: () => void }) {
   const { bump, toast, confirm } = useApp();
+  const exportPdf = useExportPdf(patient);
   const [day, setDay] = useState(0);
   const share = async () => {
     await repo.publishPlan(draft.id);
@@ -417,6 +444,7 @@ function SavedPlan({ patient, draft, active, onShared, onPreview }: { patient: P
   };
   return (
     <div className="grid grid-cols-[minmax(0,1fr)_300px] gap-5 items-start">
+      <div className="flex flex-col gap-5 min-w-0">
       <div className="card overflow-hidden min-w-0">
         <div className="px-[22px] py-[18px] flex justify-between items-center gap-3 border-b border-line2">
           <div>
@@ -429,6 +457,8 @@ function SavedPlan({ patient, draft, active, onShared, onPreview }: { patient: P
         <DayMacros plan={draft.data} day={day} />
         <MealsGrid plan={draft.data} day={day} />
       </div>
+      <NotesView notes={draft.data.notes} />
+      </div>
       <div className="sticky top-5 flex flex-col gap-2.5">
         <div className="bg-[#0F3B40] text-white rounded-card p-5 flex flex-col gap-3">
           <div className="font-mono text-[11px] font-medium tracking-[.06em] uppercase text-sage-400">Piano salvato</div>
@@ -437,19 +467,23 @@ function SavedPlan({ patient, draft, active, onShared, onPreview }: { patient: P
           <div className="text-xs text-sage-400">{active ? `Sostituisce la v${active.version} che vede ora · il link resta lo stesso` : 'Prima versione · crea il link personale'}</div>
         </div>
         <button className="btn-secondary" onClick={edit}>Modifica ancora</button>
-        <button className="btn-secondary" onClick={onPreview}>Anteprima app paziente</button>
+        <div className="grid grid-cols-2 gap-2">
+          <button className="btn-secondary" onClick={onPreview}>Anteprima app</button>
+          <button className="btn-secondary" onClick={() => exportPdf(draft)}>Esporta PDF</button>
+        </div>
         {draft.has_pdf && <button className="btn-secondary" onClick={() => openOriginal(draft)}>Apri PDF originale</button>}
         <button className="btn-secondary !text-err" onClick={discard}>Elimina piano</button>
-        {draft.data.general && <div className="card px-4 py-3 text-[13px] text-ink2"><div className="label mb-1">Indicazioni generali</div>{draft.data.general}</div>}
       </div>
     </div>
   );
 }
 
-function PlanViewer({ plan, isActive, onBack, onEdit, onPreview, onShare }: { plan: Plan; isActive: boolean; onBack: () => void; onEdit: () => void; onPreview: () => void; onShare: () => void }) {
+function PlanViewer({ patient, plan, isActive, onBack, onEdit, onPreview, onShare }: { patient: Patient; plan: Plan; isActive: boolean; onBack: () => void; onEdit: () => void; onPreview: () => void; onShare: () => void }) {
   const [day, setDay] = useState(0);
+  const exportPdf = useExportPdf(patient);
   return (
     <div className="grid grid-cols-[minmax(0,1fr)_300px] gap-5 items-start">
+      <div className="flex flex-col gap-5 min-w-0">
       <div className="card overflow-hidden min-w-0">
         <div className="px-[22px] py-[18px] flex justify-between items-center gap-3 border-b border-line2">
           <div>
@@ -462,12 +496,14 @@ function PlanViewer({ plan, isActive, onBack, onEdit, onPreview, onShare }: { pl
         <DayMacros plan={plan.data} day={day} />
         <MealsGrid plan={plan.data} day={day} />
       </div>
+      <NotesView notes={plan.data.notes} />
+      </div>
       <div className="sticky top-5 flex flex-col gap-2.5">
         <button className="btn-secondary" onClick={onBack}>← Torna al piano</button>
         <button className="btn-primary" onClick={onEdit}>{isActive ? 'Modifica come nuova versione' : 'Ripristina come nuova versione'}</button>
+        <button className="btn-secondary" onClick={() => exportPdf(plan)}>Esporta PDF</button>
         {plan.has_pdf && <button className="btn-secondary" onClick={() => openOriginal(plan)}>Apri PDF originale</button>}
         {isActive && <><button className="btn-secondary" onClick={onPreview}>Anteprima app paziente</button><button className="btn-secondary" onClick={onShare}>Condividi</button></>}
-        {plan.data.general && <div className="card px-4 py-3 text-[13px] text-ink2"><div className="label mb-1">Indicazioni generali</div>{plan.data.general}</div>}
       </div>
     </div>
   );

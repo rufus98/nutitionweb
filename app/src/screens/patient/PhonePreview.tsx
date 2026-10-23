@@ -3,6 +3,7 @@ import { useApp } from '../../app/store';
 import * as repo from '../../db/repo';
 import type { Appointment, Patient, Plan, Visit } from '../../db/types';
 import { useEscape } from '../../components/ui';
+import { NoteText } from './PlanNotes';
 import { LETTERS, sections } from '../../lib/planGroups';
 import type { PlanItem } from '../../db/types';
 import { fmtDate, MONTHS, n1, parseIso, today, WEEKDAYS, addDays, mondayOf } from '../../lib/format';
@@ -28,7 +29,7 @@ export function PhonePreview({ patient, plan, onClose }: { patient: Patient; pla
   const [visits, setVisits] = useState<Visit[]>([]);
   const [next, setNext] = useState<Appointment | undefined>();
   const [scale, setScale] = useState(1);
-  const [moreGen, setMoreGen] = useState(false);
+  const [openNote, setOpenNote] = useState(-1);
   const [pick, setPick] = useState<Record<string, number>>({});
   useEffect(() => {
     repo.listVisits(patient.id).then(setVisits);
@@ -121,11 +122,17 @@ export function PhonePreview({ patient, plan, onClose }: { patient: Patient; pla
                   {s.app.pdf && plan.has_pdf && <span className="flex items-center justify-center gap-2 h-12 rounded-[14px] bg-white border border-[#E4E2DC] font-semibold text-sm"><span className="font-mono text-[9px] font-semibold text-[#1E5A5F] border-[1.5px] border-[#1E5A5F] rounded-[3px] px-[3px] py-0.5">PDF</span>Originale</span>}
                   <span className="flex items-center justify-center h-12 rounded-[14px] bg-white border border-[#E4E2DC] font-semibold text-sm">Lista spesa</span>
                 </div>
-                {plan.data.general && (
-                  <div className="bg-[#EEF3EE] rounded-2xl px-4 py-3.5 text-[13.5px] text-[#2C4A3A] leading-normal">
-                    <b>Indicazioni generali</b>
-                    <div className={'whitespace-pre-line' + (moreGen ? '' : ' line-clamp-4')}>{plan.data.general}</div>
-                    {plan.data.general.length > 180 && <button onClick={() => setMoreGen(!moreGen)} className="border-0 bg-transparent p-0 mt-1 font-semibold text-[#1E5A5F] text-[13px]">{moreGen ? 'Mostra meno' : 'Leggi tutto'}</button>}
+                {plan.data.notes.length > 0 && (
+                  <div className="bg-[#EEF3EE] rounded-2xl overflow-hidden text-[#2C4A3A]">
+                    <div className="px-4 pt-3.5 pb-1.5 text-[15px] font-semibold">Indicazioni generali</div>
+                    {plan.data.notes.map((n, i) => (
+                      <div key={i} className="border-t border-[#DCE6DD]">
+                        <button onClick={() => setOpenNote(openNote === i ? -1 : i)} className="w-full border-0 bg-transparent px-4 min-h-[46px] py-2 flex items-center justify-between gap-3 text-left text-[14px] font-semibold text-[#2C4A3A]">
+                          <span>{n.title || 'Introduzione'}</span><span className="text-[13px] text-[#6E8A78] font-medium">{openNote === i ? '−' : '+'}</span>
+                        </button>
+                        {openNote === i && <NoteText text={n.text} className="px-4 pb-3.5 text-[13.5px] leading-[1.55]" />}
+                      </div>
+                    ))}
                   </div>
                 )}
                 {plan.data.days.map((x, i) => (

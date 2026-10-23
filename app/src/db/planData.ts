@@ -1,9 +1,14 @@
 // Il contenuto di un piano nutrizionale è un documento JSON (colonna plans.data), letto e salvato intero.
 // Questo modulo crea i piani vuoti e normalizza i documenti letti dal database, così che l'interfaccia
 // riceva sempre la stessa forma anche da piani salvati con versioni precedenti dell'app.
-import type { PlanData, PlanDay, PlanItem, PlanMeal } from './types';
+import type { PlanData, PlanDay, PlanItem, PlanMeal, PlanNote } from './types';
+import { DEFAULT_NOTES, noteFromTemplate } from './noteTemplates';
 
 export type PlanKind = 'weekly' | 'onoff';
+
+/** Tipologia di un piano: a giorni tipo ON/OFF/RESET oppure settimanale (o a giorni liberi). */
+export const planKindOf = (plan: PlanData): PlanKind =>
+  plan.days.length > 0 && plan.days.every((d) => ['ON', 'OFF', 'RESET'].includes(d.label.trim().toUpperCase())) ? 'onoff' : 'weekly';
 
 /** Piano vuoto: settimanale (Lun–Dom, pasti semplici) oppure a giorni tipo ON/OFF/RESET
  *  con colazione e spuntini a opzioni e pranzo/cena a gruppi "scegli 1 tra". */
@@ -12,7 +17,7 @@ export function emptyPlanData(kind: PlanKind = 'weekly'): PlanData {
   if (kind === 'weekly') {
     const meals = [['col', 'Colazione', '07:30'], ['sp', 'Spuntino', '10:30'], ['pr', 'Pranzo', '13:00'], ['me', 'Merenda', '16:30'], ['ce', 'Cena', '20:00']];
     return {
-      ...base, general: '',
+      ...base, notes: DEFAULT_NOTES.weekly.map(noteFromTemplate),
       days: ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'].map((label) => ({
         label, meals: meals.map(([key, name, time]) => ({ key, name, time, note: '', items: [] })),
       })),
@@ -33,7 +38,7 @@ export function emptyPlanData(kind: PlanKind = 'weekly'): PlanData {
   ];
   return {
     ...base,
-    general: 'ON: giorni di allenamento.\nOFF: giorni di riposo.\nRESET: da seguire il giorno successivo a un pasto libero.',
+    notes: DEFAULT_NOTES.onoff.map(noteFromTemplate),
     days: ['ON', 'OFF', 'RESET'].map((label) => ({ label, meals: meals() })),
   };
 }
@@ -66,9 +71,50 @@ export function normalizePlanData(raw: unknown): PlanData {
   const r: any = raw && typeof raw === 'object' ? raw : {};
   const out: PlanData = {
     title: str(r.title), kcal: numOrNull(r.kcal), protein: numOrNull(r.protein), carbs: numOrNull(r.carbs), fat: numOrNull(r.fat),
-    general: str(r.general),
+    notes: Array.isArray(r.notes)
+      ? r.notes.map((n: any) => ({ title: str(n?.title).trim(), text: str(n?.text).trim() })).filter((n: PlanNote) => n.title || n.text)
+      : notesFromText(str(r.general)), // piani salvati prima delle sezioni: un unico testo
     days: Array.isArray(r.days) ? r.days.map(normDay) : [],
   };
   if (r.import && typeof r.import === 'object') out.import = r.import;
   return out;
 }
+
+/** Riga che fa da titolo: breve e terminata da ":" ("Metodi di cottura:") oppure tutta maiuscola ("ACQUA"). */
+function headingOf(line: string): string | null {
+  const t = line.trim();
+  if (!t || t.length > 45 || /^[-•*\d]/.test(t)) return null;
+  if (t.endsWith(':') && t.split(/\s+/).length <= 6) return t.slice(0, -1).trim();
+  const letters = t.replace(/[^A-Za-zÀ-ÿ]/g, '');
+  if (letters.length >= 4 && letters === letters.toUpperCase() && !t.includes(':')) return t[0] + t.slice(1).toLowerCase();
+  return null;
+}
+
+/**
+ * Divide un testo libero (indicazioni generali di piani precedenti o lette da un PDF) in sezioni con titolo.
+ * Riconosce i titoli su una riga propria ("Acqua:", "SURGELATI"), i titoli in linea all'inizio di una riga
+ * ("*Grammature speciali: …") e quelli in maiuscolo dentro una riga ("… ecc.). BILANCIA PESA-ALIMENTI Prima …").
+ */
+export function notesFromText(text: string): PlanNote[] {
+  const notes: PlanNote[] = [];
+  let cur: PlanNote = { title: '', text: '' };
+  const push = () => { cur.text = cur.text.trim(); if (cur.title || cur.text) notes.push(cur); };
+  const lines = text.replace(/\r/g, '')
+    // titoli in maiuscolo finiti in mezzo a una riga dalla lettura del PDF
+    .replace(/([.!?)])\s+([A-ZÀ-Ù][A-ZÀ-Ù'’-]+(?:\s[A-ZÀ-Ù'’-]{2,})+)\s+(?=[A-ZÀ-Ù][a-zà-ù])/g, '$1\n$2\n')
+    .split('\n');
+  lines.forEach((line, i) => {
+    // Una frase che introduce un elenco ("Di seguito alcune regole:" seguita da "- …") non è un titolo.
+    const next = lines.slice(i + 1).find((l) => l.trim());
+    const h = next && /^\s*([-•–]|\d+[).])\s/.test(next) ? null : headingOf(line);
+    const inline = /^\*?([A-ZÀ-Ù][^:]{2,40}?):\s+(.{20,})$/.exec(line.trim());
+    if (h) { push(); cur = { title: h, text: '' }; }
+    else if (inline && /[a-zà-ù]/.test(inline[1]) && inline[1].split(/\s+/).length <= 4) { push(); cur = { title: inline[1].trim(), text: inline[2] }; }
+    else cur.text += (cur.text ? '\n' : '') + line.trim();
+  });
+  push();
+  return notes;
+}
+
+/** Testo semplice delle indicazioni (per anteprime e ricerche). */
+export const notesToText = (notes: PlanNote[]) => notes.map((n) => (n.title ? n.title + ':\n' : '') + n.text).join('\n\n');

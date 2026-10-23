@@ -8,4 +8,4 @@ export * from './repositories/appointments';
 export * from './repositories/plans';
 export * from './repositories/settings';
 export * from './repositories/maintenance';
-export { emptyPlanData, normalizePlanData, type PlanKind } from './planData';
+export { emptyPlanData, normalizePlanData, planKindOf, type PlanKind } from './planData';

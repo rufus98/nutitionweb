@@ -32,6 +32,28 @@ describe('piani vuoti', () => {
     const pranzo = f.days[0].meals.find((m) => m.name === 'Pranzo')!;
     expect(sections(pranzo.items).map((x) => x.kind)).toEqual(['choice', 'choice', 'fixed']);
     expect(sections(f.days[0].meals[0].items).map((x) => x.kind)).toEqual(['variant']);
+    expect(repo.planKindOf(f)).toBe('onoff');
+    expect(repo.planKindOf(repo.emptyPlanData())).toBe('weekly');
+    // Indicazioni generali proposte in base alla tipologia
+    expect(repo.emptyPlanData().notes.map((n) => n.title)).toContain('Metodi di cottura');
+    expect(f.notes.map((n) => n.title)).toEqual(['', 'Legenda: ON, OFF e RESET', 'Grammature speciali', 'Allenamento e pasti']);
+  });
+});
+
+describe('indicazioni generali', () => {
+  it('il testo unico dei piani precedenti diventa sezioni con titolo', async () => {
+    const { notesFromText } = await import('../db/planData');
+    const legacy = 'Di seguito alcune regole:\n- non saltare i pasti;\n- pesare a crudo.\nMetodi di cottura:\nCARNE E PESCE: alla griglia.\nACQUA\nAlmeno 1,5 L al giorno. … ecc.). BILANCIA PESA-ALIMENTI Prima di iniziare controlli la bilancia.\n*Grammature speciali: se un alimento ha una dose diversa, è segnato con un asterisco.';
+    expect(notesFromText(legacy)).toEqual([
+      { title: '', text: 'Di seguito alcune regole:\n- non saltare i pasti;\n- pesare a crudo.' },
+      { title: 'Metodi di cottura', text: 'CARNE E PESCE: alla griglia.' },
+      { title: 'Acqua', text: 'Almeno 1,5 L al giorno. … ecc.).' },
+      { title: 'Bilancia pesa-alimenti', text: 'Prima di iniziare controlli la bilancia.' },
+      { title: 'Grammature speciali', text: 'se un alimento ha una dose diversa, è segnato con un asterisco.' },
+    ]);
+    // I piani salvati con il vecchio campo "general" vengono convertiti alla lettura.
+    expect(repo.normalizePlanData({ general: 'Sale:\nPoco.', days: [] }).notes).toEqual([{ title: 'Sale', text: 'Poco.' }]);
+    expect(repo.normalizePlanData({ notes: [{ title: ' Acqua ', text: '2 L' }, { title: '', text: '' }] }).notes).toEqual([{ title: 'Acqua', text: '2 L' }]);
   });
 });
 

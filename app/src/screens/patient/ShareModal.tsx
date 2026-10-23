@@ -4,8 +4,8 @@ import * as repo from '../../db/repo';
 import type { Patient } from '../../db/types';
 import { Modal, ModalHeader, Toggle } from '../../components/ui';
 import { fillTemplate, waLink } from '../../lib/format';
-import { copyText, openExternal, saveFile } from '../../lib/platform';
-import { planPdf } from '../../lib/documents';
+import { copyText, openExternal } from '../../lib/platform';
+import { savePlanPdf as savePlanPdfFile } from '../../lib/planExport';
 
 /** "Link paziente pronto" (dal design). Finché il server dell'app paziente non è attivo,
  *  il link non è raggiungibile: si condivide il PDF del piano generato dall'app. */
@@ -32,7 +32,7 @@ export function ShareModal({ patient, onClose }: { patient: Patient; onClose: ()
     const plans = await repo.listPlans(patient.id);
     const p = plans.find((x) => x.status === 'published') ?? plans[0];
     if (!p) return;
-    const path = await saveFile(`Piano_${patient.last}_${patient.first}_v${p.version}.pdf`, planPdf(`${patient.first} ${patient.last}`, p.data, [s.prof.name, s.prof.title].filter(Boolean).join(' · ')), [{ name: 'PDF', extensions: ['pdf'] }]);
+    const path = await savePlanPdfFile(patient, p, s);
     if (path) toast('PDF del piano salvato: allegalo al messaggio');
   };
 

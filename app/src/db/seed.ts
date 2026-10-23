@@ -6,7 +6,8 @@ import { DEFAULT_SETTINGS, DEMO_PROFILE } from './defaults';
 import type { ApptType, PlanData, PlanMeal } from './types';
 import { addDays, daysBetween, mondayOf, today } from '../lib/format';
 import { bytesToB64 } from '../lib/pdf';
-import { planPdf } from '../lib/documents';
+import { DEFAULT_NOTES, noteFromTemplate } from './noteTemplates';
+import { planPdfFor } from '../lib/planExport';
 
 const BASE = '2026-10-21';
 const rnd = (seed: number) => { const x = Math.sin(seed) * 1e4; return x - Math.floor(x); };
@@ -113,7 +114,7 @@ export function samplePlan(title: string, kcal: number, flags = false, thyroid =
     };
   });
   const p = Math.round(kcal * 0.23 / 4), c = Math.round(kcal * 0.48 / 4), f = Math.round(kcal * 0.29 / 9);
-  return { title, kcal, protein: p, carbs: c, fat: f, general: "Bere 1,5–2 L d'acqua al giorno. Verdura a volontà a pranzo e cena. Preferire cotture semplici.", days };
+  return { title, kcal, protein: p, carbs: c, fat: f, notes: DEFAULT_NOTES.weekly.map(noteFromTemplate), days };
 }
 
 export async function seedDemo() {
@@ -220,7 +221,6 @@ export async function seedDemo() {
   }
 
   // Piani nutrizionali
-  const studio = DEMO_PROFILE.name + ' · ' + DEMO_PROFILE.title;
   for (const [i, r] of P.entries()) {
     const pid = ids[r[0]];
     if (r[7] === 'none') continue;
@@ -230,7 +230,7 @@ export async function seedDemo() {
       : [[r[2].split(' · ')[0], [1500, 1650, 1800, 2000][i % 4], r[3]]];
     for (const [title, kcal, date] of versions) {
       const data = samplePlan(title, kcal, false, thyroid);
-      const pdf = bytesToB64(planPdf(r[0], data, studio));
+      const pdf = bytesToB64(await planPdfFor((await repo.getPatient(pid))!, { data, version: versions.findIndex((v) => v[0] === title) + 1 }, DEMO_PROFILE));
       const id = await repo.createPlan(pid, data, { file: { name: `Piano_${r[0].split(' ')[1]}_${date.slice(5, 7)}${date.slice(2, 4)}.pdf`, b64: pdf } });
       if (r[7] === 'on') {
         await repo.publishPlan(id);

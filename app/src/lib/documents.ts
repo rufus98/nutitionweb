@@ -1,8 +1,7 @@
-// Documenti PDF generati dall'app: fattura/ricevuta e modulo di consenso privacy.
-import type { Patient, Payment, PlanData, Settings } from '../db/types';
+// Documenti PDF generati dall'app: fattura/ricevuta e modulo di consenso privacy (il piano è in lib/planPdf).
+import type { Patient, Payment, Settings } from '../db/types';
 import { fmtDate, today } from './format';
 import { makePdf, type PdfLine } from './pdf';
-import { LETTERS, sections } from './planGroups';
 
 const MUTED: [number, number, number] = [0.37, 0.41, 0.4];
 const eur2 = (n: number) => '€ ' + n.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -72,69 +71,4 @@ export function consentPdf(p: Patient, s: Settings): Uint8Array {
     { text: 'Firma del paziente  ______________________________', size: 10.5, gap: 0, right: true },
   ];
   return makePdf([lines]);
-}
-
-/** Spezza un testo in righe di larghezza massima approssimata (caratteri). */
-function wrap(text: string, max: number): string[] {
-  const out: string[] = [];
-  for (const para of text.split('\n')) {
-    let line = '';
-    for (const w of para.split(/\s+/)) {
-      if ((line + ' ' + w).trim().length > max) { if (line) out.push(line); line = w; }
-      else line = (line + ' ' + w).trim();
-    }
-    out.push(line);
-  }
-  return out;
-}
-
-/** Impagina le righe su più pagine A4 quando superano l'altezza utile. */
-function paginate(blocks: PdfLine[][], height = 720): PdfLine[][] {
-  const pages: PdfLine[][] = [];
-  for (const block of blocks) {
-    let page: PdfLine[] = [], used = 0;
-    for (const l of block) {
-      const g = l.gap ?? (l.size ?? 10.5) * 1.5;
-      if (used + g > height && page.length) { pages.push(page); page = []; used = 0; }
-      page.push(page.length ? l : { ...l, gap: 0 });
-      used += page.length === 1 ? 0 : g;
-    }
-    if (page.length) pages.push(page);
-  }
-  return pages;
-}
-
-export function planPdf(name: string, plan: PlanData, studio: string): Uint8Array {
-  const blocks = plan.days.map((d, i) => {
-    const lines: PdfLine[] = [];
-    if (i === 0) {
-      lines.push({ text: studio, size: 9, color: MUTED, gap: 0 });
-      lines.push({ text: `Piano nutrizionale — ${name}`, size: 18, bold: true, gap: 26 });
-      lines.push({ text: `${plan.title}${plan.kcal ? ' · ' + plan.kcal.toLocaleString('it-IT') + ' kcal' : ''}`, size: 11, gap: 18 });
-      wrap(plan.general, 105).forEach((t, k) => lines.push({ text: t, size: 9.5, color: MUTED, gap: k ? 12 : 16 }));
-    }
-    const wk = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'].indexOf(d.label);
-    lines.push({ text: wk >= 0 ? ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'][wk] : 'Giorno ' + d.label, size: 14, bold: true, gap: i === 0 ? 30 : 0 });
-    for (const m of d.meals) {
-      lines.push({ text: `${m.name}${m.time ? `  (${m.time})` : ''}`, size: 11, bold: true, gap: 22 });
-      const secs = sections(m.items);
-      const variants = secs.filter((x) => x.kind === 'variant');
-      for (const sc of secs) {
-        if (sc.kind === 'variant') {
-          const k = variants.indexOf(sc);
-          if (k > 0) lines.push({ text: '— oppure —', size: 9, x: 12, gap: 16, color: MUTED });
-          lines.push({ text: `${variants.length > 1 ? 'Opzione ' + LETTERS[k] + ': ' : ''}${sc.head!.f}`, size: 9.5, bold: true, x: 12, gap: 16 });
-        } else if (sc.head) {
-          lines.push({ text: sc.kind === 'choice' ? `${sc.head.f} (scegli 1):` : sc.head.f.toUpperCase(), size: 9, bold: true, x: 12, gap: 16, color: MUTED });
-        }
-        for (const { it } of sc.items) {
-          const bullet = it.sub ? '    –' : sc.kind === 'choice' ? '   o' : '•';
-          wrap(`${bullet}  ${it.f}${it.g ? ' — ' + it.g : ''}`, 92).forEach((t, k) => lines.push({ text: (k ? '     ' : '') + t, size: 10.5, x: 12, gap: k ? 13 : 15 }));
-        }
-      }
-      if (m.note) wrap(m.note, 105).forEach((t) => lines.push({ text: t, size: 9.5, x: 12, gap: 13, color: MUTED }));
-    }
-    return lines;
-  });
-  return makePdf(paginate(blocks));
 }
