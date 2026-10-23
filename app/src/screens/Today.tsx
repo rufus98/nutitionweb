@@ -11,8 +11,7 @@ async function load() {
   const [appts, tomorrow, patients, pays, plans] = await Promise.all([
     repo.listAppointments(t, t), repo.listAppointments(addDays(t, 1), addDays(t, 1)), repo.listPatients(), repo.listPayments(), repo.listAllPlans(),
   ]);
-  const sent = new Set<number>();
-  for (const a of tomorrow) if ((await repo.getFlag('rem-' + a.id)) === '1') sent.add(a.id);
+  const sent = new Set(tomorrow.filter((a) => a.reminder_sent_at).map((a) => a.id));
   return { appts, tomorrow, patients, pays, plans, sent };
 }
 
@@ -94,7 +93,7 @@ export function Today() {
                 {sent.has(a.id) ? <span className="text-xs font-semibold text-ok">Inviato ✓</span> : null}
                 <button className="btn-wa py-1.5 text-[12.5px]" onClick={async () => {
                   await openExternal(waLink(a.phone ?? '', reminderText(a, settings?.tpl[0] ?? '', studio)));
-                  await repo.setFlag('rem-' + a.id, '1');
+                  await repo.markReminderSent(a.id);
                   bump();
                 }}><WaDot />{sent.has(a.id) ? 'Reinvia' : 'Invia'}</button>
               </div>
@@ -107,7 +106,7 @@ export function Today() {
           <TodoCard title="Pagamenti in sospeso" more={due.length > 4 ? () => go({ name: 'payments' }) : undefined} empty="Nessun pagamento in sospeso.">
             {due.slice(0, 4).map((p) => (
               <div key={p.id} className="flex items-center justify-between gap-3 py-2 border-t border-line2 text-[13px]">
-                <button className="min-w-0 border-0 bg-transparent p-0 text-left" onClick={() => go({ name: 'patient', id: p.patient_id, tab: 'pay' })}><div className="font-medium truncate hover:text-accent">{p.name}</div><div className="text-xs text-label">{p.description} · {daysBetween(p.date, t)} gg</div></button>
+                <button className="min-w-0 border-0 bg-transparent p-0 text-left" onClick={() => p.patient_id && go({ name: 'patient', id: p.patient_id, tab: 'pay' })}><div className="font-medium truncate hover:text-accent">{p.name}</div><div className="text-xs text-label">{p.description} · {daysBetween(p.date, t)} gg</div></button>
                 <div className="flex items-center gap-2.5 flex-none"><span className="font-semibold">€ {eur(p.amount)}</span><a className="text-[12.5px] font-medium !text-warn" onClick={() => remindPayment(p, settings!)}>Sollecita</a></div>
               </div>
             ))}

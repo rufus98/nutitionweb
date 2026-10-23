@@ -10,9 +10,8 @@ import { cx, Field, Modal, ModalHeader, Segmented } from './ui';
 
 /** Salva la fattura in PDF. */
 export async function downloadInvoice(p: Payment, settings: Settings) {
-  const patient = await repo.getPatient(p.patient_id);
-  const name = `Fattura_${(p.invoice ?? '').replace(/\W+/g, '-')}_${patient?.last ?? ''}.pdf`;
-  return saveFile(name, invoicePdf(p, patient, settings), [{ name: 'PDF', extensions: ['pdf'] }]);
+  const name = `Fattura_${(p.invoice ?? '').replace(/\W+/g, '-')}_${p.name.split(' ').slice(-1)[0] ?? ''}.pdf`;
+  return saveFile(name, invoicePdf(p, settings), [{ name: 'PDF', extensions: ['pdf'] }]);
 }
 
 /** Sollecito su WhatsApp con il modello "Sollecito pagamento" delle impostazioni. */

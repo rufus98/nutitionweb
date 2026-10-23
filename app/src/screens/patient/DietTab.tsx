@@ -24,23 +24,22 @@ export function DietTab({ patient, plans }: { patient: Patient; plans: Plan[] })
 
   const [chooser, setChooser] = useState(false);
   const startDraft = async (file: File | null, from?: Plan, kind?: repo.PlanKind) => {
-    let pdfName: string | null = null, pdfB64: string | null = null;
+    let pdf: repo.PlanPdf = null;
     let data: PlanData | null = null;
     if (file) {
       if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) { toast('Il file deve essere un PDF'); return; }
       if (file.size > MAX_MB * 1024 * 1024) { toast(`Il PDF supera i ${MAX_MB} MB`); return; }
-      pdfName = file.name;
       const bytes = await readFileAsBytes(file);
-      pdfB64 = bytesToB64(bytes);
+      pdf = { file: { name: file.name, b64: bytesToB64(bytes) } };
       data = await digitize(bytes, file.name);
     } else if (from?.has_pdf) {
-      pdfName = from.pdf_name;
-      pdfB64 = await repo.getPlanPdf(from.id);
+      // Stesso PDF della versione di partenza: il documento è condiviso, non duplicato.
+      pdf = { fromPlanId: from.id };
     }
     const base = from ?? active;
     if (!data) data = kind ? repo.emptyPlanData(kind) : base ? structuredClone(base.data) : repo.emptyPlanData();
     if (from || !file) delete data.import;
-    await repo.createPlan(patient.id, data, pdfName, pdfB64);
+    await repo.createPlan(patient.id, data, pdf);
     setViewing(null);
     bump();
   };

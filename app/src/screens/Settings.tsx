@@ -4,6 +4,7 @@ import * as repo from '../db/repo';
 import type { Plan, Patient, Settings } from '../db/types';
 import { cx, Field, Page, TimeInput, Toggle } from '../components/ui';
 import { PhonePreview } from './patient/PhonePreview';
+import { DatabaseCard } from './DatabaseCard';
 import { b64ToBytes } from '../lib/pdf';
 import { makeZip } from '../lib/zip';
 import { saveFile } from '../lib/platform';
@@ -61,10 +62,11 @@ export function SettingsScreen() {
   const exportAll = async () => {
     const dump = await repo.dumpAll();
     const files: { name: string; data: Uint8Array | string }[] = [];
-    const plans = dump.plans.map(({ pdf_b64, ...rest }) => { if (pdf_b64) files.push({ name: `piani/${rest.patient_id}_v${rest.version}_${rest.pdf_name ?? 'piano.pdf'}`, data: b64ToBytes(pdf_b64) }); return rest; });
+    // I PDF dei piani vanno nella cartella documenti/ come file, non dentro dati.json.
+    const documents = dump.documents.map(({ data_b64, ...rest }) => { files.push({ name: `documenti/${rest.id}_${rest.name}`, data: b64ToBytes(data_b64) }); return rest; });
     const csv = (rows: Record<string, any>[]) => rows.length ? '﻿' + [Object.keys(rows[0]).join(';'), ...rows.map((r) => Object.values(r).map((v) => { const s = v == null ? '' : String(v); return /[;"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; }).join(';'))].join('\r\n') : '';
     files.unshift(
-      { name: 'dati.json', data: JSON.stringify({ esportato: new Date().toISOString(), app: 'Nutrea Studio', ...dump, plans }, null, 2) },
+      { name: 'dati.json', data: JSON.stringify({ esportato: new Date().toISOString(), app: 'Nutrea Studio', ...dump, documents }, null, 2) },
       { name: 'pazienti.csv', data: csv(dump.patients) }, { name: 'visite.csv', data: csv(dump.visits) },
       { name: 'pagamenti.csv', data: csv(dump.payments) }, { name: 'appuntamenti.csv', data: csv(dump.appointments) },
     );
@@ -259,6 +261,7 @@ export function SettingsScreen() {
                 <button className="btn-secondary !text-err !border-err-line/60" onClick={wipeDemo}>{demo ? 'Elimina dati di esempio' : 'Svuota archivio'}</button>
               </div>
             </div>
+            <DatabaseCard />
           </>}
         </div>
       </div>

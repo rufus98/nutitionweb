@@ -1,6 +1,7 @@
 // Dati demo tratti dal design (studio della Dott.ssa Marchi). Le date originali sono
 // spostate di un numero intero di settimane, così l'agenda resta allineata ai giorni della settimana.
 import * as repo from './repo';
+import { db } from './connection';
 import { DEFAULT_SETTINGS, DEMO_PROFILE } from './defaults';
 import type { ApptType, PlanData, PlanMeal } from './types';
 import { addDays, daysBetween, mondayOf, today } from '../lib/format';
@@ -193,10 +194,10 @@ export async function seedDemo() {
   });
   for (const t of T0) pays.push([t[0], ids[t[1]], t[2], t[3], t[4], t[5]]);
   pays.sort((a, b) => a[0].localeCompare(b[0]));
-  let inv = 0;
+  const counters: Record<number, number> = {};
   for (const [date, pid, desc, method, amount, paid] of pays) {
-    const d = D(date);
-    await repo.addPayment({ patient_id: pid, date: d, description: desc, method, amount, paid, invoice: paid ? `FT ${++inv}/${d.slice(2, 4)}` : null });
+    const d = D(date), year = +d.slice(0, 4);
+    await repo.addPayment({ patient_id: pid, date: d, description: desc, method, amount, paid, invoice: paid ? { year, number: (counters[year] = (counters[year] ?? 0) + 1) } : null });
   }
 
   // Agenda: settimana corrente dal design + prossime visite dell'elenco pazienti.
@@ -230,7 +231,7 @@ export async function seedDemo() {
     for (const [title, kcal, date] of versions) {
       const data = samplePlan(title, kcal, false, thyroid);
       const pdf = bytesToB64(planPdf(r[0], data, studio));
-      const id = await repo.createPlan(pid, data, `Piano_${r[0].split(' ')[1]}_${date.slice(5, 7)}${date.slice(2, 4)}.pdf`, pdf);
+      const id = await repo.createPlan(pid, data, { file: { name: `Piano_${r[0].split(' ')[1]}_${date.slice(5, 7)}${date.slice(2, 4)}.pdf`, b64: pdf } });
       if (r[7] === 'on') {
         await repo.publishPlan(id);
         await rawDate(id, D(date));
@@ -244,7 +245,7 @@ export async function seedDemo() {
   await repo.setFlag('demo', '1');
 }
 
+/** I dati demo hanno date storiche: le versioni dei piani le riportano. */
 async function rawDate(planId: number, date: string) {
-  const { getDb } = await import('./db');
-  await (await getDb()).execute('UPDATE plans SET created_at = ?, published_at = ? WHERE id = ?', [date, date, planId]);
+  await (await db()).execute('UPDATE plans SET created_at = ?, published_at = ? WHERE id = ?', [date, date, planId]);
 }

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useApp } from '../app/store';
 import * as repo from '../db/repo';
 import { ACTIVITIES, CHIP_GROUPS, GOALS, SOURCES } from '../db/defaults';
-import type { Patient } from '../db/types';
+import type { ContactPref, Patient } from '../db/types';
 import { Breadcrumb, Checkbox, cx, Field, Page, Segmented, UnitInput } from '../components/ui';
 import { ageFrom, bmiCategory, bmiOf, initials, num, numOrNull, today, waLink } from '../lib/format';
 import { consentPdf } from '../lib/documents';
@@ -62,7 +62,7 @@ export function NewPatient() {
     try {
       const p = await repo.createPatient({
         first: f.first.trim(), last: f.last.trim(), phone: f.phone.trim(), email: f.email || null, dob: f.dob || null, birthplace: f.birthplace || null,
-        cf: f.cf ? String(f.cf).toUpperCase() : null, job: f.job || null, sex: f.sex, contact: f.contact, tags,
+        cf: f.cf ? String(f.cf).toUpperCase() : null, job: f.job || null, sex: f.sex, contact: f.contact as ContactPref, tags,
         drugs: f.drugs || null, activity: f.activity, notes: f.notes || null, height: numOrNull(f.height),
         goal: GOALS[f.goal], target_kg: numOrNull(f.target), source: f.source,
         consent_privacy: !!f.cons.privacy, consent_app: !!f.cons.app, consent_marketing: !!f.cons.marketing,

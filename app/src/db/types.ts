@@ -1,5 +1,10 @@
+// Tipi del dominio usati dall'interfaccia. Corrispondono alle tabelle descritte in src/db/README.md;
+// la conversione riga ↔ oggetto (booleani 0/1, importi in centesimi, JSON) è nei repository.
+
 export type Sex = 'F' | 'M';
+export type ContactPref = 'WhatsApp' | 'Telefono' | 'Email';
 export type ApptType = 'prima' | 'controllo' | 'online';
+export type PlanState = 'draft' | 'published' | 'archived';
 
 export interface Patient {
   id: number;
@@ -13,7 +18,7 @@ export interface Patient {
   cf: string | null;
   job: string | null;
   sex: Sex;
-  contact: string;
+  contact: ContactPref;
   tags: string[];
   drugs: string | null;
   activity: string | null;
@@ -28,6 +33,7 @@ export interface Patient {
   active: boolean;
   token: string | null;
   link_on: boolean;
+  /** giorno di apertura della scheda (YYYY-MM-DD) */
   created_at: string;
 }
 
@@ -62,16 +68,23 @@ export interface Visit {
 
 export interface Payment {
   id: number;
-  patient_id: number;
+  /** null se il paziente è stato eliminato (il pagamento resta nel registro fiscale) */
+  patient_id: number | null;
   date: string;
   description: string;
   method: string;
+  /** euro (nel database: centesimi interi) */
   amount: number;
   paid: boolean;
+  paid_at: string | null;
+  invoice_year: number | null;
+  invoice_number: number | null;
+  /** numero formattato, es. "FT 12/26" */
   invoice: string | null;
-  /** valorizzato dalle query con join */
-  name?: string;
-  phone?: string;
+  /** nome del paziente (o quello registrato al momento del pagamento) */
+  name: string;
+  cf: string | null;
+  phone: string | null;
 }
 
 export interface Appointment {
@@ -82,6 +95,8 @@ export interface Appointment {
   type: ApptType;
   duration: number;
   remind: boolean;
+  /** istante in cui è stato inviato il promemoria WhatsApp */
+  reminder_sent_at?: string | null;
   note: string | null;
   name?: string;
   phone?: string;
@@ -126,7 +141,9 @@ export interface Plan {
   id: number;
   patient_id: number;
   version: number;
-  status: 'draft' | 'published' | 'archived';
+  status: PlanState;
+  /** PDF originale (tabella documents), condiviso tra le versioni copiate */
+  document_id: number | null;
   pdf_name: string | null;
   has_pdf: boolean;
   data: PlanData;

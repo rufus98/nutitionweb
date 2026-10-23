@@ -17,7 +17,8 @@ function header(s: Settings): PdfLine[] {
   ];
 }
 
-export function invoicePdf(pay: Payment, patient: Patient | null, s: Settings): Uint8Array {
+/** Fattura: intestata con nome e codice fiscale registrati sul pagamento (restano anche se la scheda viene eliminata). */
+export function invoicePdf(pay: Payment, s: Settings): Uint8Array {
   const cassaPct = /(\d+(?:[.,]\d+)?)\s*%/.exec(s.bill.cassa)?.[1];
   const cassa = cassaPct ? Math.round(pay.amount * parseFloat(cassaPct.replace(',', '.'))) / 100 : 0;
   const sub = pay.amount + cassa;
@@ -28,8 +29,8 @@ export function invoicePdf(pay: Payment, patient: Patient | null, s: Settings): 
     { text: `Fattura ${pay.invoice ?? ''}`, size: 20, bold: true, gap: 46 },
     { text: `Data: ${fmtDate(pay.date)}`, size: 10.5, gap: 20 },
     { text: 'Intestata a', size: 9, color: MUTED, gap: 26 },
-    { text: patient ? `${patient.first} ${patient.last}` : pay.name ?? '', size: 11.5, bold: true, gap: 15 },
-    { text: patient?.cf ? 'C.F. ' + patient.cf : '', size: 10, gap: 14 },
+    { text: pay.name, size: 11.5, bold: true, gap: 15 },
+    { text: pay.cf ? 'C.F. ' + pay.cf : '', size: 10, gap: 14 },
     { text: 'Descrizione', size: 9, color: MUTED, gap: 34 },
     { text: 'Importo', size: 9, color: MUTED, gap: 0, right: true },
     { text: pay.description, size: 11, gap: 18 },

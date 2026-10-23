@@ -50,8 +50,7 @@ export function Payments({ route }: { route: Extract<Route, { name: 'payments' }
     const yr = R.filter((r) => r.date.startsWith(year));
     const esc = (v: unknown) => { const s = v == null ? '' : String(v); return /[;"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
     const head = ['Data', 'Numero fattura', 'Paziente', 'Codice fiscale', 'Prestazione', 'Metodo', 'Importo', 'Bollo', 'Stato'];
-    const pts = new Map((await repo.listPatients()).map((p) => [p.id, p]));
-    const lines = yr.map((r) => [r.date, r.invoice, r.name, pts.get(r.patient_id)?.cf, r.description, r.method, r.amount.toFixed(2).replace('.', ','),
+    const lines = yr.map((r) => [r.date, r.invoice, r.name, r.cf, r.description, r.method, r.amount.toFixed(2).replace('.', ','),
       settings?.bill.bollo && r.amount > 77.47 && r.paid ? '2,00' : '', r.paid ? 'Saldato' : 'In sospeso'].map(esc).join(';'));
     const path = await saveFile(`Movimenti_${year}_commercialista.csv`, '﻿' + [head.join(';'), ...lines].join('\r\n'), [{ name: 'CSV', extensions: ['csv'] }]);
     if (path) toast(`Esportati ${yr.length} movimenti del ${year}`);
@@ -118,7 +117,8 @@ export function Payments({ route }: { route: Extract<Route, { name: 'payments' }
           return (
             <div key={r.id} className={cx(G, 'py-3 border-b border-line2 items-center text-[13.5px] row-hover')}>
               <span className="whitespace-nowrap">{r.date.startsWith(year) ? fmtShort(r.date) : fmtShort(r.date) + ' ' + r.date.slice(2, 4)}</span>
-              <a onClick={() => go({ name: 'patient', id: r.patient_id, tab: 'pay' })} className="!text-ink font-medium truncate">{r.name}</a>
+              {r.patient_id ? <a onClick={() => go({ name: 'patient', id: r.patient_id!, tab: 'pay' })} className="!text-ink font-medium truncate">{r.name}</a>
+                : <span className="font-medium truncate text-muted" title="Scheda paziente eliminata">{r.name}</span>}
               <span className="text-ink2 truncate">{r.description}</span>
               <span className="text-muted">{r.method}</span>
               <span className="text-right font-semibold tabular-nums">€ {eur(r.amount)}</span>

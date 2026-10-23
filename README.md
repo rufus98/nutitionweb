@@ -16,13 +16,13 @@ Realizzata con **Tauri 2 + React + TypeScript** partendo dal design esportato da
 
 ```
 app/
-  src-tauri/            Rust: finestra, plugin (SQLite, file, dialoghi, apertura link), configurazione installer
+  src-tauri/            Rust: finestra, driver SQLite con backup (src/db.rs), plugin (file, dialoghi, apertura link), installer
     tauri.conf.json     nome, icone, dimensione minima finestra, target msi/nsis
     capabilities/       permessi della finestra
   src/
     theme/tokens.css    design token del bundle come variabili CSS (chiaro + scuro)
     components/         Sidebar, card, campi, modali, drawer, grafico peso, ricerca rapida…
-    db/                 SQLite: schema e migrazioni, repository, impostazioni predefinite, dati demo
+    db/                 SQLite: migrazioni .sql, repository per dominio, dati demo — vedi src/db/README.md
     lib/                formattazione all'italiana, PDF (fatture, consenso, piano), ZIP, integrazione con il sistema
     screens/            Oggi, Pazienti, Nuovo paziente, Scheda paziente, Agenda, Piani, Pagamenti, Impostazioni
     test/               test unitari (Vitest)
@@ -47,7 +47,8 @@ Altri comandi:
 | Comando | A cosa serve |
 |---|---|
 | `npm run dev` | Solo l'interfaccia nel browser (http://localhost:1420). Al posto di SQLite usa sql.js salvato nel browser: utile per lavorare sulla grafica. |
-| `npm test` | Test unitari (formattazione, PDF, ZIP, database con dati demo, lettura dei piani). Con `NUTREA_PDF_DIR=/cartella/con/pdf npm test` verifica anche la lettura di PDF reali (non inclusi nel repository). |
+| `npm run db:schema` | Rigenera `src/db/schema.sql` dopo aver aggiunto una migrazione. |
+| `npm test` | Test unitari (formattazione, PDF, ZIP, migrazioni, vincoli e repository del database, lettura dei piani). Con `NUTREA_PDF_DIR=/cartella/con/pdf npm test` verifica anche la lettura di PDF reali (non inclusi nel repository). |
 | `npm run build` | Controllo dei tipi e build del frontend. |
 
 Al primo avvio l'app chiede se partire con un **archivio vuoto** o con i **dati di esempio** del design (20 pazienti, agenda, pagamenti, piani). I dati di esempio si eliminano da *Impostazioni → Privacy & sicurezza*.
@@ -112,8 +113,11 @@ Il design non prevede una barra dei menu, quindi l'app non ne ha. Le scorciatoie
 
 ### Backup
 
-*Impostazioni → Privacy & sicurezza → Esporta tutti i dati (ZIP)* crea un archivio con `dati.json`, i CSV di pazienti, visite, pagamenti e appuntamenti, e tutti i PDF dei piani.
-In alternativa basta copiare `%APPDATA%\it.nutrea.studio\nutrea.db` con l'app chiusa.
+L'app crea da sola un backup del database ogni giorno (conserva gli ultimi 14) e prima di ogni aggiornamento dello schema, nella cartella `%APPDATA%\it.nutrea.studio\backups`.
+Da *Impostazioni → Privacy & sicurezza → Archivio e backup* puoi creare un backup, salvarne una copia altrove, ripristinarne uno e controllare l'integrità dell'archivio.
+*Esporta tutti i dati (ZIP)* crea invece un archivio leggibile con `dati.json`, i CSV di pazienti, visite, pagamenti e appuntamenti, e tutti i PDF dei piani.
+
+Schema, convenzioni e come aggiungere una migrazione: [app/src/db/README.md](app/src/db/README.md).
 
 ## Cosa fa davvero e cosa resta da fare
 

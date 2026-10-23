@@ -1,6 +1,6 @@
 // Funzioni di sistema: aprire link/app esterne, salvare file, aprire PDF.
 // In Tauri usano i plugin nativi; nel browser (sviluppo) ripiegano sulle API web.
-import { isTauri } from '../db/db';
+import { isTauri } from '../db/driver';
 
 export async function openExternal(url: string) {
   if (isTauri()) {
@@ -44,6 +44,13 @@ export async function openPdf(name: string, bytes: Uint8Array) {
   } else {
     window.open(URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' })), '_blank');
   }
+}
+
+/** Apre una cartella in Esplora file (solo Tauri). */
+export async function openFolder(path: string) {
+  if (!isTauri()) return;
+  const { openPath } = await import('@tauri-apps/plugin-opener');
+  await openPath(path);
 }
 
 export async function copyText(text: string) {

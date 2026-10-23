@@ -23,7 +23,7 @@ export function EditPatient({ patient: p, onClose, onConsentPdf }: { patient: Pa
     onClose();
   };
   const del = async () => {
-    if (await confirm({ title: `Eliminare ${p.first} ${p.last}?`, body: 'Verranno eliminati definitivamente anche visite, misure, piani, appuntamenti e pagamenti del paziente. Per conservarli, archivia il paziente.', ok: 'Elimina definitivamente', danger: true })) {
+    if (await confirm({ title: `Eliminare ${p.first} ${p.last}?`, body: 'Verranno eliminati definitivamente anche visite, misure, piani e appuntamenti del paziente. Pagamenti e fatture restano nel registro contabile. Per conservare tutto, archivia il paziente.', ok: 'Elimina definitivamente', danger: true })) {
       await repo.deletePatient(p.id);
       bump();
       toast('Paziente eliminato');

@@ -1,7 +1,5 @@
-import { beforeAll, describe, expect, it } from 'vitest';
-import { sqlJsDb, setDb } from '../db/db';
+import { describe, expect, it } from 'vitest';
 import * as repo from '../db/repo';
-import { seedDemo } from '../db/seed';
 import { addDays, ageFrom, bmiOf, fillTemplate, mondayOf, n1, phoneDigits, signed } from '../lib/format';
 import { makePdf } from '../lib/pdf';
 import { makeZip } from '../lib/zip';
@@ -48,51 +46,5 @@ describe('documenti', () => {
     const z = makeZip([{ name: 'a.txt', data: 'ciao' }]);
     expect([...z.slice(0, 4)]).toEqual([0x50, 0x4b, 0x03, 0x04]);
     expect(new TextDecoder().decode(z)).toContain('a.txt');
-  });
-});
-
-describe('database', () => {
-  beforeAll(async () => { setDb(await sqlJsDb(false)); await repo.init(); });
-
-  it('crea paziente, visita, pagamento e appuntamento', async () => {
-    const p = await repo.createPatient({ first: 'Anna', last: 'Bianchi', phone: '333 1234567', email: null, dob: null, birthplace: null, cf: null, job: null, sex: 'F', contact: 'WhatsApp', tags: ['Lattosio'], drugs: null, activity: null, notes: null, height: 165, goal: 'Perdita di peso', target_kg: 65, source: null, consent_privacy: false, consent_app: true, consent_marketing: false });
-    expect(p.code).toMatch(/^PZ-\d{4}$/);
-    expect(p.tags).toEqual(['Lattosio']);
-    await repo.addVisit({ patient_id: p.id, date: '2026-01-10', type: 'Prima visita', kg: 72, fat: null, vita: 90, fianchi: null, torace: null, braccio: null, coscia: null, polso: null, note: null, goal: null });
-    await repo.addVisit({ patient_id: p.id, date: '2026-02-10', type: 'Controllo', kg: 70.5, fat: null, vita: 88, fianchi: null, torace: null, braccio: null, coscia: null, polso: null, note: null, goal: null });
-    const inv = await repo.addPayment({ patient_id: p.id, date: '2026-02-10', description: 'Controllo', method: 'POS', amount: 70, paid: true });
-    expect(inv).toBe('FT 1/26');
-    await repo.addPayment({ patient_id: p.id, date: '2026-02-10', description: 'Controllo', method: 'POS', amount: 70, paid: false });
-    await repo.addAppointment({ patient_id: p.id, date: '2999-01-01', time: '09:00', type: 'controllo', duration: 30, remind: true, note: null });
-    const row = (await repo.getPatientRow(p.id))!;
-    expect(row.kg).toBe(70.5);
-    expect(row.kg_start).toBe(72);
-    expect(row.due).toBe(70);
-    expect(row.next_visit).toBe('2999-01-01');
-    expect(row.plan).toBe('none');
-  });
-
-  it('pubblica un piano e archivia il precedente', async () => {
-    const [p] = await repo.listPatients();
-    const v1 = await repo.createPlan(p.id, repo.emptyPlanData(), null, null);
-    await repo.publishPlan(v1);
-    const v2 = await repo.createPlan(p.id, repo.emptyPlanData(), null, null);
-    expect((await repo.getPatientRow(p.id))!.plan).toBe('draft');
-    await repo.publishPlan(v2);
-    const plans = await repo.listPlans(p.id);
-    expect(plans.map((x) => [x.version, x.status])).toEqual([[2, 'published'], [1, 'archived']]);
-    expect((await repo.getPatientRow(p.id))!.plan).toBe('on');
-  });
-
-  it('carica i dati demo', async () => {
-    await repo.wipeAll();
-    await seedDemo();
-    const list = await repo.listPatients();
-    expect(list).toHaveLength(20);
-    const giulia = list.find((x) => x.first === 'Giulia')!;
-    expect(giulia.kg).toBe(76.8);
-    expect(giulia.due).toBe(70);
-    expect(giulia.plan).toBe('on');
-    expect((await repo.listPlans(giulia.id)).length).toBe(3);
   });
 });
