@@ -34,6 +34,21 @@ export async function updateAppointment(id: number, a: NewAppointment) {
        reminder_sent_at = CASE WHEN date = ? AND time = ? THEN reminder_sent_at END
      WHERE id = ?`, [a.patient_id, a.date, a.time, a.type, a.duration, a.remind, a.note, a.date, a.time, id]);
 }
+export interface Slot { date: string; time: string; duration: number }
+/**
+ * Sposta o ridimensiona un appuntamento (trascinamento in agenda). Se cambiano giorno o ora il promemoria va rinviato;
+ * `reminderSentAt` ripristina lo stato precedente quando si annulla lo spostamento.
+ */
+export async function rescheduleAppointment(id: number, to: Slot, reminderSentAt?: string | null) {
+  const restore = reminderSentAt !== undefined;
+  // Nelle espressioni di un UPDATE, date e time sono ancora i valori precedenti.
+  await (await db()).execute(
+    `UPDATE appointments SET
+       reminder_sent_at = CASE WHEN ? THEN ? WHEN date = ? AND time = ? THEN reminder_sent_at END,
+       date = ?, time = ?, duration = ?
+     WHERE id = ?`,
+    [restore, reminderSentAt ?? null, to.date, to.time, to.date, to.time, to.duration, id]);
+}
 export async function deleteAppointment(id: number) {
   await (await db()).execute('DELETE FROM appointments WHERE id = ?', [id]);
 }

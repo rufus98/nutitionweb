@@ -159,6 +159,14 @@ SELECT y.id, y.patient_id, y.date, y.description, y.method,
        p.phone AS phone
 FROM payments y LEFT JOIN patients p ON p.id = y.patient_id;
 
+CREATE TRIGGER appointments_time_insert BEFORE INSERT ON appointments
+WHEN NEW.time > '23:59'
+BEGIN SELECT RAISE(ABORT, 'Orario non valido: usa il formato HH:MM tra 00:00 e 23:59'); END;
+
+CREATE TRIGGER appointments_time_update BEFORE UPDATE OF time ON appointments
+WHEN NEW.time > '23:59'
+BEGIN SELECT RAISE(ABORT, 'Orario non valido: usa il formato HH:MM tra 00:00 e 23:59'); END;
+
 CREATE TRIGGER appointments_touch AFTER UPDATE ON appointments WHEN NEW.updated_at = OLD.updated_at
 BEGIN UPDATE appointments SET updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = NEW.id; END;
 

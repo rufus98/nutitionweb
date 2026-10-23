@@ -106,6 +106,10 @@ Prima di una nuova release aggiorna la versione in `app/package.json`, `app/src-
 | `Ctrl+S` | Salva (impostazioni, bozza del piano) |
 | `Ctrl+Invio` | Conferma il modulo aperto (nuovo paziente, visita, appuntamento, pagamento) |
 | `←` `→` / `Home` | Agenda: settimana precedente/successiva, torna a oggi |
+| Trascina un appuntamento / il suo bordo inferiore | Agenda: sposta (anche su un altro giorno) / cambia la durata, a passi di 15 min |
+| `↑` `↓` · `Maiusc+←` `→` | Agenda, appuntamento selezionato: ±15 min · giorno prima/dopo |
+| `Invio` · `Canc` · doppio clic | Agenda: modifica · annulla l'appuntamento · modifica |
+| `Ctrl+Z` | Annulla l'ultimo spostamento (anche dal pulsante "Annulla" nel messaggio) |
 | `Alt+←` o tasto "indietro" del mouse | Schermata precedente |
 | `Esc` | Chiude la finestra o il pannello aperto |
 | `F1` | Elenco delle scorciatoie |
@@ -128,7 +132,7 @@ Rispetto al prototipo, dove tutto era dimostrativo:
 |---|---|
 | Pazienti, anagrafica, consensi, archiviazione ed eliminazione | ✅ salvati in SQLite |
 | Visite, peso, composizione, circonferenze, grafici e variazioni | ✅ calcolati dai dati |
-| Agenda: prenotazione, spostamento, annullamento, sovrapposizioni, orari dello studio | ✅ |
+| Agenda: prenotazione, spostamento e durata trascinando (con annulla), modifica con note, tastiera, sovrapposizioni, orari dello studio | ✅ |
 | Promemoria WhatsApp del giorno prima | ✅ da *Oggi*, un clic per paziente (apre WhatsApp con il messaggio) |
 | Pagamenti, numerazione fatture, fattura PDF, sollecito su WhatsApp | ✅ |
 | Esportazione CSV per il commercialista ed esportazione completa ZIP | ✅ |

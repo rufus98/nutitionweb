@@ -12,13 +12,16 @@ export type Route =
   | { name: 'payments'; patientId?: number; register?: boolean }
   | { name: 'settings' };
 
+export interface ToastAction { label: string; run: () => void }
+
 interface Ctx {
   route: Route;
   go: (r: Route) => void;
   back: () => void;
   canBack: boolean;
-  toast: (msg: string) => void;
-  toastMsg: string | null;
+  /** Messaggio breve; con `action` mostra un pulsante (es. "Annulla", anche con Ctrl+Z) e resta visibile più a lungo. */
+  toast: (msg: string, action?: ToastAction) => void;
+  toastMsg: { msg: string; action?: ToastAction } | null;
   settings: Settings | null;
   setSettings: (s: Settings) => Promise<void>;
   /** Contatore che cambia dopo ogni modifica ai dati: le schermate lo usano per ricaricare. */
@@ -37,7 +40,7 @@ export const useApp = () => useContext(AppCtx);
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [stack, setStack] = useState<Route[]>([{ name: 'today' }]);
-  const [toastMsg, setToast] = useState<string | null>(null);
+  const [toastMsg, setToast] = useState<Ctx['toastMsg']>(null);
   const [settings, setS] = useState<Settings | null>(null);
   const [version, setVersion] = useState(0);
   const [patientCount, setCount] = useState(0);
@@ -63,10 +66,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     guard.current = null;
     setStack((s) => (s.length > 1 ? s.slice(0, -1) : s));
   }, []);
-  const toast = useCallback((msg: string) => {
-    setToast(msg);
+  const toast = useCallback((msg: string, action?: ToastAction) => {
+    setToast({ msg, action });
     clearTimeout(tt.current);
-    tt.current = setTimeout(() => setToast(null), 2400);
+    tt.current = setTimeout(() => setToast(null), action ? 6000 : 2400);
   }, []);
   const setSettings = useCallback(async (s: Settings) => { await repo.saveSettings(s); setS(s); }, []);
   const bump = useCallback(() => setVersion((v) => v + 1), []);

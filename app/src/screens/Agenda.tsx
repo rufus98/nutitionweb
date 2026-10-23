@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useApp, useLoad, type Route } from '../app/store';
 import * as repo from '../db/repo';
 import type { Appointment, ApptType, Hours } from '../db/types';
@@ -9,6 +9,16 @@ import { goalLabel } from './PatientList';
 
 const PH = 56;
 const DL = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
+const SNAP = 15;
+const snap = (m: number) => Math.round(m / SNAP) * SNAP;
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+/** Indice del giorno negli orari di ricevimento (0 = lunedì). */
+const weekdayIdx = (date: string) => (parseIso(date).getDay() + 6) % 7;
+
+type Slot = { date: string; start: number; dur: number };
+/** Trascinamento in corso: spostamento del blocco o ridimensionamento dal bordo inferiore. */
+interface Drag { a: Appointment; mode: 'move' | 'resize'; x0: number; y0: number; grab: number; active: boolean; to: Slot }
+type Form = { id?: number; pid: number; date: string; time: string; type: ApptType; remind: boolean; duration?: number; note?: string | null };
 
 /** Fasce non prenotabili ricavate dagli orari di ricevimento (Impostazioni → Orari). */
 function blocksFor(h: Hours | undefined, H0: number, H1: number) {
@@ -47,7 +57,7 @@ export function Agenda({ route }: { route: Extract<Route, { name: 'agenda' }> })
   const { go, toast, bump, settings, confirm } = useApp();
   const [mon, setMon] = useState(mondayOf(route.date ?? today()));
   const [sel, setSel] = useState<number | null>(route.select ?? null);
-  const [form, setForm] = useState<null | { id?: number; pid: number; date: string; time: string; type: ApptType; remind: boolean }>(
+  const [form, setForm] = useState<Form | null>(
     route.book ? { pid: route.patientId ?? 0, date: today(), time: '09:00', type: route.patientId ? 'prima' : 'controllo', remind: true } : null);
   const [now, setNow] = useState(new Date());
   useEffect(() => { const t = setInterval(() => setNow(new Date()), 60000); return () => clearInterval(t); }, []);
@@ -58,21 +68,129 @@ export function Agenda({ route }: { route: Extract<Route, { name: 'agenda' }> })
   const H1 = Math.max(19, ...hours.filter((h) => h.on && (h.d || h.b)).map((h) => Math.ceil(toMin(h.d || h.b) / 60)));
   const [list] = useLoad(() => repo.listAppointments(mon, addDays(mon, 6)), [mon]);
   const [todayList] = useLoad(() => repo.listAppointments(today(), today()), []);
-  const appts = list ?? [];
+  // Posizioni appena modificate, mostrate subito mentre l'elenco si ricarica.
+  const [moved, setMoved] = useState<Record<number, Partial<Appointment>>>({});
+  useEffect(() => setMoved({}), [list]);
+  const appts = useMemo(() => (list ?? []).map((a) => (moved[a.id] ? { ...a, ...moved[a.id] } : a)), [list, moved]);
   const selA = appts.find((a) => a.id === sel) ?? todayList?.find((a) => a.id === sel);
   const yOf = (m: number) => ((m - H0 * 60) / 60) * PH;
 
-  // Frecce ←/→ per cambiare settimana (quando non si sta scrivendo in un campo).
+  // ——— Spostare e ridimensionare ———
+
+  const colsRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<Drag | null>(null);
+  const [ghost, setGhost] = useState<Drag | null>(null);
+  const justDragged = useRef(false);
+
+  /** Motivo per cui uno spazio non è prenotabile (studio chiuso, pausa, fuori orario), oppure null. */
+  const problemOf = (s: Slot) => {
+    const h = hours[weekdayIdx(s.date)];
+    if (!h?.on) return 'Studio chiuso';
+    const hit = blocksFor(h, H0, H1).find((b) => s.start < b.start + b.dur && s.start + s.dur > b.start);
+    return hit ? (hit.label === 'Pausa' ? 'Pausa' : 'Fuori orario') : null;
+  };
+  const overlaps = (s: Slot, id: number) => appts.some((x) => x.id !== id && x.date === s.date && toMin(x.time) < s.start + s.dur && toMin(x.time) + x.duration > s.start);
+
+  /** Spazio sotto il puntatore: colonna del giorno e orario arrotondato al quarto d'ora. */
+  const slotAt = (d: Drag, x: number, y: number): Slot => {
+    const cols = [...(colsRef.current?.querySelectorAll<HTMLElement>('[data-date]') ?? [])];
+    const start = toMin(d.a.time);
+    if (d.mode === 'resize') {
+      const r = cols.find((c) => c.dataset.date === d.a.date)!.getBoundingClientRect();
+      const end = snap(H0 * 60 + ((y - r.top) / PH) * 60);
+      return { date: d.a.date, start, dur: clamp(end - start, SNAP, H1 * 60 - start) };
+    }
+    const col = cols.find((c) => { const r = c.getBoundingClientRect(); return x >= r.left && x < r.right; })
+      ?? (x < cols[0].getBoundingClientRect().left ? cols[0] : cols[cols.length - 1]);
+    const r = col.getBoundingClientRect();
+    return { date: col.dataset.date!, start: clamp(snap(H0 * 60 + ((y - r.top - d.grab) / PH) * 60), H0 * 60, H1 * 60 - d.a.duration), dur: d.a.duration };
+  };
+
+  /** Salva il nuovo giorno/orario/durata, con "Annulla" (anche Ctrl+Z) nel messaggio. */
+  const reschedule = async (a: Appointment, to: Slot) => {
+    if (to.date === a.date && to.start === toMin(a.time) && to.dur === a.duration) return;
+    const problem = problemOf(to);
+    if (problem) { toast(`${problem}: l'appuntamento resta dov'era`); return; }
+    const from = { date: a.date, time: a.time, duration: a.duration };
+    const slot = { date: to.date, time: toHHMM(to.start), duration: to.dur };
+    setMoved((m) => ({ ...m, [a.id]: slot }));
+    await repo.rescheduleAppointment(a.id, slot);
+    bump();
+    const first = (a.name ?? '').split(' ')[0];
+    const what = to.date === a.date && to.start === toMin(a.time)
+      ? `Appuntamento di ${first}: ${to.dur} min, fino alle ${toHHMM(to.start + to.dur)}`
+      : `Appuntamento di ${first} spostato a ${WEEKDAYS[parseIso(to.date).getDay()].slice(0, 3).toLowerCase()} ${parseIso(to.date).getDate()}, ${slot.time}`;
+    toast(what + (overlaps(to, a.id) ? ' · si sovrappone a un altro appuntamento' : ''), {
+      label: 'Annulla',
+      run: async () => {
+        setMoved((m) => ({ ...m, [a.id]: from }));
+        await repo.rescheduleAppointment(a.id, from, a.reminder_sent_at);
+        bump();
+        setMon(mondayOf(from.date));
+        toast('Modifica annullata');
+      },
+    });
+  };
+
+  const onDown = (a: Appointment) => (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    const r = e.currentTarget.getBoundingClientRect();
+    const mode = (e.target as HTMLElement).dataset.resize ? 'resize' : 'move';
+    dragRef.current = { a, mode, x0: e.clientX, y0: e.clientY, grab: e.clientY - r.top, active: false, to: { date: a.date, start: toMin(a.time), dur: a.duration } };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+  const onMove = (e: React.PointerEvent) => {
+    const d = dragRef.current;
+    if (!d || (!d.active && Math.hypot(e.clientX - d.x0, e.clientY - d.y0) < 4)) return; // sotto i 4 px è un clic
+    d.active = true;
+    d.to = slotAt(d, e.clientX, e.clientY);
+    setGhost({ ...d });
+  };
+  const onUp = () => {
+    const d = dragRef.current;
+    dragRef.current = null;
+    setGhost(null);
+    if (!d?.active) return;
+    justDragged.current = true;
+    setTimeout(() => { justDragged.current = false; });
+    setSel(d.a.id);
+    reschedule(d.a, d.to);
+  };
+  const editForm = (a: Appointment): Form => ({ id: a.id, pid: a.patient_id, date: a.date, time: a.time, type: a.type, remind: a.remind, duration: a.duration, note: a.note });
+
+  // Tastiera: ←/→ settimana; con un appuntamento selezionato ↑/↓ ±15 min, Maiusc+←/→ giorno prima/dopo,
+  // Invio modifica, Canc annulla l'appuntamento, Esc deseleziona (o interrompe il trascinamento).
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
-      if ((e.target as HTMLElement).closest('input, textarea, select') || form) return;
-      if (e.key === 'ArrowLeft' && !e.altKey) setMon((m) => addDays(m, -7));
-      if (e.key === 'ArrowRight' && !e.altKey) setMon((m) => addDays(m, 7));
+      if ((e.target as HTMLElement).closest('input, textarea, select, [role=dialog]') || form) return;
+      if (e.key === 'Escape' && dragRef.current) { dragRef.current = null; setGhost(null); return; }
+      if (selA && !e.altKey && !e.ctrlKey && !e.metaKey) {
+        const st = toMin(selA.time);
+        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+          e.preventDefault();
+          const to = st + (e.key === 'ArrowUp' ? -SNAP : SNAP);
+          if (to >= H0 * 60 && to + selA.duration <= H1 * 60) reschedule(selA, { date: selA.date, start: to, dur: selA.duration });
+          return;
+        }
+        if (e.shiftKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+          e.preventDefault();
+          const date = addDays(selA.date, e.key === 'ArrowLeft' ? -1 : 1);
+          if (!problemOf({ date, start: st, dur: selA.duration }) && mondayOf(date) !== mon) setMon(mondayOf(date));
+          reschedule(selA, { date, start: st, dur: selA.duration });
+          return;
+        }
+        if (e.key === 'Enter') { e.preventDefault(); setForm(editForm(selA)); return; }
+        if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); cancel(selA); return; }
+        if (e.key === 'Escape') { setSel(null); return; }
+      }
+      if (e.key === 'ArrowLeft' && !e.altKey && !e.shiftKey) setMon((m) => addDays(m, -7));
+      if (e.key === 'ArrowRight' && !e.altKey && !e.shiftKey) setMon((m) => addDays(m, 7));
       if (e.key === 'Home') setMon(mondayOf(today()));
     };
     window.addEventListener('keydown', k);
     return () => window.removeEventListener('keydown', k);
-  }, [form]);
+  });
 
   const sat = addDays(mon, days - 1), m0 = parseIso(mon), s0 = parseIso(sat);
   const weekLabel = `${m0.getDate()}${m0.getMonth() !== s0.getMonth() ? ' ' + MONTHS[m0.getMonth()] : ''} – ${s0.getDate()} ${MONTHS[s0.getMonth()]} ${s0.getFullYear()}`;
@@ -112,7 +230,7 @@ export function Agenda({ route }: { route: Extract<Route, { name: 'agenda' }> })
         <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-[3px] bg-avatar border border-sage-500" />Controllo</span>
         <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-[3px] bg-warn-bg border border-warn-line" />Online</span>
         <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-[3px] hatch-sm" />Non disponibile</span>
-        <span className="ml-auto">Clicca su uno slot libero per prenotare</span>
+        <span className="ml-auto">Clic su uno spazio libero per prenotare · trascina per spostare, dal bordo inferiore per la durata · doppio clic per modificare</span>
       </div>
 
       <div className="grid grid-cols-[minmax(0,1fr)_300px] gap-5 items-start">
@@ -132,7 +250,7 @@ export function Agenda({ route }: { route: Extract<Route, { name: 'agenda' }> })
               );
             })}
           </div>
-          <div className="grid relative" style={{ gridTemplateColumns: `56px repeat(${days},minmax(0,1fr))` }}>
+          <div ref={colsRef} className={cx('grid relative', ghost && 'select-none cursor-grabbing')} style={{ gridTemplateColumns: `56px repeat(${days},minmax(0,1fr))` }}>
             <div className="relative" style={{ height: (H1 - H0) * PH }}>
               {Array.from({ length: H1 - H0 }, (_, i) => <div key={i} className="absolute right-2 -translate-y-1/2 font-mono text-[11px] text-subtle" style={{ top: i * PH }}>{String(H0 + i).padStart(2, '0')}:00</div>)}
             </div>
@@ -140,7 +258,7 @@ export function Agenda({ route }: { route: Extract<Route, { name: 'agenda' }> })
               const date = addDays(mon, d), isToday = date === today();
               const nowM = now.getHours() * 60 + now.getMinutes();
               return (
-                <div key={d} onClick={(e) => onSlot(date, d, e)} className="relative border-l border-line2 cursor-copy agenda-col" style={{ height: (H1 - H0) * PH }}>
+                <div key={d} data-date={date} onClick={(e) => onSlot(date, d, e)} className="relative border-l border-line2 cursor-copy agenda-col" style={{ height: (H1 - H0) * PH }}>
                   {isToday && <div className="absolute inset-0 bg-[rgba(127,160,138,.06)] pointer-events-none" />}
                   {blocksFor(hours[d], H0, H1).map((b, i) => (
                     <div key={i} onClick={(e) => e.stopPropagation()} className="absolute left-0 right-0 hatch flex items-center justify-center font-mono text-[10.5px] font-medium text-subtle cursor-not-allowed" style={{ top: yOf(b.start), height: (b.dur / 60) * PH }}>{b.label}</div>
@@ -149,16 +267,38 @@ export function Agenda({ route }: { route: Extract<Route, { name: 'agenda' }> })
                     const ring = sel === a.id ? '0 0 0 2px rgb(var(--surface)),0 0 0 4px rgb(var(--orange))' : 'none';
                     const cls = a.type === 'prima' ? 'bg-primary text-white' : a.type === 'online' ? 'bg-warn-bg border border-warn-line' : 'bg-avatar border border-sage-400';
                     const sub = a.type === 'prima' ? 'text-[#BFD6CE]' : a.type === 'online' ? 'text-warn' : 'text-[rgb(var(--ok))]';
+                    const dragging = ghost?.a.id === a.id;
                     return (
-                      <div key={a.id} onClick={(e) => { e.stopPropagation(); setSel(a.id); }} onDoubleClick={(e) => { e.stopPropagation(); go({ name: 'patient', id: a.patient_id }); }}
-                        className="absolute cursor-pointer" style={{ top: yOf(toMin(a.time)) + 1, height: (a.duration / 60) * PH - 3, left: `calc(${(lane / of) * 100}% + 4px)`, width: `calc(${100 / of}% - 8px)` }} title={`${a.name} · ${a.time}`}>
+                      <div key={a.id} onPointerDown={onDown(a)} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
+                        onClick={(e) => { e.stopPropagation(); if (!justDragged.current) setSel(a.id); }}
+                        onDoubleClick={(e) => { e.stopPropagation(); setForm(editForm(a)); }}
+                        className={cx('absolute group touch-none', ghost ? 'cursor-grabbing' : 'cursor-grab', dragging && 'opacity-40')}
+                        style={{ top: yOf(toMin(a.time)) + 1, height: (a.duration / 60) * PH - 3, left: `calc(${(lane / of) * 100}% + 4px)`, width: `calc(${100 / of}% - 8px)` }}
+                        title={`${a.name} · ${a.time}–${toHHMM(toMin(a.time) + a.duration)}${a.note ? '\n' + a.note : ''}`}>
                         <div className={cx('h-full rounded-lg px-2 py-[5px] overflow-hidden', cls)} style={{ boxShadow: ring }}>
                           <div className="font-semibold text-[12.5px] truncate">{a.name}</div>
                           <div className={cx('font-mono text-[10.5px] truncate', sub)}>{a.time} · {repo.APPT_TYPES[a.type][0]}</div>
                         </div>
+                        {/* Maniglia per cambiare la durata */}
+                        <div data-resize="1" className="absolute left-0 right-0 -bottom-[3px] h-[9px] cursor-ns-resize flex justify-center items-center">
+                          <span data-resize="1" className="w-6 h-[3px] rounded-full bg-current opacity-0 group-hover:opacity-40" />
+                        </div>
                       </div>
                     );
                   })}
+                  {ghost?.active && ghost.to.date === date && (() => {
+                    const problem = problemOf(ghost.to);
+                    const clash = !problem && overlaps(ghost.to, ghost.a.id);
+                    return (
+                      <div className={cx('absolute left-1 right-1 rounded-lg border-2 border-dashed pointer-events-none z-10 px-2 py-1 font-mono text-[11px] font-semibold overflow-hidden whitespace-nowrap',
+                        problem ? 'border-err bg-err-bg text-err' : clash ? 'border-warn bg-warn-bg text-warn' : 'border-primary bg-tint2 text-strong')}
+                        style={{ top: yOf(ghost.to.start) + 1, height: (ghost.to.dur / 60) * PH - 3 }}>
+                        {toHHMM(ghost.to.start)}–{toHHMM(ghost.to.start + ghost.to.dur)}
+                        {/* Su un blocco corto la spiegazione sta sulla stessa riga */}
+                        <span className={cx('font-sans font-medium text-[11px]', ghost.to.dur >= 45 ? 'block' : 'ml-1.5')}>{problem ?? (clash ? 'Sovrapposto' : ghost.mode === 'resize' ? `${ghost.to.dur} min` : '')}</span>
+                      </div>
+                    );
+                  })()}
                   {isToday && nowM >= H0 * 60 && nowM <= H1 * 60 && (
                     <div className="absolute -left-px right-0 h-0.5 bg-orange pointer-events-none" style={{ top: yOf(nowM) }}><span className="absolute -left-1 -top-[3px] w-2 h-2 rounded-full bg-orange" /></div>
                   )}
@@ -177,6 +317,7 @@ export function Agenda({ route }: { route: Extract<Route, { name: 'agenda' }> })
                 <span className="text-label">Quando</span><span>{WEEKDAYS[parseIso(selA.date).getDay()]} {parseIso(selA.date).getDate()} {MONTHS[parseIso(selA.date).getMonth()]} · {selA.time}–{toHHMM(toMin(selA.time) + selA.duration)}</span>
                 <span className="text-label">Durata</span><span>{selA.duration} min</span>
                 <span className="text-label">Dove</span><span>{where(selA)}</span>
+                {selA.note && <><span className="text-label">Note</span><span className="whitespace-pre-line">{selA.note}</span></>}
               </div>
               {selA.remind && selA.date >= today() && (
                 <button onClick={() => openExternal(waLink(selA.phone ?? '', reminderText(selA, settings?.tpl[0] ?? '', studio)))} className="text-left text-[12.5px] text-ok bg-tint rounded-[9px] px-2.5 py-[7px] border-0 hover:brightness-[.97]">
@@ -188,8 +329,9 @@ export function Agenda({ route }: { route: Extract<Route, { name: 'agenda' }> })
                 <button className="btn-secondary py-[9px]" onClick={() => openExternal(telLink(selA.phone ?? ''))}>Chiama</button>
               </div>
               <button className="btn-primary" onClick={() => go({ name: 'patient', id: selA.patient_id })}>Apri scheda paziente →</button>
+              <div className="text-[11.5px] text-label leading-snug">Trascina per spostarlo · ↑/↓ 15 min · Maiusc+←/→ un giorno</div>
               <div className="flex justify-between">
-                <button className="link-btn" onClick={() => setForm({ id: selA.id, pid: selA.patient_id, date: selA.date, time: selA.time, type: selA.type, remind: selA.remind })}>Sposta / modifica</button>
+                <button className="link-btn" onClick={() => setForm(editForm(selA))} title="Invio">Modifica</button>
                 <button className="border-0 bg-transparent text-err text-[13px] font-medium p-0.5 hover:underline" onClick={() => cancel(selA)}>Annulla appuntamento</button>
               </div>
             </div>
@@ -212,7 +354,7 @@ export function Agenda({ route }: { route: Extract<Route, { name: 'agenda' }> })
   );
 }
 
-function BookModal({ init, hours, onClose, onSaved }: { init: { id?: number; pid: number; date: string; time: string; type: ApptType; remind: boolean }; hours: Hours[]; onClose: () => void; onSaved: (id: number, date: string) => void }) {
+function BookModal({ init, hours, onClose, onSaved }: { init: Form; hours: Hours[]; onClose: () => void; onSaved: (id: number, date: string) => void }) {
   const { bump, toast, settings } = useApp();
   const [f, setF] = useState(init);
   const [patients, setPatients] = useState<{ id: number; name: string }[]>([]);
@@ -226,7 +368,8 @@ function BookModal({ init, hours, onClose, onSaved }: { init: { id?: number; pid
   }, []);
   useEffect(() => { repo.listAppointments(f.date, f.date).then(setSame); }, [f.date]);
   const durOf = (t: ApptType) => settings?.dur[t] ?? repo.APPT_TYPES[t][1];
-  const dur = durOf(f.type), buf = settings?.dur.buffer ?? 0;
+  const dur = f.duration ?? durOf(f.type), buf = settings?.dur.buffer ?? 0;
+  const durations = [...new Set([15, 20, 30, 45, 60, 75, 90, 120, dur])].sort((a, b) => a - b);
   const st = toMin(f.time || '09:00'), en = st + dur;
   // Sovrapposizione considerando anche il buffer tra visite impostato.
   const conflict = same.some((a) => a.id !== f.id && toMin(a.time) < en + buf && toMin(a.time) + a.duration + buf > st);
@@ -239,7 +382,7 @@ function BookModal({ init, hours, onClose, onSaved }: { init: { id?: number; pid
 
   const save = async () => {
     if (!f.pid || !f.date || !/^\d{2}:\d{2}$/.test(f.time)) return;
-    const a = { patient_id: f.pid, date: f.date, time: f.time, type: f.type, duration: dur, remind: f.remind, note: null };
+    const a = { patient_id: f.pid, date: f.date, time: f.time, type: f.type, duration: dur, remind: f.remind, note: f.note?.trim() || null };
     let id = f.id;
     if (id) await repo.updateAppointment(id, a);
     else id = await repo.addAppointment(a);
@@ -253,19 +396,21 @@ function BookModal({ init, hours, onClose, onSaved }: { init: { id?: number; pid
       <div className="-mt-1 flex flex-col gap-3.5" onKeyDown={(e) => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') save(); }}>
         <ModalHeader title={f.id ? 'Modifica appuntamento' : 'Nuovo appuntamento'} onClose={onClose} />
         <Field label="Paziente"><select className="field" value={f.pid} onChange={(e) => setF({ ...f, pid: +e.target.value })}>{patients.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
-        <div className="grid grid-cols-2 gap-2.5">
+        <div className="grid grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)] gap-2.5">
           <Field label="Giorno"><input type="date" className="field py-[9px]" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} /></Field>
           <Field label="Ora"><TimeInput className="field py-[9px]" value={f.time} onChange={(v) => setF({ ...f, time: v })} /></Field>
+          <Field label="Durata"><select className="field py-[9px] w-full min-w-0" value={dur} onChange={(e) => setF({ ...f, duration: +e.target.value })}>{durations.map((d) => <option key={d} value={d}>{d} min</option>)}</select></Field>
         </div>
         <div className="flex flex-col gap-1.5"><span className="label">Tipo</span>
           <div className="grid grid-cols-3 gap-1.5">
             {(Object.entries(repo.APPT_TYPES) as [ApptType, [string, number]][]).map(([k, [l]]) => [k, l, durOf(k)] as const).map(([k, l, d]) => (
-              <button key={k} onClick={() => setF({ ...f, type: k })} className={cx('px-1.5 py-[9px] rounded-ctl text-[13px]', k === f.type ? 'border-[1.5px] border-primary bg-tint2 font-semibold text-strong' : 'border border-ctl bg-surface font-medium hover:border-sage-500')}>
+              <button key={k} onClick={() => setF({ ...f, type: k, duration: d })} className={cx('px-1.5 py-[9px] rounded-ctl text-[13px]', k === f.type ? 'border-[1.5px] border-primary bg-tint2 font-semibold text-strong' : 'border border-ctl bg-surface font-medium hover:border-sage-500')}>
                 {l}<span className={cx('block font-mono text-[11px] font-normal', k === f.type ? 'text-muted' : 'text-subtle')}>{d} min</span>
               </button>
             ))}
           </div>
         </div>
+        <Field label="Note"><textarea rows={2} className="field py-2 resize-y text-[13.5px]" value={f.note ?? ''} placeholder="Facoltative: es. portare gli esami del sangue" onChange={(e) => setF({ ...f, note: e.target.value })} /></Field>
         <button role="checkbox" aria-checked={f.remind} onClick={() => setF({ ...f, remind: !f.remind })} className="flex items-center gap-2.5 text-[13.5px] border-0 bg-transparent p-0 text-left"><Checkbox on={f.remind} />Promemoria WhatsApp 24 h prima</button>
         {conflict && <div className="text-[12.5px] text-warn bg-warn-bg rounded-[9px] px-2.5 py-[7px]">Si sovrappone a un altro appuntamento.</div>}
         {!conflict && outside && <div className="text-[12.5px] text-warn bg-warn-bg rounded-[9px] px-2.5 py-[7px]">{outside}</div>}

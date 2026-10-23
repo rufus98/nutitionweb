@@ -62,8 +62,8 @@ describe('migrazioni', () => {
     await db.execute("INSERT INTO settings VALUES ('main', '{\"prof\":{\"name\":\"Dott.ssa Test\"}}'), ('onboarded', '1'), ('rem-1', '1')");
 
     const backups: string[] = [];
-    expect(await migrate(db, { beforeMigrate: async (f, t) => { backups.push(`${f}->${t}`); } })).toEqual([3, 4]);
-    expect(backups).toEqual(['2->4']);
+    expect(await migrate(db, { beforeMigrate: async (f, t) => { backups.push(`${f}->${t}`); } })).toEqual([3, 4, 5]);
+    expect(backups).toEqual(['2->5']);
 
     setDriver(db); resetConnection();
     const [g, m] = await repo.listPatients().then((l) => [l.find((p) => p.code === 'PZ-0401')!, l.find((p) => p.code === 'PZ-0402')!]);
@@ -209,6 +209,22 @@ describe('repository', () => {
     expect((await repo.patientAppointments(p.id))[0].reminder_sent_at).toBeTruthy();
     await repo.updateAppointment(id, { ...a, time: '10:00' });
     expect((await repo.patientAppointments(p.id))[0].reminder_sent_at).toBeNull();
+  });
+
+  it('agenda: trascinare sposta o ridimensiona, e lo spostamento si può annullare', async () => {
+    const p = await repo.createPatient(newPatient());
+    const id = await repo.addAppointment({ patient_id: p.id, date: '2026-12-01', time: '09:00', type: 'controllo', duration: 30, remind: true, note: 'porta esami' });
+    await repo.markReminderSent(id);
+    const sent = (await repo.patientAppointments(p.id))[0].reminder_sent_at;
+    const get = async () => (await repo.patientAppointments(p.id))[0];
+
+    await repo.rescheduleAppointment(id, { date: '2026-12-01', time: '09:00', duration: 45 });   // solo durata
+    expect(await get()).toMatchObject({ duration: 45, reminder_sent_at: sent, note: 'porta esami', type: 'controllo' });
+    await repo.rescheduleAppointment(id, { date: '2026-12-02', time: '11:15', duration: 45 });   // altro giorno
+    expect(await get()).toMatchObject({ date: '2026-12-02', time: '11:15', reminder_sent_at: null });
+    await repo.rescheduleAppointment(id, { date: '2026-12-01', time: '09:00', duration: 30 }, sent); // annulla
+    expect(await get()).toMatchObject({ date: '2026-12-01', time: '09:00', duration: 30, reminder_sent_at: sent });
+    await expect(repo.rescheduleAppointment(id, { date: '2026-12-01', time: '25:00', duration: 30 })).rejects.toThrow();
   });
 
   it('impostazioni: i valori salvati si uniscono ai predefiniti', async () => {

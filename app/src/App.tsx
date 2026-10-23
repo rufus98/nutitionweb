@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AppProvider, useApp, type Route } from './app/store';
 import { Sidebar, NAV } from './components/Sidebar';
 import { Palette, ShortcutsHelp } from './components/Palette';
@@ -36,9 +36,15 @@ function Shell() {
 
   useEffect(() => { if (settings && locked === null) setLocked(!!(settings.priv.pin && settings.pin)); }, [settings, locked]);
 
+  const toastRef = useRef(toastMsg);
+  toastRef.current = toastMsg;
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const mod = e.ctrlKey || e.metaKey;
+      // Ctrl+Z annulla l'ultima azione offerta dal messaggio (es. lo spostamento di un appuntamento), fuori dai campi di testo.
+      if (mod && !e.shiftKey && e.key.toLowerCase() === 'z' && toastRef.current?.action && !(e.target as HTMLElement).closest('input, textarea, [contenteditable]')) {
+        e.preventDefault(); toastRef.current.action.run(); return;
+      }
       if (mod && e.key.toLowerCase() === 'k') { e.preventDefault(); setPalette(true); return; }
       if (mod && e.key.toLowerCase() === 'n' && !e.shiftKey) { e.preventDefault(); go({ name: 'new' }); return; }
       if (mod && !e.shiftKey && !e.altKey) {
@@ -84,7 +90,10 @@ function Shell() {
         </Modal>
       )}
       {toastMsg && (
-        <div role="status" className="fixed bottom-6 left-1/2 bg-side text-white px-[18px] py-[11px] rounded-xl text-[13.5px] font-medium z-40 shadow-[0_10px_30px_rgba(15,30,32,.25)] animate-[toastIn_.18s_ease] -translate-x-1/2">{toastMsg}</div>
+        <div role="status" className="fixed bottom-6 left-1/2 bg-side text-white px-[18px] py-[11px] rounded-xl text-[13.5px] font-medium z-40 shadow-[0_10px_30px_rgba(15,30,32,.25)] animate-[toastIn_.18s_ease] -translate-x-1/2 flex items-center gap-4">
+          {toastMsg.msg}
+          {toastMsg.action && <button onClick={toastMsg.action.run} title="Ctrl+Z" className="border-0 bg-transparent p-0 text-sage-400 font-semibold text-[13.5px] hover:underline">{toastMsg.action.label}</button>}
+        </div>
       )}
     </div>
   );
