@@ -44,6 +44,21 @@ async function call<T>(cfg: RemoteConfig, method: string, path: string, body?: u
   return data as T;
 }
 
+/**
+ * Primo collegamento: se il server non ha ancora uno studio, lo "prende" e restituisce la chiave dello studio
+ * (nessuna chiave da generare a mano). Se è già di qualcuno, serve la sua chiave.
+ */
+export async function claimServer(url: string): Promise<string> {
+  const base = url.trim().replace(/\/+$/, '');
+  if (!base) throw new RemoteError("Inserisci l'indirizzo del server");
+  let res: Response;
+  try { res = await fetch(base + '/api/setup/claim', { method: 'POST' }); }
+  catch { throw new RemoteError(`Server non raggiungibile (${new URL(base).host}): controlla la connessione e l'indirizzo`); }
+  const data = await res.json().catch(() => null);
+  if (!res.ok) throw new RemoteError(data?.error ?? `Errore del server (${res.status})`, res.status);
+  return data.key as string;
+}
+
 /** Stato dell'accesso restituito dal server. */
 interface Summary { status: RemoteAccess['status']; hasPassword: boolean; activationPending: boolean; activationExpiresAt: string | null; lastLoginAt: string | null; consentAt: string | null; hasPdf: boolean }
 

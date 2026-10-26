@@ -5,7 +5,7 @@ import type { Plan, Patient, Settings } from '../db/types';
 import { cx, Field, Page, TimeInput, Toggle } from '../components/ui';
 import { PhonePreview } from './patient/PhonePreview';
 import { DatabaseCard } from './DatabaseCard';
-import { ping, remoteConfig } from '../lib/remote';
+import { claimServer, ping, remoteConfig } from '../lib/remote';
 import { isAdmin } from '../lib/platform';
 import { AdminDatabaseCard } from './AdminDatabase';
 import { b64ToBytes } from '../lib/pdf';
@@ -306,6 +306,13 @@ function RemoteServerCard({ value, onChange, webDomain }: { value: Settings['rem
     catch (e: any) { setState({ ok: false, text: e?.message ?? String(e) }); }
     finally { setBusy(false); }
   };
+  // Primo collegamento: il server crea la chiave dello studio e l'app la tiene da sola.
+  const claim = async () => {
+    setBusy(true); setState(null);
+    try { const key = await claimServer(value.url); onChange({ ...value, key }); setState({ ok: true, text: 'Server collegato: la chiave dello studio è stata salvata nell\'app' }); }
+    catch (e: any) { setState({ ok: false, text: e?.status === 409 ? 'Questo server è già collegato a uno studio: incolla la sua chiave dello studio' : e?.message ?? String(e) }); }
+    finally { setBusy(false); }
+  };
   const configured = !!(value.url.trim() && value.key.trim());
   return (
     <Card className="gap-3">
@@ -315,13 +322,15 @@ function RemoteServerCard({ value, onChange, webDomain }: { value: Settings['rem
         <Field label="Chiave dello studio"><input type="password" autoComplete="off" className="field font-mono text-[13px]" placeholder="nutrea_…" value={value.key} onChange={(e) => { setState(null); onChange({ ...value, key: e.target.value.trim() }); }} /></Field>
       </div>
       <div className="flex items-center gap-3 flex-wrap">
-        <button className="btn-secondary" disabled={busy} onClick={test}>{busy ? 'Verifica…' : 'Prova connessione'}</button>
+        {value.url.trim() && !value.key.trim()
+          ? <button className="btn-primary" disabled={busy} onClick={claim}>{busy ? 'Collegamento…' : 'Collega questo server'}</button>
+          : <button className="btn-secondary" disabled={busy} onClick={test}>{busy ? 'Verifica…' : 'Prova connessione'}</button>}
         {state && <span className={cx('text-[13px] font-medium', state.ok ? 'text-ok' : 'text-err')}>{state.ok ? '● ' : ''}{state.text}</span>}
       </div>
       <div className="text-[12.5px] text-label leading-snug">
         {configured
           ? <>Con il server collegato, dalla scheda del paziente si crea il link di accesso: il paziente sceglie la sua password e apre l'app su <span className="font-mono">{webDomain}</span>. I dati (piano condiviso, visite, appuntamenti) si aggiornano da soli.</>
-          : <>Senza server il piano si condivide in PDF. La chiave si genera sul server con <span className="font-mono">npm run studio-key</span>.</>}
+          : <>Senza server il piano si condivide in PDF. Inserisci l'indirizzo del server e premi "Collega questo server": la chiave la crea il server e l'app la salva da sola. Se il server è già collegato, incolla la sua chiave dello studio.</>}
       </div>
     </Card>
   );

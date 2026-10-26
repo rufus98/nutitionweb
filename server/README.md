@@ -45,15 +45,13 @@ Requisiti: Node.js 20 o superiore e un database.
 cd server
 npm install
 cp .env.example .env
-npm run studio-key
 ```
 
-Il comando `npm run studio-key` stampa due cose:
+**Non c'è nessuna chiave da generare.** Avvia il server e, in Nutrea Studio (avviato come amministratore), in *Impostazioni → Amministrazione* inserisci l'**indirizzo del server** e premi **Collega questo server**: il server crea la chiave dello studio e l'app la salva da sola. Il server è "libero" finché il primo studio non lo collega: dopo il collegamento l'operazione è chiusa, e un secondo tentativo riceve "già collegato". Collega il server **subito dopo averlo pubblicato**.
 
-- la **chiave dello studio**, da incollare nell'app desktop (*Impostazioni → App paziente & link → Server dell'app paziente*);
-- la riga `STUDIO_KEY_SHA256=…`, da mettere nel file `.env`. Sul server c'è solo l'hash della chiave.
+Se preferisci non lasciarlo libero nemmeno per qualche minuto, genera la chiave tu: `npm run studio-key` stampa la chiave (da incollare nell'app) e la riga `STUDIO_KEY_SHA256=…` per il `.env`.
 
-Compila `.env` con `WEB_ORIGIN` (indirizzo della web app, es. `https://app.diet.it`). Per il database hai due possibilità:
+Nel `.env` compila `WEB_ORIGIN` (indirizzo della web app, es. `https://app.diet.it`). Per il database hai due possibilità:
 - **dall'app desktop** (consigliato): lascia vuoto `DATABASE_URL` e configura il database come spiegato in [Configurare il database dall'app desktop](#configurare-il-database-dallapp-desktop);
 - **nel file**: compila `DB_CLIENT` e `DATABASE_URL`.
 

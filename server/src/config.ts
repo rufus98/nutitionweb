@@ -14,7 +14,8 @@ export interface Config {
   /** Cartella dei dati del server (configurazione cifrata, eventuale file SQLite). */
   dataDir: string;
   /** SHA-256 (esadecimale) della chiave dello studio: la chiave vera sta solo nell'app desktop. */
-  studioKeyHash: string;
+  /** null finché nessuno studio ha "preso" il server (POST /api/setup/claim, vedi setup.ts). */
+  studioKeyHash: string | null;
   /** Indirizzo pubblico della web app dei pazienti, per i link di attivazione (es. https://app.diet.it). */
   webOrigin: string;
   /** Origini ammesse per CORS ("*" va bene: l'accesso è con token Bearer, senza cookie). */
@@ -41,8 +42,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const dataDir = env.DATA_DIR?.trim() || './data';
   const hex64 = (k: string) => { const v = env[k]?.trim().toLowerCase(); if (!v) return null; if (!/^[0-9a-f]{64}$/.test(v)) throw new Error(`${k} deve essere di 64 caratteri esadecimali `); return v; };
   const configKey = hex64('CONFIG_KEY');
-  const studioKeyHash = need('STUDIO_KEY_SHA256').toLowerCase();
-  if (!/^[0-9a-f]{64}$/.test(studioKeyHash)) throw new Error('STUDIO_KEY_SHA256 deve essere lo SHA-256 esadecimale della chiave (npm run studio-key)');
+  const studioKeyHash = env.STUDIO_KEY_SHA256?.trim().toLowerCase() || null;
+  if (studioKeyHash && !/^[0-9a-f]{64}$/.test(studioKeyHash)) throw new Error('STUDIO_KEY_SHA256 deve essere lo SHA-256 esadecimale della chiave (npm run studio-key)');
   const origins = env.CORS_ORIGINS?.trim() || '*';
   return {
     port: Number(env.PORT || 8080),

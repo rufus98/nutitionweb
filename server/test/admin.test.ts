@@ -9,6 +9,7 @@ import { sha256 } from '../src/crypto.js';
 import { loadSettings, resolveConfigKey, saveSettings, settingsFromUrl, toConnection } from '../src/dbSettings.js';
 import { connect } from '../src/db.js';
 import { loadConfig } from '../src/config.js';
+import { loadClaimedKey } from '../src/setup.js';
 import type { Config } from '../src/config.js';
 
 const STUDIO = 'nutrea_studio_test';
@@ -141,4 +142,23 @@ describe('amministrazione del database', () => {
     expect(Math.abs(new Date(row.created_at).getTime() - Date.now())).toBeLessThan(60_000);
     await manager.get()('patient_access').where({ token: 'abcdef12' }).delete();
   }, 30000);
+
+  it('server libero: lo studio lo collega una volta sola e riceve la chiave, senza generare nulla a mano', async () => {
+    await app.close();
+    const libero = config({ studioKeyHash: null });
+    app = await buildApp({ database: manager, config: libero });
+    expect((await app.inject({ method: 'GET', url: '/api/setup' })).json()).toEqual({ claimed: false });
+    expect((await call('GET', '/api/studio/ping', undefined, as('qualsiasi'))).statusCode).toBe(401); // libero ≠ aperto
+    const r = await app.inject({ method: 'POST', url: '/api/setup/claim' });
+    const { key } = r.json();
+    expect(key).toMatch(/^nutrea_/);
+    expect((await call('GET', '/api/studio/ping', undefined, as(key))).statusCode).toBe(200);
+    const again = await app.inject({ method: 'POST', url: '/api/setup/claim' });
+    expect(again.statusCode).toBe(409);
+    expect(again.json().error).toMatch(/già collegato/);
+    expect((await app.inject({ method: 'GET', url: '/api/setup' })).json()).toEqual({ claimed: true });
+    // Al riavvio resta solo l'hash, non la chiave.
+    expect(readFileSync(join(dir, 'studio.json'), 'utf8')).not.toContain(key);
+    expect(loadClaimedKey(dir)).toBe(sha256(key));
+  });
 });

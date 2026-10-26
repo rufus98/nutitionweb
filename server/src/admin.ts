@@ -40,7 +40,7 @@ export function registerAdmin(app: FastifyInstance, { config, manager }: { confi
   // Stessa chiave dello studio che l'app usa per i pazienti: non c'è un'altra chiave da generare.
   const admin = async (req: FastifyRequest, reply: FastifyReply) => {
     const key = /^Bearer\s+(\S+)$/i.exec(req.headers.authorization ?? '')?.[1];
-    if (!key || !sameHash(sha256(key), config.studioKeyHash)) {
+    if (!key || !(config.studioKeyHash !== null && sameHash(sha256(key), config.studioKeyHash))) {
       if (!failures.hit(req.ip)) return reply.code(429).send({ error: 'Troppi tentativi con una chiave sbagliata: riprova più tardi' });
       return reply.code(401).send({ error: 'Chiave dello studio non valida' });
     }

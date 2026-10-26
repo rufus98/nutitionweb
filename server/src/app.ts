@@ -16,6 +16,7 @@ import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
 import cors from '@fastify/cors';
 import type { Knex } from 'knex';
 import type { Config } from './config.js';
+import { registerSetup } from './setup.js';
 import { DatabaseManager, DbUnavailable, isConnectionError, toDate } from './db.js';
 import { registerAdmin } from './admin.js';
 import { hashPassword, passwordProblem, randomCode, sameHash, sha256, verifyPassword } from './crypto.js';
@@ -79,7 +80,7 @@ export async function buildApp({ db: fixed, database, config, now = () => new Da
 
   const studio = async (req: FastifyRequest, reply: FastifyReply) => {
     const key = bearer(req);
-    if (!key || !sameHash(sha256(key), config.studioKeyHash)) return fail(reply, 401, 'Chiave dello studio non valida');
+    if (!key || !(config.studioKeyHash !== null && sameHash(sha256(key), config.studioKeyHash))) return fail(reply, 401, 'Chiave dello studio non valida');
   };
   const tokenOf = (req: FastifyRequest, reply: FastifyReply) => {
     const t = (req.params as { token: string }).token;
@@ -269,6 +270,7 @@ export async function buildApp({ db: fixed, database, config, now = () => new Da
   });
 
   app.get('/api/health', async () => { await db.raw('select 1'); return { ok: true }; });
+  registerSetup(app, config);
   registerAdmin(app, { config, manager });
   return app;
 }
