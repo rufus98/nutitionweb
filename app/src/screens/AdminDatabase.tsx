@@ -1,6 +1,6 @@
 // Impostazioni → Amministrazione (solo con Nutrea Studio avviato come amministratore):
 // database esterno usato dal server dell'app paziente, e quindi da app desktop e web app.
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useApp } from '../app/store';
 import * as repo from '../db/repo';
 import { Field, Toggle, cx } from '../components/ui';
@@ -10,10 +10,10 @@ const CLIENTS: [DbClient, string, number | null][] = [['mysql2', 'MySQL / MariaD
 const label = (c: DbClient | null) => CLIENTS.find((x) => x[0] === c)?.[1] ?? '—';
 const empty: DbSettings = { client: 'mysql2', host: '', port: '', database: 'defaultdb', user: '', password: '', ssl: true, filename: 'nutrea.sqlite' };
 
-export function AdminDatabaseCard({ serverUrl }: { serverUrl: string }) {
+export function AdminDatabaseCard({ serverUrl, studioKey }: { serverUrl: string; studioKey: string }) {
   const { toast, confirm, bump } = useApp();
-  // La chiave dell'amministratore resta solo in memoria finché la schermata è aperta.
-  const [adminKey, setAdminKey] = useState('');
+  // Stessa chiave dello studio del collegamento al server: niente altre chiavi da generare.
+  const adminKey = studioKey.trim();
   const [status, setStatus] = useState<DbAdminStatus | null>(null);
   const [f, setF] = useState<DbSettings>(empty);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -27,6 +27,14 @@ export function AdminDatabaseCard({ serverUrl }: { serverUrl: string }) {
     setBusy(what); setMsg(null);
     try { await fn(); } catch (e: any) { setMsg({ ok: false, text: e?.message ?? String(e) }); } finally { setBusy(''); }
   };
+  // Appena indirizzo e chiave sono compilati si legge lo stato del database.
+  useEffect(() => {
+    setStatus(null); setMsg(null);
+    if (!serverUrl.trim() || !adminKey) return;
+    const t = setTimeout(connect, 600);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serverUrl, adminKey]);
   const connect = () => run('connect', async () => {
     const s = await adminDbStatus(serverUrl, adminKey);
     setStatus(s);
@@ -70,20 +78,15 @@ export function AdminDatabaseCard({ serverUrl }: { serverUrl: string }) {
         <div className="text-[13px] text-label">Il database in cui il server salva i dati dei pazienti con il link: lo usano sia questa app sia la web app dei pazienti.</div>
       </div>
 
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 items-end">
-        <Field label="Chiave dell'amministratore (non viene salvata)">
-          <input type="password" autoComplete="off" className="field font-mono text-[13px]" placeholder="nutrea_admin_…" value={adminKey} onChange={(e) => { setAdminKey(e.target.value.trim()); setStatus(null); }} onKeyDown={(e) => e.key === 'Enter' && connect()} />
-        </Field>
-        <button className="btn-secondary" disabled={!!busy || !adminKey || !serverUrl} onClick={connect}>{busy === 'connect' ? 'Collegamento…' : 'Collegati al server'}</button>
-      </div>
-      {!serverUrl && <div className="text-[12.5px] text-warn">Inserisci prima l'indirizzo del server qui sopra.</div>}
+      {(!serverUrl || !adminKey) && <div className="text-[12.5px] text-warn">Inserisci prima indirizzo del server e chiave dello studio qui sopra.</div>}
+      {serverUrl && adminKey && !status && !msg && <div className="text-[13px] text-label">Collegamento al server…</div>}
+      {status === null && msg && !msg.ok && <button className="btn-secondary self-start" disabled={!!busy} onClick={connect}>Riprova</button>}
 
       {status && <>
         <div className={cx('rounded-[12px] px-4 py-3 text-[13px] flex flex-col gap-0.5', status.configured ? 'bg-ok-bg text-ok' : 'bg-warn-bg text-warn')}>
           <span className="font-semibold">{status.configured ? `● Collegato a ${label(status.client)}` : status.error ? '● Database non raggiungibile' : '● Nessun database configurato'}</span>
           {status.configured && <span className="text-ink2">{status.version}{status.source === 'env' ? ' · impostato nel file .env del server' : ''}</span>}
           {status.error && <span>{status.error}</span>}
-          {!status.canSave && <span className="text-warn">Il server non ha CONFIG_KEY: non può salvare una nuova configurazione (vedi server/README.md).</span>}
         </div>
 
         {!sqlite && (
@@ -137,7 +140,7 @@ export function AdminDatabaseCard({ serverUrl }: { serverUrl: string }) {
           <button className="btn-secondary" disabled={!!busy} onClick={test}>{busy === 'test' ? 'Prova in corso…' : 'Prova connessione'}</button>
           <button className="btn-primary" disabled={!!busy || !status.canSave} onClick={save}>{busy === 'save' ? 'Collegamento…' : 'Salva e usa questo database'}</button>
         </div>
-        <div className="text-[12px] text-label leading-snug">I dati di accesso al database vengono inviati al server e salvati lì cifrati (AES-256-GCM): questa app non li conserva. La password non viene mai mostrata.</div>
+        <div className="text-[12px] text-label leading-snug">I dati di accesso al database vengono inviati al server e salvati lì cifrati (AES-256-GCM): questa app non li conserva. La password non viene mai mostrata. Solo chi ha la chiave dello studio e avvia l'app come amministratore può cambiarli.</div>
       </>}
       {!status && msg && <div className="text-[13px] font-medium text-err">{msg.text}</div>}
     </div>

@@ -95,6 +95,21 @@ export const publicSettings = (s: DbSettings) => {
 
 const FILE = 'database.json.enc';
 
+/**
+ * Chiave per cifrare la configurazione del database: CONFIG_KEY se impostata, altrimenti una chiave casuale creata
+ * al primo salvataggio in DATA_DIR/config.key (leggibile solo dall'utente del server). Così non c'è nulla da generare.
+ */
+export function resolveConfigKey(dataDir: string, key: Buffer | null, create = true): Buffer | null {
+  if (key) return key;
+  const path = join(dataDir, 'config.key');
+  if (existsSync(path)) return Buffer.from(readFileSync(path, 'utf8').trim(), 'hex');
+  if (!create) return null;
+  mkdirSync(dataDir, { recursive: true, mode: 0o700 });
+  const k = randomBytes(32);
+  writeFileSync(path, k.toString('hex'), { mode: 0o600 });
+  return k;
+}
+
 export function saveSettings(dataDir: string, key: Buffer, s: DbSettings) {
   mkdirSync(dataDir, { recursive: true, mode: 0o700 });
   const iv = randomBytes(12);

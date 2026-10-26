@@ -146,7 +146,7 @@ export async function syncAll(cfg: RemoteConfig): Promise<{ sent: number; failed
 }
 
 // ——— Amministrazione: database esterno del server ———
-// La chiave dell'amministratore viene chiesta ogni volta e non si salva.
+// Si usa la stessa chiave dello studio delle altre chiamate: non c'è un'altra chiave da generare.
 
 export type DbClient = 'pg' | 'mysql2' | 'mssql' | 'better-sqlite3';
 export interface DbSettings { client: DbClient; host?: string; port?: number | ''; database?: string; user?: string; password?: string; ssl?: boolean; ca?: string; filename?: string }
@@ -176,12 +176,11 @@ export function parseDbUri(uri: string): Omit<DbSettings, 'ca' | 'filename'> {
 const adminCfg = (url: string, adminKey: string): RemoteConfig => {
   const u = url.trim().replace(/\/+$/, '');
   if (!u) throw new RemoteError("Inserisci l'indirizzo del server");
-  if (!adminKey.trim()) throw new RemoteError("Inserisci la chiave dell'amministratore");
+  if (!adminKey.trim()) throw new RemoteError('Inserisci la chiave dello studio');
   return { url: u, key: adminKey.trim() };
 };
 const adminCall = async <T>(url: string, adminKey: string, method: string, path: string, body?: unknown) => {
-  try { return await call<T>(adminCfg(url, adminKey), method, path, body); }
-  catch (e) { if (e instanceof RemoteError && e.status === 401) throw new RemoteError("Chiave dell'amministratore non valida", 401); throw e; }
+  return call<T>(adminCfg(url, adminKey), method, path, body);
 };
 
 export const adminDbStatus = (url: string, adminKey: string) => adminCall<DbAdminStatus>(url, adminKey, 'GET', '/api/admin/database');

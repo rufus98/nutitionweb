@@ -9,9 +9,7 @@ export interface Config {
   host: string;
   /** Database da variabili d'ambiente; null = da configurare dall'amministratore (modalità configurazione). */
   db: { client: DbClient; connection: string | Record<string, unknown> } | null;
-  /** SHA-256 della chiave dell'amministratore: abilita /api/admin (configurazione del database). */
-  adminKeyHash: string | null;
-  /** Chiave AES-256 (64 caratteri esadecimali) per cifrare la configurazione del database salvata dall'amministratore. */
+  /** Chiave AES-256 (64 caratteri esadecimali) per cifrare la configurazione del database; se manca, il server ne crea una in DATA_DIR. */
   configKey: Buffer | null;
   /** Cartella dei dati del server (configurazione cifrata, eventuale file SQLite). */
   dataDir: string;
@@ -41,7 +39,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const client = (env.DB_CLIENT?.trim() || (url?.startsWith('mysql') ? 'mysql2' : 'pg')) as DbClient;
   if (!CLIENTS.includes(client)) throw new Error(`DB_CLIENT non valido: ${client}. Valori ammessi: ${CLIENTS.join(', ')}`);
   const dataDir = env.DATA_DIR?.trim() || './data';
-  const hex64 = (k: string) => { const v = env[k]?.trim().toLowerCase(); if (!v) return null; if (!/^[0-9a-f]{64}$/.test(v)) throw new Error(`${k} deve essere di 64 caratteri esadecimali (npm run admin-key)`); return v; };
+  const hex64 = (k: string) => { const v = env[k]?.trim().toLowerCase(); if (!v) return null; if (!/^[0-9a-f]{64}$/.test(v)) throw new Error(`${k} deve essere di 64 caratteri esadecimali `); return v; };
   const configKey = hex64('CONFIG_KEY');
   const studioKeyHash = need('STUDIO_KEY_SHA256').toLowerCase();
   if (!/^[0-9a-f]{64}$/.test(studioKeyHash)) throw new Error('STUDIO_KEY_SHA256 deve essere lo SHA-256 esadecimale della chiave (npm run studio-key)');
@@ -50,7 +48,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     port: Number(env.PORT || 8080),
     host: env.HOST || '0.0.0.0',
     db: url ? dbFromUrl(client, url, env, dataDir) : null,
-    adminKeyHash: hex64('ADMIN_KEY_SHA256'),
     configKey: configKey ? Buffer.from(configKey, 'hex') : null,
     dataDir,
     studioKeyHash,

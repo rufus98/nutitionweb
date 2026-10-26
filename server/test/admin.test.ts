@@ -6,20 +6,20 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { buildApp } from '../src/app.js';
 import { DatabaseManager } from '../src/db.js';
 import { sha256 } from '../src/crypto.js';
-import { loadSettings, saveSettings, settingsFromUrl, toConnection } from '../src/dbSettings.js';
+import { loadSettings, resolveConfigKey, saveSettings, settingsFromUrl, toConnection } from '../src/dbSettings.js';
 import { connect } from '../src/db.js';
 import { loadConfig } from '../src/config.js';
 import type { Config } from '../src/config.js';
 
-const ADMIN = 'nutrea_admin_test', STUDIO = 'nutrea_studio_test';
+const STUDIO = 'nutrea_studio_test';
 let dir: string, manager: DatabaseManager, app: Awaited<ReturnType<typeof buildApp>>;
 const config = (over: Partial<Config> = {}): Config => ({
   port: 0, host: '127.0.0.1', db: null, studioKeyHash: sha256(STUDIO), webOrigin: 'https://app.esempio.it', corsOrigins: '*',
   sessionDays: 30, activationDays: 7, migrateOnStart: true, trustProxy: false,
-  adminKeyHash: sha256(ADMIN), configKey: Buffer.alloc(32, 7), dataDir: dir, ...over,
+  configKey: null, dataDir: dir, ...over,
 });
 const as = (key: string) => ({ authorization: `Bearer ${key}` });
-const call = (method: 'GET' | 'POST' | 'PUT', url: string, payload?: unknown, headers = as(ADMIN)) => app.inject({ method, url, payload: payload as any, headers });
+const call = (method: 'GET' | 'POST' | 'PUT', url: string, payload?: unknown, headers = as(STUDIO)) => app.inject({ method, url, payload: payload as any, headers });
 const view = { v: 1, patient: { first: 'Giulia' }, studio: { name: 'Studio' }, features: {}, consent: { required: false }, links: { pdf: null } };
 // MySQL come Aiven: TEST_DB_CLIENT=mysql2, TEST_DATABASE_URL=mysql://…?ssl-mode=REQUIRED e TEST_DB_CA=ca.pem.
 const my = process.env.TEST_DB_CLIENT === 'mysql2' && process.env.TEST_DATABASE_URL && process.env.TEST_DB_CA ? { url: process.env.TEST_DATABASE_URL, ca: readFileSync(process.env.TEST_DB_CA, 'utf8') } : null;
@@ -41,18 +41,11 @@ describe('amministrazione del database', () => {
     expect((await app.inject({ method: 'GET', url: '/api/p/abcdef12' })).statusCode).toBe(503);
   });
 
-  it('serve la chiave dell’amministratore (non quella dello studio), con limite ai tentativi', async () => {
+  it('serve la chiave dello studio, con limite ai tentativi', async () => {
     expect((await call('GET', '/api/admin/database', undefined, {} as any)).statusCode).toBe(401);
-    expect((await call('GET', '/api/admin/database', undefined, as(STUDIO))).statusCode).toBe(401);
-    for (let i = 0; i < 8; i++) await call('GET', '/api/admin/database', undefined, as('sbagliata'));
+    for (let i = 0; i < 9; i++) await call('GET', '/api/admin/database', undefined, as('sbagliata'));
     expect((await call('GET', '/api/admin/database', undefined, as('sbagliata'))).statusCode).toBe(429);
     expect((await call('GET', '/api/admin/database')).json()).toMatchObject({ configured: false, source: null, canSave: true });
-  });
-
-  it('senza ADMIN_KEY_SHA256 l’amministrazione non esiste', async () => {
-    await app.close();
-    app = await buildApp({ database: manager, config: config({ adminKeyHash: null }) });
-    expect((await call('GET', '/api/admin/database')).statusCode).toBe(404);
   });
 
   it('prova, configura e cambia database a caldo; la configurazione resta dopo il riavvio', async () => {
@@ -73,7 +66,7 @@ describe('amministrazione del database', () => {
     expect((await call('GET', '/api/studio/access/abcdef12', undefined, as(STUDIO))).statusCode).toBe(404);
 
     // "Riavvio": la configurazione salvata riporta allo stesso database.
-    const saved = loadSettings(dir, Buffer.alloc(32, 7))!;
+    const saved = loadSettings(dir, resolveConfigKey(dir, null, false))!;
     expect(saved).toEqual({ client: 'better-sqlite3', filename: 'due.sqlite' });
     const m2 = new DatabaseManager();
     await m2.use(toConnection(saved, dir), 'admin');
@@ -91,12 +84,16 @@ describe('amministrazione del database', () => {
     expect(() => loadSettings(dir, null)).toThrow(/CONFIG_KEY/);
   });
 
-  it('la password non viene mai restituita; senza CONFIG_KEY non si salva', async () => {
-    await call('PUT', '/api/admin/database', { client: 'better-sqlite3', filename: 'uno.sqlite' });
+  it('la password non viene mai restituita; senza CONFIG_KEY il server crea la sua chiave di cifratura e la riusa', async () => {
+    expect((await call('PUT', '/api/admin/database', { client: 'better-sqlite3', filename: 'uno.sqlite' })).statusCode).toBe(200);
     expect(JSON.stringify((await call('GET', '/api/admin/database')).json())).not.toMatch(/password"/);
-    await app.close();
-    app = await buildApp({ database: manager, config: config({ configKey: null }) });
-    expect((await call('PUT', '/api/admin/database', { client: 'better-sqlite3', filename: 'x.sqlite' })).statusCode).toBe(409);
+    expect(readFileSync(join(dir, 'config.key'), 'utf8')).toMatch(/^[0-9a-f]{64}$/);
+    // Riavvio: la configurazione si rilegge con la stessa chiave.
+    const m2 = new DatabaseManager();
+    const saved = loadSettings(dir, resolveConfigKey(dir, null, false))!;
+    await m2.use(toConnection(saved, dir), 'admin');
+    expect(m2.status.client).toBe('better-sqlite3');
+    await m2.close();
   });
 
   it.skipIf(!pg)('PostgreSQL reale: configurazione, tabelle create, password riutilizzata se non reinviata', async () => {

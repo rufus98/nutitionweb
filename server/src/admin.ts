@@ -1,6 +1,6 @@
 // API dell'amministratore: configurazione del database esterno usato dal server (e quindi da app desktop e web app).
-// Protetta da una chiave diversa da quella dello studio ("Authorization: Bearer <chiave admin>"), che l'app desktop
-// chiede ogni volta e non salva. Disponibile solo se ADMIN_KEY_SHA256 è impostata.
+// Protetta dalla chiave dello studio ("Authorization: Bearer <chiave dello studio>"): nessuna chiave in più da generare.
+// L'app desktop mostra il pannello solo se è stata avviata come amministratore.
 //   GET  /api/admin/database        stato: configurato, tipo, versione, impostazioni (senza password)
 //   POST /api/admin/database/test   prova una configurazione senza usarla
 //   PUT  /api/admin/database        si collega, crea le tabelle, passa al nuovo database e salva la configurazione cifrata
@@ -8,7 +8,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { Config } from './config.js';
 import { sameHash, sha256 } from './crypto.js';
 import { DatabaseManager } from './db.js';
-import { loadSettings, publicSettings, saveSettings, toConnection, validateSettings, type DbSettings } from './dbSettings.js';
+import { loadSettings, publicSettings, resolveConfigKey, saveSettings, toConnection, validateSettings, type DbSettings } from './dbSettings.js';
 import { RateLimiter } from './rateLimit.js';
 
 /** Messaggio leggibile per gli errori di connessione più comuni (senza dettagli che espongano la configurazione). */
@@ -35,21 +35,21 @@ export function connectionError(e: any): string {
 export function registerAdmin(app: FastifyInstance, { config, manager }: { config: Config; manager: DatabaseManager }) {
   const failures = new RateLimiter(10, 15 * 60_000); // 10 chiavi sbagliate ogni 15 minuti per IP
   let saved: DbSettings | null = null;
-  try { saved = loadSettings(config.dataDir, config.configKey); } catch { /* segnalato all'avvio */ }
+  try { saved = loadSettings(config.dataDir, resolveConfigKey(config.dataDir, config.configKey, false)); } catch { /* segnalato all'avvio */ }
 
+  // Stessa chiave dello studio che l'app usa per i pazienti: non c'è un'altra chiave da generare.
   const admin = async (req: FastifyRequest, reply: FastifyReply) => {
-    if (!config.adminKeyHash) return reply.code(404).send({ error: "Amministrazione non abilitata sul server: imposta ADMIN_KEY_SHA256 (npm run admin-key)" });
     const key = /^Bearer\s+(\S+)$/i.exec(req.headers.authorization ?? '')?.[1];
-    if (!key || !sameHash(sha256(key), config.adminKeyHash)) {
+    if (!key || !sameHash(sha256(key), config.studioKeyHash)) {
       if (!failures.hit(req.ip)) return reply.code(429).send({ error: 'Troppi tentativi con una chiave sbagliata: riprova più tardi' });
-      return reply.code(401).send({ error: "Chiave dell'amministratore non valida" });
+      return reply.code(401).send({ error: 'Chiave dello studio non valida' });
     }
   };
 
   const state = () => ({
     ...manager.status,
     settings: manager.status.source === 'admin' && saved ? publicSettings(saved) : null,
-    canSave: !!config.configKey,
+    canSave: true,
   });
 
   /** Impostazioni ricevute: se la password non viene reinviata, si tiene quella salvata (stesso server e utente). */
@@ -72,12 +72,11 @@ export function registerAdmin(app: FastifyInstance, { config, manager }: { confi
   });
 
   app.put('/api/admin/database', { preHandler: admin }, async (req, reply) => {
-    if (!config.configKey) return reply.code(409).send({ error: 'Il server non può salvare la configurazione: imposta CONFIG_KEY (npm run admin-key)' });
     let s: DbSettings;
     try { s = settingsFrom(req.body); } catch (e: any) { return reply.code(400).send({ error: e.message }); }
     try { await manager.use(toConnection(s, config.dataDir), 'admin'); }
     catch (e) { return reply.code(400).send({ error: connectionError(e) }); }
-    saveSettings(config.dataDir, config.configKey, s);
+    saveSettings(config.dataDir, resolveConfigKey(config.dataDir, config.configKey)!, s);
     saved = s;
     return state();
   });

@@ -114,7 +114,6 @@ describe.skipIf(!existsSync(resolve(SERVER, 'node_modules')))('app desktop → s
 });
 
 describe.skipIf(!existsSync(resolve(SERVER, 'node_modules')))('amministratore: database esterno configurato dall’app desktop', () => {
-  const ADMIN = 'nutrea_admin_e2e';
   let server: any, manager: any, url: string, dir: string;
 
   beforeAll(async () => {
@@ -123,7 +122,7 @@ describe.skipIf(!existsSync(resolve(SERVER, 'node_modules')))('amministratore: d
     const { sha256 } = await import(/* @vite-ignore */ resolve(SERVER, 'src/crypto.ts'));
     dir = mkdtempSync(resolve(tmpdir(), 'nutrea-e2e-'));
     manager = new DatabaseManager(); // server avviato senza database: modalità configurazione
-    const config = { port: 0, host: '127.0.0.1', db: null, studioKeyHash: sha256(KEY), webOrigin: 'https://app.esempio.it', corsOrigins: '*', sessionDays: 30, activationDays: 7, migrateOnStart: true, trustProxy: false, adminKeyHash: sha256(ADMIN), configKey: Buffer.alloc(32, 3), dataDir: dir };
+    const config = { port: 0, host: '127.0.0.1', db: null, studioKeyHash: sha256(KEY), webOrigin: 'https://app.esempio.it', corsOrigins: '*', sessionDays: 30, activationDays: 7, migrateOnStart: true, trustProxy: false, configKey: null, dataDir: dir };
     server = await buildApp({ database: manager, config });
     url = await server.listen({ port: 0, host: '127.0.0.1' });
     setDriver(await sqlJsDriver(false));
@@ -140,19 +139,18 @@ describe.skipIf(!existsSync(resolve(SERVER, 'node_modules')))('amministratore: d
     });
     await expect(createAccessLink(cfg, p.id)).rejects.toThrow(/Database non configurato/);
 
-    await expect(adminDbStatus(url, 'sbagliata')).rejects.toThrow("Chiave dell'amministratore non valida");
-    await expect(adminDbStatus(url, KEY)).rejects.toThrow("Chiave dell'amministratore non valida"); // la chiave dello studio non basta
-    expect(await adminDbStatus(url, ADMIN)).toMatchObject({ configured: false, canSave: true });
-    await expect(adminDbTest(url, ADMIN, { client: 'pg', host: '127.0.0.1', port: 9, database: 'nutrea', user: 'u', password: 'p' })).rejects.toThrow(/non accetta connessioni/);
-    expect((await adminDbTest(url, ADMIN, { client: 'better-sqlite3', filename: 'studio.sqlite' })).ok).toBe(true);
-    expect(await adminDbSave(url, ADMIN, { client: 'better-sqlite3', filename: 'studio.sqlite' })).toMatchObject({ configured: true, source: 'admin', client: 'better-sqlite3' });
+    await expect(adminDbStatus(url, 'sbagliata')).rejects.toThrow('Chiave dello studio non valida');
+    expect(await adminDbStatus(url, KEY)).toMatchObject({ configured: false, canSave: true });
+    await expect(adminDbTest(url, KEY, { client: 'pg', host: '127.0.0.1', port: 9, database: 'nutrea', user: 'u', password: 'p' })).rejects.toThrow(/non accetta connessioni/);
+    expect((await adminDbTest(url, KEY, { client: 'better-sqlite3', filename: 'studio.sqlite' })).ok).toBe(true);
+    expect(await adminDbSave(url, KEY, { client: 'better-sqlite3', filename: 'studio.sqlite' })).toMatchObject({ configured: true, source: 'admin', client: 'better-sqlite3' });
 
     const link = await createAccessLink(cfg, p.id);
     expect(link.url).toContain(`/p/${p.token}?a=`);
     expect(await repo.getRemoteAccess(p.id)).toMatchObject({ status: 'pending', error: null });
 
     // Cambio di database: lo studio rinvia tutto da solo alla prossima sincronizzazione.
-    await adminDbSave(url, ADMIN, { client: 'better-sqlite3', filename: 'nuovo.sqlite' });
+    await adminDbSave(url, KEY, { client: 'better-sqlite3', filename: 'nuovo.sqlite' });
     await repo.resetRemoteSync();
     expect(await syncAll(cfg)).toEqual({ sent: 1, failed: 0 });
     expect(await manager.get()('patient_access').where({ token: p.token }).first()).toMatchObject({ email: 'sara@example.it', status: 'pending' });

@@ -252,7 +252,7 @@ export function SettingsScreen() {
               <div className="text-[13px] text-label">Visibile solo perché Nutrea Studio è stato avviato come amministratore. Qui si collegano il server dell'app paziente e il database esterno usato da app desktop e web app.</div>
             </div>
             <RemoteServerCard value={d.remote} onChange={(remote) => up((x) => { x.remote = remote; })} webDomain={d.appDomain} />
-            <AdminDatabaseCard serverUrl={d.remote.url} />
+            <AdminDatabaseCard serverUrl={d.remote.url} studioKey={d.remote.key} />
           </>}
 
           {sec === 'privacy' && <>
