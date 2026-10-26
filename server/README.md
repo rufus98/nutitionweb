@@ -8,6 +8,8 @@ App desktop (studio) ──scrive──▶  database MySQL (es. Aiven)  ◀─�
 
 L'app desktop **scrive direttamente nel database**: niente chiavi né server per lo studio. Questo server serve ai pazienti: attivazione del link, scelta della password (salvata solo come hash scrypt), accesso, PDF.
 
+> **Non è più necessario.** La web app (`web/`) ha le stesse API come funzioni serverless (`web/api/`) che fanno le query direttamente sullo stesso database: pubblicandola su Vercel non serve installare questo server. Resta come alternativa per chi preferisce un server Node proprio.
+
 ## Come si collega l'app
 
 In *Nutrea Studio → Impostazioni → Amministrazione* (app avviata come amministratore) inserisci i dati del database MySQL, per esempio quelli di Aiven: host, porta, nome, utente, password e certificato CA. L'app crea le tabelle e ci scrive i dati dei pazienti con il link. **Non serve nessun server dello studio e nessuna chiave da generare.**

@@ -1,11 +1,11 @@
-// Accesso ai dati del paziente (contratto in README.md e in server/src/app.ts).
-// Link personale /p/{token} + password scelta dal paziente: dopo l'attivazione o il login il server dà un codice di
+// Accesso ai dati del paziente (contratto in README.md e in api/_lib/patient.ts, le funzioni che leggono il database).
+// Link personale /p/{token} + password scelta dal paziente: dopo l'attivazione o il login l'API dà un codice di
 // sessione (30 giorni), salvato sul telefono. L'ultima risposta resta salvata per aprire il piano anche offline;
 // se lo studio disattiva il link (410) o il link non esiste più (404), sessione e copia vengono cancellate.
 import { PATIENT_VIEW_VERSION, type PatientView } from '@app/patientApp/view';
 import { demoView } from './demo';
 
-/** Origine del server delle API; vuota = stessa origine della web app. */
+/** Origine delle API; vuota = stessa origine della web app (le funzioni in api/, pubblicate insieme al sito). */
 const BASE = (import.meta.env.VITE_API_BASE ?? '').replace(/\/$/, '');
 
 export type LoadError = 'not-found' | 'revoked' | 'offline' | 'outdated' | 'server';

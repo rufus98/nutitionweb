@@ -25,13 +25,21 @@ npm run build     # file statici in dist/
 npm run preview   # prova della build (service worker attivo)
 ```
 
-Per usare un server delle API su un'altra origine: `VITE_API_BASE=https://api.esempio.it npm run build`.
-Senza questa variabile le chiamate vanno alla stessa origine della web app (`/api/...`).
+Le API (`/api/p/...`) sono funzioni serverless nella cartella `api/` che **leggono e scrivono direttamente il database MySQL** in cui scrive l'app desktop: niente server da installare. In sviluppo le esegue Vite stesso; per collegarle al database crea `web/.env.local` (non va nel repository):
+
+```sh
+DATABASE_URL=mysql://avnadmin:PASSWORD@mysql-xxxx.aivencloud.com:19116/defaultdb?ssl-mode=REQUIRED
+DB_SSL_CA=./aiven-ca.pem
+```
 
 ## Struttura
 
 ```
 web/
+  api/patient.ts        funzione serverless (Vercel) delle API dei pazienti
+  api/_lib/patient.ts   attivazione, login, sessioni, dati, PDF, consenso: query dirette sul database
+  api/_lib/mysql.ts     collegamento a MySQL da DATABASE_URL e DB_SSL_CA
+  vercel.json           /api/p/* → funzione, /p/* → index.html, cache di sw.js e /assets
   index.html            meta (noindex, no-referrer), icone, manifest di base
   public/sw.js          service worker: mette in cache solo l'app, mai i dati del paziente
   src/App.tsx           percorsi /p/{token} e /, caricamento, accesso, schermate di errore
@@ -47,7 +55,9 @@ app/src/patientApp/     condiviso con l'app desktop
 
 ## Accesso: link personale + password
 
-Il server è nella cartella `server/` (vedi `server/README.md`).
+```
+App desktop (studio) ──scrive──▶  database MySQL (es. Aiven)  ◀──query dirette──  funzioni api/ (Vercel)  ◀──link + password──  Web app
+```
 
 1. **Prima volta**: il paziente apre il link di attivazione `/p/{token}?a={codice}` ricevuto dallo studio e sceglie la password.
    - Il codice viene tolto subito dall'indirizzo.
@@ -64,13 +74,12 @@ Il server è nella cartella `server/` (vedi `server/README.md`).
 | `404` / `410` | "Link non valido" / "Link disattivato"; cancella sessione e copia salvata |
 | rete assente / `5xx` | mostra la copia salvata con "Offline · dati del …" (solo con una sessione valida) |
 
-Il contratto completo (endpoint, `PatientView`, consenso, PDF) è in `server/README.md` e in `app/src/patientApp/view.ts`.
-
-In sviluppo, `npm run dev` inoltra `/api` al server locale (`http://localhost:8080`; per cambiarlo usa `API_TARGET`).
+Il contratto completo (endpoint, `PatientView`, consenso, PDF) è in `api/_lib/patient.ts` e in `app/src/patientApp/view.ts`; le tabelle sono descritte in `server/README.md`.
 
 ## Sicurezza e privacy
 
-- **Accesso**: link personale **e** password scelta dal paziente. Il server conserva solo l'hash scrypt della password; blocchi e limiti dei tentativi sono descritti in `server/README.md`.
+- **Accesso**: link personale **e** password scelta dal paziente. Nel database c'è solo l'hash scrypt della password; dopo 5 password sbagliate il link si blocca per 15 minuti (nel database, quindi vale per tutte le istanze), più un limite di 20 tentativi al minuto per IP (per istanza).
+- **Credenziali del database**: solo nelle variabili d'ambiente delle funzioni, mai nel codice scaricato dal browser.
 - **Token del link**:
   - oggi l'app desktop genera token di 8 caratteri (circa 47 bit, come nel design `gF7k2q9X`). Con la password non basta più da solo per vedere i dati, ma conviene portarlo ad almeno 16 caratteri;
   - l'app web accetta da 6 a 64 caratteri, quindi i link già inviati continuano a funzionare, e rifiuta tutto ciò che non è `[A-Za-z0-9_-]{6,64}`.
@@ -89,8 +98,12 @@ In sviluppo, `npm run dev` inoltra `/api` al server locale (`http://localhost:80
 
 ## Pubblicazione
 
-`npm run build` produce file statici. Il server web deve:
+Su **Vercel** (sito e API insieme, HTTPS incluso):
 
-1. servire `dist/` e rispondere con `index.html` a tutte le pagine `/p/*` (fallback SPA);
-2. servire `sw.js` senza cache lunga (`Cache-Control: no-cache`) e i file in `/assets/` con cache lunga (hanno l'hash nel nome);
-3. usare HTTPS, necessario per il service worker e l'installazione.
+1. Importa il repository e imposta **Root Directory** = `web` (lascia attivo "Include files outside the root directory": la web app usa `app/src/patientApp`).
+2. In *Settings → Environment Variables* imposta `DATABASE_URL` e `DB_SSL_CA` (il **contenuto** del file "CA certificate", incollato): gli stessi dati inseriti nell'app desktop.
+3. Nell'app desktop, l'"Indirizzo app paziente" deve essere il dominio del sito Vercel.
+
+`vercel.json` instrada `/api/p/*` alla funzione, `/p/*` a `index.html` e imposta la cache di `sw.js` e `/assets/`. Le funzioni usano al massimo 2 connessioni ciascuna (`DB_POOL_MAX`): il piano gratuito di Aiven ne accetta 76.
+
+Per servire solo i file statici altrove, `VITE_API_BASE=https://api.esempio.it npm run build` manda le chiamate a un'altra origine (per esempio il server della cartella `server/`, che resta un'alternativa).
