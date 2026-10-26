@@ -1,0 +1,2 @@
+# Netlify: le pagine dei pazienti /p/{token} aprono l'app (stessa regola di netlify.toml, valida anche senza).
+/p/*  /index.html  200
