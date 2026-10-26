@@ -38,7 +38,7 @@ export function useRemoteAccess(p: Patient) {
     if (!cfg || !p.token) return;
     repo.getRemoteAccess(p.id).then((a) => a && accessStatus(cfg, p.token!).then((st) =>
       repo.saveRemoteAccess(p.id, { status: st.status, last_login_at: st.lastLoginAt }).then(reload)).catch(() => {}));
-  }, [cfg?.url, cfg?.key, p.id, p.token]);
+  }, [cfg?.url, cfg?.key, cfg?.db?.host, cfg?.db?.database, p.id, p.token]);
 
   const run = async <T,>(fn: () => Promise<T>, ok?: string): Promise<T | null> => {
     setBusy(true);

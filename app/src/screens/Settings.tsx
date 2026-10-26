@@ -8,6 +8,7 @@ import { DatabaseCard } from './DatabaseCard';
 import { claimServer, ping, remoteConfig } from '../lib/remote';
 import { isAdmin } from '../lib/platform';
 import { AdminDatabaseCard } from './AdminDatabase';
+import { DirectDatabaseCard } from './DirectDatabase';
 import { b64ToBytes } from '../lib/pdf';
 import { makeZip } from '../lib/zip';
 import { saveFile } from '../lib/platform';
@@ -249,10 +250,20 @@ export function SettingsScreen() {
           {sec === 'admin' && admin && <>
             <div className="card px-6 py-[22px] flex flex-col gap-1">
               <div className="font-semibold text-[17px]">Amministrazione</div>
-              <div className="text-[13px] text-label">Visibile solo perché Nutrea Studio è stato avviato come amministratore. Qui si collegano il server dell'app paziente e il database esterno usato da app desktop e web app.</div>
+              <div className="text-[13px] text-label">Visibile solo perché Nutrea Studio è stato avviato come amministratore. Qui si collega il database esterno in cui finiscono i dati dei pazienti con il link.</div>
             </div>
-            <RemoteServerCard value={d.remote} onChange={(remote) => up((x) => { x.remote = remote; })} webDomain={d.appDomain} />
-            <AdminDatabaseCard serverUrl={d.remote.url} studioKey={d.remote.key} />
+            <DirectDatabaseCard value={settings?.remote.db} onSave={async (db) => {
+              await setSettings({ ...settings!, remote: { ...settings!.remote, db } });
+              up((x) => { x.remote.db = db; });
+            }} />
+            <details className="card px-6 py-[18px]">
+              <summary className="cursor-pointer font-semibold text-[15px]">Avanzate: usa un server dello studio invece del collegamento diretto</summary>
+              <div className="flex flex-col gap-5 mt-4">
+                <div className="text-[12.5px] text-label">Il collegamento diretto, qui sopra, ha la precedenza. Con un server dello studio (cartella server/) l'app non conosce le credenziali del database.</div>
+                <RemoteServerCard value={d.remote} onChange={(remote) => up((x) => { x.remote = { ...remote, db: x.remote.db }; })} webDomain={d.appDomain} />
+                <AdminDatabaseCard serverUrl={d.remote.url} studioKey={d.remote.key} />
+              </div>
+            </details>
           </>}
 
           {sec === 'privacy' && <>
@@ -299,7 +310,7 @@ function RemoteServerCard({ value, onChange, webDomain }: { value: Settings['rem
   const [state, setState] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const test = async () => {
-    const cfg = remoteConfig({ remote: value } as Settings);
+    const cfg = remoteConfig({ remote: { url: value.url, key: value.key } } as Settings);
     if (!cfg) { setState({ ok: false, text: 'Inserisci indirizzo e chiave' }); return; }
     setBusy(true);
     try { const r = await ping(cfg); setState({ ok: true, text: `Collegato · database ${r.db}` }); }
@@ -343,7 +354,7 @@ function ServerStatusCard({ remote, admin, onAdmin }: { remote: Settings['remote
     <div className="card px-6 py-[18px] flex justify-between items-center gap-4 col-span-2">
       <div>
         <div className="font-semibold text-[15px]">Server dell'app paziente</div>
-        <div className="text-[13px] text-label">{cfg ? <>Collegato a <span className="font-mono">{new URL(cfg.url).host}</span></> : 'Non configurato: il piano si condivide in PDF.'}</div>
+        <div className="text-[13px] text-label">{cfg ? <>Collegato a <span className="font-mono">{cfg.db ? `${cfg.db.host} (database)` : new URL(cfg.url).host}</span></> : 'Non configurato: il piano si condivide in PDF.'}</div>
         {!admin && <div className="text-[12.5px] text-label mt-1">La configurazione del server e del database è riservata all'amministratore: avvia Nutrea Studio con "Esegui come amministratore".</div>}
       </div>
       {admin && <button className="btn-secondary flex-none" onClick={onAdmin}>Amministrazione →</button>}

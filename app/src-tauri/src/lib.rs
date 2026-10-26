@@ -1,4 +1,5 @@
 mod admin;
+mod remote_db;
 mod db;
 
 use tauri::Manager;
@@ -39,6 +40,7 @@ pub fn run() {
             db::db_restore,
             db::db_info,
             admin::is_admin,
+            remote_db::remote_sql,
         ])
         .run(tauri::generate_context!())
         .expect("errore durante l'avvio di Nutrea Studio");

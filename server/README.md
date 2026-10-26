@@ -10,6 +10,20 @@ App desktop (studio) ──chiave dello studio──▶  SERVER  ◀──link +
 
 L'app desktop **non contiene le credenziali del database**: parla solo con il server, con una chiave revocabile.
 
+## Collegamento diretto (consigliato): l'app scrive nel database
+
+In *Nutrea Studio → Impostazioni → Amministrazione* (app avviata come amministratore) inserisci i dati del database MySQL, per esempio quelli di Aiven: host, porta, nome, utente, password e certificato CA. L'app crea le tabelle e ci scrive i dati dei pazienti con il link. **Non serve nessun server dello studio e nessuna chiave da generare.**
+
+Il server di questa cartella serve solo ai pazienti (attivazione, password, accesso, PDF) e deve **leggere lo stesso database**. Sul server imposta:
+
+```
+DATABASE_URL=mysql://avnadmin:PASSWORD@mysql-xxxx.aivencloud.com:19116/defaultdb?ssl-mode=REQUIRED
+DB_SSL_CA=./aiven-ca.pem          # il file "CA certificate" scaricato da Aiven
+WEB_ORIGIN=https://indirizzo-della-web-app-dei-pazienti
+```
+
+Le credenziali del database stanno quindi in due posti: nell'app dello studio (su quel computer) e nelle variabili del server. Nelle sezioni seguenti, il collegamento tramite un server dello studio (chiave dello studio, configurazione del database dal server) è l'alternativa in cui l'app non conosce le credenziali.
+
 ## Il flusso
 
 1. Il nutrizionista crea la **scheda del paziente** (con l'email).

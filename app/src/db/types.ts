@@ -169,7 +169,8 @@ export interface Settings {
   expiry: string;
   appDomain: string;
   /** Server dell'app paziente (cartella server/): indirizzo delle API e chiave dello studio. Vuoti = non configurato. */
-  remote: { url: string; key: string };
+  /** Server dello studio (url + chiave) oppure database MySQL diretto (db, nella sezione Amministrazione). */
+  remote: { url: string; key: string; db?: { host: string; port: number; database: string; user: string; password: string; ssl: boolean; ca?: string } };
   app: { weight: boolean; meas: boolean; pdf: boolean; checks: boolean; install: boolean };
   tpl: string[];
   priv: { pin: boolean; consent: boolean; log: boolean };

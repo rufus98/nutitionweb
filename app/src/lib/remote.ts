@@ -10,11 +10,18 @@ import * as repo from '../db/repo';
 import type { Patient, RemoteAccess, Settings } from '../db/types';
 import { buildPatientView } from '../patientApp/buildView';
 import { today } from './format';
+import * as rdb from './remoteDb';
 
-export interface RemoteConfig { url: string; key: string }
+/**
+ * Dove l'app desktop scrive i dati dei pazienti: direttamente nel database MySQL (`db`, senza server dello studio e senza chiavi),
+ * oppure tramite un server dello studio (`url` + `key`, vedi server/).
+ */
+export interface RemoteConfig { url: string; key: string; db?: rdb.DbConn; /** Indirizzo della web app dei pazienti, per i link di attivazione (solo con `db`). */ origin?: string }
 
-/** Server configurato in Impostazioni → App paziente & link, oppure null. */
+/** Collegamento configurato in Impostazioni → Amministrazione, oppure null. Il database diretto ha la precedenza. */
 export function remoteConfig(s: Settings | null | undefined): RemoteConfig | null {
+  const db = s?.remote?.db;
+  if (db?.host && db.user && db.database) return { url: '', key: '', db: { ...db, ca: db.ca?.trim() || undefined }, origin: `https://${(s!.appDomain ?? '').replace(/^https?:\/\//, '').replace(/\/$/, '')}` };
   const url = s?.remote?.url.trim().replace(/\/+$/, '');
   const key = s?.remote?.key.trim();
   return url && key ? { url, key } : null;
@@ -24,7 +31,27 @@ export class RemoteError extends Error {
   constructor(message: string, readonly status = 0) { super(message); }
 }
 
+/** Le stesse operazioni del server, eseguite direttamente sul database. */
+async function direct<T>(cfg: RemoteConfig, method: string, path: string, body?: any): Promise<T> {
+  const db = cfg.db!;
+  const m = /^\/api\/studio\/access\/([^/]+)(\/activation|\/pdf)?$/.exec(path);
+  try {
+    if (path === '/api/studio/ping') return { ok: true, viewVersion: 1, db: await rdb.testConn(db) } as T;
+    if (!m) throw new Error(`Operazione non supportata: ${method} ${path}`);
+    const [, token, sub] = m;
+    if (method === 'PUT' && !sub) return await rdb.upsertAccess(db, token, body) as T;
+    if (method === 'POST' && sub === '/activation') return await rdb.createActivation(db, token, cfg.origin ?? '') as T;
+    if (method === 'PUT' && sub === '/pdf') return await rdb.setPdf(db, token, body) as T;
+    if (method === 'GET' && !sub) return await rdb.getAccess(db, token) as T;
+    if (method === 'DELETE' && !sub) { await rdb.deleteAccess(db, token); return undefined as T; }
+    throw new Error(`Operazione non supportata: ${method} ${path}`);
+  } catch (e: any) {
+    throw new RemoteError(e instanceof RemoteError ? e.message : rdb.dbErrorText(e).replace(/^Database: /, ''), e?.status ?? 0);
+  }
+}
+
 async function call<T>(cfg: RemoteConfig, method: string, path: string, body?: unknown): Promise<T> {
+  if (cfg.db) return direct<T>(cfg, method, path, body);
   let res: Response;
   try {
     res = await fetch(cfg.url + path, {

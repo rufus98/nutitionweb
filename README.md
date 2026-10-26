@@ -167,7 +167,7 @@ Rispetto al prototipo, dove tutto era dimostrativo:
 | PDF scansionati (immagini senza testo) | ⏳ serve l'OCR: per ora il piano si trascrive a mano con il PDF affiancato |
 | Web app dei pazienti (`web/`): oggi, dieta, lista spesa, progressi, studio, consenso, offline, installazione sulla Home | ✅ frontend pronto, provabile su `/p/demo` |
 | Server dell'app paziente (`server/`): dati della dieta su database SQL remoto, accesso con link + password (hash scrypt), registro accessi, sincronizzazione automatica dallo studio | ✅ provato su PostgreSQL e SQLite; da installare sul tuo server (vedi `server/README.md`) |
-| Configurazione del database esterno dall'app desktop: sezione *Amministrazione*, visibile solo avviando Nutrea Studio come amministratore | ✅ nessuna chiave in più (basta quella dello studio), configurazione cifrata sul server, cambio di database senza riavvio |
+| Configurazione del database esterno dall'app desktop: sezione *Amministrazione*, visibile solo avviando Nutrea Studio come amministratore | ✅ si inseriscono solo i dati del database MySQL (es. Aiven, con certificato CA): niente server dello studio né chiavi. In alternativa, con un server dello studio |
 | Invio telematico a SdI e Sistema TS | ⏳ serve un intermediario: per ora PDF ed esportazione CSV |
 
 Due schermate non c'erano nel design e seguono lo stesso linguaggio visivo:

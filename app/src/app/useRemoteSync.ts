@@ -31,12 +31,12 @@ export function useRemoteSync() {
     if (!cfg) return;
     const t = setTimeout(run, 1500);
     return () => clearTimeout(t);
-  }, [version, settings, cfg?.url, cfg?.key]);
+  }, [version, settings, cfg?.url, cfg?.key, cfg?.db?.host, cfg?.db?.database, cfg?.db?.user, cfg?.db?.password]);
 
   useEffect(() => {
     if (!cfg) return;
     const i = setInterval(run, 5 * 60_000);
     window.addEventListener('online', run);
     return () => { clearInterval(i); window.removeEventListener('online', run); };
-  }, [cfg?.url, cfg?.key]);
+  }, [cfg?.url, cfg?.key, cfg?.db?.host, cfg?.db?.database, cfg?.db?.user, cfg?.db?.password]);
 }
