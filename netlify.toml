@@ -1,5 +1,7 @@
-# Pubblicazione su Netlify (Base directory = web): sito statico + funzione delle API dei pazienti (netlify/functions/patient.ts).
+# Pubblicazione su Netlify della web app dei pazienti (cartella web/): sito statico + funzione delle API dei pazienti
+# (web/netlify/functions/patient.ts), che fa le query direttamente sul database. Gli altri percorsi sono relativi a "base".
 [build]
+  base = "web"
   command = "npm run build"
   publish = "dist"
 
