@@ -34,6 +34,12 @@ export const toDate = (v: unknown): Date | null =>
 
 const CONNECTION_CODES = new Set(['ECONNREFUSED', 'ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND', 'EAI_AGAIN', 'EHOSTUNREACH', 'ENETUNREACH', 'EPIPE', 'PROTOCOL_CONNECTION_LOST', 'ER_CON_COUNT_ERROR', 'ER_TOO_MANY_USER_CONNECTIONS']);
 const isConnectionError = (e: any) => e instanceof DbUnavailable || CONNECTION_CODES.has(e?.code) || e?.fatal === true;
+/** Motivo generico del 503 (senza dati riservati), per capire dalla risposta cosa sistemare nella configurazione. */
+const reasonOf = (e: any): 'configurazione' | 'credenziali' | 'certificato' | 'rete' =>
+  e instanceof DbUnavailable ? 'configurazione'
+  : /^ER_(ACCESS_DENIED|DBACCESS_DENIED|BAD_DB)/.test(e?.code ?? '') || /Access denied|Unknown database/i.test(e?.message ?? '') ? 'credenziali'
+  : /CERT|SSL|TLS|HANDSHAKE/i.test(`${e?.code ?? ''} ${e?.message ?? ''}`) ? 'certificato'
+  : 'rete';
 
 // Nessuna risposta va in cache o nei motori di ricerca: contengono dati sanitari.
 const HEADERS = { 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex, nofollow', 'Referrer-Policy': 'no-referrer', 'X-Content-Type-Options': 'nosniff' };
@@ -167,7 +173,7 @@ export async function handle(req: Request, { db, ip = '', now = () => new Date()
   } catch (e: any) {
     if (e instanceof Response) return e;
     // Al paziente un messaggio semplice: la web app mostra la copia salvata del piano, se c'è. Il dettaglio resta nel log.
-    if (isConnectionError(e)) { console.warn(`Database non raggiungibile: ${e?.code ?? ''} ${String(e?.message).slice(0, 160)}`); return fail(503, 'Servizio momentaneamente non disponibile: riprova tra qualche minuto'); }
+    if (isConnectionError(e)) { console.warn(`Database non raggiungibile: ${e?.code ?? ''} ${String(e?.message).slice(0, 160)}`); return fail(503, 'Servizio momentaneamente non disponibile: riprova tra qualche minuto', { reason: reasonOf(e) }); }
     console.error(e);
     return fail(500, 'Errore interno del server');
   }

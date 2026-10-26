@@ -4,7 +4,7 @@
 import { DatabaseSync } from 'node:sqlite';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { sha256 } from './crypto.js';
-import { handle, type Db } from './patient.js';
+import { DbUnavailable, handle, type Db } from './patient.js';
 
 const TOKEN = 'gF7k2q9XaB', CODE = 'codice-di-attivazione', PASSWORD = 'Mele e pere 2026';
 let t = new Date('2026-10-26T10:00:00Z');
@@ -132,6 +132,14 @@ describe('API dei pazienti direttamente sul database', () => {
     const down: Db = { query: async () => { throw Object.assign(new Error('connect ETIMEDOUT'), { code: 'ETIMEDOUT' }); }, transaction: async () => { throw new Error(); } };
     const r = await handle(new Request(`https://app.example.it/api/p/${TOKEN}`), { db: down });
     expect(r.status).toBe(503);
-    expect((await r.json()).error).toMatch(/non disponibile/);
+    expect(await r.json()).toMatchObject({ error: expect.stringMatching(/non disponibile/), reason: 'rete' });
+  });
+
+  it('il 503 indica il motivo generico: configurazione, credenziali, certificato', async () => {
+    const failing = (err: Error): Db => ({ query: async () => { throw err; }, transaction: async () => { throw err; } });
+    const reason = async (err: Error) => (await (await handle(new Request(`https://app.example.it/api/p/${TOKEN}`), { db: failing(err) })).json()).reason;
+    expect(await reason(new DbUnavailable('DATABASE_URL non impostata'))).toBe('configurazione');
+    expect(await reason(Object.assign(new Error("Access denied for user 'avnadmin'"), { code: 'ER_ACCESS_DENIED_ERROR', fatal: true }))).toBe('credenziali');
+    expect(await reason(Object.assign(new Error('self-signed certificate in certificate chain'), { code: 'SELF_SIGNED_CERT_IN_CHAIN', fatal: true }))).toBe('certificato');
   });
 });
