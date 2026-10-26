@@ -20,6 +20,13 @@ export function connectionError(e: any): string {
   if (code === 'ETIMEDOUT' || /timeout/i.test(msg)) return 'Il database non risponde (tempo scaduto): controlla indirizzo, porta e firewall';
   if (code === '28P01' || code === 'ER_ACCESS_DENIED_ERROR' || code === 'ELOGIN' || /password authentication failed|access denied|login failed/i.test(msg)) return 'Utente o password del database non corretti';
   if (code === '3D000' || code === 'ER_BAD_DB_ERROR' || /does not exist|unknown database/i.test(msg)) return 'Il database indicato non esiste';
+  if (['SELF_SIGNED_CERT_IN_CHAIN', 'UNABLE_TO_VERIFY_LEAF_SIGNATURE', 'UNABLE_TO_GET_ISSUER_CERT_LOCALLY', 'DEPTH_ZERO_SELF_SIGNED_CERT'].includes(code) || /self[- ]signed certificate|unable to verify/i.test(msg))
+    return 'Il certificato del database non è verificabile: incolla il certificato CA del servizio (per Aiven: "CA certificate" nella pagina del servizio)';
+  if (code === 'ERR_TLS_CERT_ALTNAME_INVALID') return "Il certificato del database non corrisponde all'indirizzo (host): usa l'host indicato dal servizio";
+  if (code === 'ER_SECURE_TRANSPORT_REQUIRED' || /insecure transport|SSL connection is required|no pg_hba.conf entry.*no encryption/i.test(msg))
+    return 'Il database accetta solo connessioni cifrate: attiva "Connessione cifrata (SSL/TLS)"';
+  if (code === 'HANDSHAKE_NO_SSL_SUPPORT' || /does not support SSL|server does not support SSL/i.test(msg)) return 'Il database non supporta la connessione cifrata: disattiva SSL (solo su una rete privata)';
+  if (code === 'ER_CON_COUNT_ERROR' || code === 'ER_TOO_MANY_USER_CONNECTIONS' || code === '53300') return 'Il database ha raggiunto il numero massimo di connessioni: riprova tra poco';
   if (/ssl|tls|certificate/i.test(msg)) return `Problema con la connessione cifrata (SSL): ${msg.slice(0, 120)}`;
   if (/Cannot find module|Knex: run/i.test(msg)) return 'Driver del database non installato sul server (per SQL Server: npm install tedious)';
   return `Connessione non riuscita: ${msg.slice(0, 160)}`;
@@ -48,7 +55,10 @@ export function registerAdmin(app: FastifyInstance, { config, manager }: { confi
   /** Impostazioni ricevute: se la password non viene reinviata, si tiene quella salvata (stesso server e utente). */
   const settingsFrom = (body: unknown): DbSettings => {
     const s = validateSettings(body);
-    if (s.client !== 'better-sqlite3' && s.password === undefined && saved && saved.client === s.client && saved.host === s.host && saved.user === s.user) s.password = saved.password;
+    const same = !!saved && saved.client === s.client && saved.host === s.host && saved.user === s.user;
+    if (s.client !== 'better-sqlite3' && s.password === undefined && same) s.password = saved!.password;
+    // Certificato CA: se non viene reinviato si tiene quello salvato; con ca: "" si toglie.
+    if (s.client !== 'better-sqlite3' && s.ca === undefined && (body as any)?.ca === undefined && same && saved!.ca) { s.ca = saved!.ca; s.ssl = true; }
     return s;
   };
 

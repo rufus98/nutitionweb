@@ -6,7 +6,9 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { buildApp } from '../src/app.js';
 import { DatabaseManager } from '../src/db.js';
 import { sha256 } from '../src/crypto.js';
-import { loadSettings, saveSettings, toConnection } from '../src/dbSettings.js';
+import { loadSettings, saveSettings, settingsFromUrl, toConnection } from '../src/dbSettings.js';
+import { connect } from '../src/db.js';
+import { loadConfig } from '../src/config.js';
 import type { Config } from '../src/config.js';
 
 const ADMIN = 'nutrea_admin_test', STUDIO = 'nutrea_studio_test';
@@ -19,6 +21,8 @@ const config = (over: Partial<Config> = {}): Config => ({
 const as = (key: string) => ({ authorization: `Bearer ${key}` });
 const call = (method: 'GET' | 'POST' | 'PUT', url: string, payload?: unknown, headers = as(ADMIN)) => app.inject({ method, url, payload: payload as any, headers });
 const view = { v: 1, patient: { first: 'Giulia' }, studio: { name: 'Studio' }, features: {}, consent: { required: false }, links: { pdf: null } };
+// MySQL come Aiven: TEST_DB_CLIENT=mysql2, TEST_DATABASE_URL=mysql://…?ssl-mode=REQUIRED e TEST_DB_CA=ca.pem.
+const my = process.env.TEST_DB_CLIENT === 'mysql2' && process.env.TEST_DATABASE_URL && process.env.TEST_DB_CA ? { url: process.env.TEST_DATABASE_URL, ca: readFileSync(process.env.TEST_DB_CA, 'utf8') } : null;
 const pg = process.env.TEST_DB_CLIENT === 'pg' && process.env.TEST_DATABASE_URL ? new URL(process.env.TEST_DATABASE_URL) : null;
 
 beforeEach(async () => {
@@ -103,4 +107,41 @@ describe('amministrazione del database', () => {
     expect((await call('PUT', '/api/admin/database', withoutPassword)).statusCode).toBe(200);
     expect((await call('PUT', '/api/studio/access/abcdef12', { email: 'a@b.it', firstName: 'A', view }, as(STUDIO))).statusCode).toBe(200);
   });
+
+  it('URI del servizio (Aiven) e DATABASE_URL: tipo, SSL e certificato CA', () => {
+    expect(settingsFromUrl('mysql://avnadmin:p%40ss@mysql-1a2b-studio.l.aivencloud.com:12691/defaultdb?ssl-mode=REQUIRED'))
+      .toEqual({ client: 'mysql2', host: 'mysql-1a2b-studio.l.aivencloud.com', port: 12691, database: 'defaultdb', user: 'avnadmin', password: 'p@ss', ssl: true });
+    expect(settingsFromUrl('postgres://u:p@db.esempio.it/nutrea').ssl).toBe(false);
+    expect(() => settingsFromUrl('mysql://u:p@h/db', 'non è un certificato')).toThrow(/Certificato CA non valido/);
+    expect(() => settingsFromUrl('redis://h:1/0')).toThrow(/non supportato/);
+    const env = { STUDIO_KEY_SHA256: sha256(STUDIO), WEB_ORIGIN: 'https://app.esempio.it', DATABASE_URL: 'mysql://avnadmin:x@mysql-1a2b.aivencloud.com:12691/defaultdb?ssl-mode=REQUIRED' };
+    expect(loadConfig(env).db).toMatchObject({ client: 'mysql2', connection: { host: 'mysql-1a2b.aivencloud.com', port: 12691, ssl: { rejectUnauthorized: true }, timezone: 'Z' } });
+    expect(() => loadConfig({ ...env, DB_SSL_CA: join(dir, 'manca.pem') })).toThrow(/DB_SSL_CA/);
+  });
+
+  it('database spento (es. piano gratuito in pausa): 503 chiaro, non errore interno', async () => {
+    await app.close();
+    const down = new DatabaseManager(connect({ client: 'mysql2', connection: { host: '127.0.0.1', port: 9, user: 'u', password: 'p', database: 'x', connectTimeout: 2000 } }), 'mysql2');
+    app = await buildApp({ database: down, config: config() });
+    const studio = await call('PUT', '/api/studio/access/abcdef12', { email: 'a@b.it', firstName: 'A', view }, as(STUDIO));
+    expect(studio.statusCode).toBe(503);
+    expect(studio.json().error).toMatch(/Database non raggiungibile/);
+    const patient = await app.inject({ method: 'POST', url: '/api/p/abcdef12/login', payload: { password: 'qualcosa di lungo' } });
+    expect(patient.statusCode).toBe(503);
+    expect(patient.json().error).toMatch(/riprova tra qualche minuto/);
+    await down.close();
+  }, 30000);
+
+  it.skipIf(!my)('MySQL come Aiven: serve SSL, si verifica il certificato con la CA, tabelle con chiave primaria, date in UTC', async () => {
+    const base = settingsFromUrl(my!.url);
+    expect((await call('POST', '/api/admin/database/test', { ...base, ssl: false })).json().error).toMatch(/solo connessioni cifrate/);
+    expect((await call('POST', '/api/admin/database/test', base)).json().error).toMatch(/certificato CA/);
+    expect((await call('POST', '/api/admin/database/test', { ...base, ca: my!.ca })).json()).toMatchObject({ ok: true, version: expect.stringMatching(/^\d/) });
+    const r = await call('PUT', '/api/admin/database', { ...base, ca: my!.ca });
+    expect(r.json()).toMatchObject({ configured: true, client: 'mysql2', settings: { ssl: true, caInfo: { subject: expect.any(String) } } });
+    expect((await call('PUT', '/api/studio/access/abcdef12', { email: 'a@b.it', firstName: 'A', view }, as(STUDIO))).statusCode).toBe(200);
+    const row = await manager.get()('patient_access').where({ token: 'abcdef12' }).first();
+    expect(Math.abs(new Date(row.created_at).getTime() - Date.now())).toBeLessThan(60_000);
+    await manager.get()('patient_access').where({ token: 'abcdef12' }).delete();
+  }, 30000);
 });

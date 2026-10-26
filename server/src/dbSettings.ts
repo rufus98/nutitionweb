@@ -1,7 +1,7 @@
 // Database configurato dall'amministratore (Impostazioni → Amministrazione dell'app desktop, avviata come amministratore).
 // I dati di connessione si salvano cifrati (AES-256-GCM con CONFIG_KEY) in DATA_DIR/database.json.enc:
 // senza la chiave, il file non rivela host, utente o password.
-import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
+import { X509Certificate, createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
 import { mkdirSync, readFileSync, renameSync, writeFileSync, existsSync } from 'node:fs';
 import { isAbsolute, join } from 'node:path';
 import type { Config, DbClient } from './config.js';
@@ -15,6 +15,8 @@ export interface DbSettings {
   password?: string;
   /** Connessione cifrata (TLS) verso il database. */
   ssl?: boolean;
+  /** Certificato della CA che firma il database (PEM), per i servizi con CA propria come Aiven. Senza, valgono le CA pubbliche. */
+  ca?: string;
   /** Solo SQLite: file sul server (relativo a DATA_DIR). */
   filename?: string;
 }
@@ -39,23 +41,56 @@ export function validateSettings(x: unknown): DbSettings {
   if (!database || !/^[\w\-$]+$/.test(database)) throw new Error('Nome del database non valido');
   const user = String(b.user ?? '').trim();
   if (!user) throw new Error('Utente del database mancante');
-  return { client, host, port, database, user, password: b.password == null ? undefined : String(b.password), ssl: !!b.ssl };
+  const ca = String(b.ca ?? '').trim() || undefined;
+  if (ca) caInfo(ca);
+  return { client, host, port, database, user, password: b.password == null ? undefined : String(b.password), ssl: !!b.ssl || !!ca, ...(ca ? { ca } : {}) };
+}
+
+/** Intestatario e scadenza del certificato CA; errore leggibile se non è un certificato PEM. */
+export function caInfo(ca: string): { subject: string; validTo: string } {
+  if (ca.length > 32_000 || !ca.includes('-----BEGIN CERTIFICATE-----')) throw new Error('Certificato CA non valido: incolla il file .pem (inizia con -----BEGIN CERTIFICATE-----)');
+  try {
+    const c = new X509Certificate(ca);
+    return { subject: /CN=([^\n,]+)/.exec(c.subject)?.[1] ?? c.subject.split('\n')[0], validTo: new Date(c.validTo).toISOString() };
+  } catch {
+    throw new Error('Certificato CA non valido: il file .pem non si legge');
+  }
+}
+
+/**
+ * Impostazioni da un indirizzo come quello che mostrano Aiven e gli altri servizi gestiti
+ * (mysql://utente:password@host:porta/database?ssl-mode=REQUIRED, postgres://…?sslmode=require).
+ */
+export function settingsFromUrl(url: string, ca?: string): DbSettings {
+  let u: URL;
+  try { u = new URL(url); } catch { throw new Error('DATABASE_URL non valido'); }
+  const client: DbClient | undefined = ({ 'mysql:': 'mysql2', 'mysql2:': 'mysql2', 'postgres:': 'pg', 'postgresql:': 'pg' } as const)[u.protocol as 'mysql:'];
+  if (!client) throw new Error(`Indirizzo del database non supportato: ${u.protocol}`);
+  const mode = (u.searchParams.get('ssl-mode') ?? u.searchParams.get('sslmode') ?? u.searchParams.get('ssl') ?? '').toLowerCase();
+  return validateSettings({
+    client, host: u.hostname.replace(/^\[|\]$/g, ''), port: u.port ? Number(u.port) : undefined, database: decodeURIComponent(u.pathname.replace(/^\//, '')),
+    user: decodeURIComponent(u.username), password: decodeURIComponent(u.password), ssl: !!mode && !['disabled', 'disable', 'false', '0'].includes(mode), ca,
+  });
 }
 
 /** Configurazione per knex. */
 export function toConnection(s: DbSettings, dataDir: string): NonNullable<Config['db']> {
   switch (s.client) {
     case 'better-sqlite3': return { client: s.client, connection: { filename: isAbsolute(s.filename!) ? s.filename! : join(dataDir, s.filename!) } };
-    case 'pg': return { client: s.client, connection: { host: s.host, port: s.port, user: s.user, password: s.password ?? '', database: s.database, ssl: s.ssl ? { rejectUnauthorized: true } : false } };
-    case 'mysql2': return { client: s.client, connection: { host: s.host, port: s.port, user: s.user, password: s.password ?? '', database: s.database, ssl: s.ssl ? {} : undefined, charset: 'utf8mb4' } };
-    case 'mssql': return { client: s.client, connection: { server: s.host, port: s.port, user: s.user, password: s.password ?? '', database: s.database, options: { encrypt: !!s.ssl, trustServerCertificate: !s.ssl } } };
+    // Il certificato del database si verifica sempre (con la CA indicata o con quelle pubbliche).
+    case 'pg': return { client: s.client, connection: { host: s.host, port: s.port, user: s.user, password: s.password ?? '', database: s.database, ssl: s.ssl ? { rejectUnauthorized: true, ...(s.ca ? { ca: s.ca } : {}) } : false, connectionTimeoutMillis: 10_000 } };
+    // Date in UTC: non dipendono dal fuso orario del server o del database.
+    case 'mysql2': return { client: s.client, connection: { host: s.host, port: s.port, user: s.user, password: s.password ?? '', database: s.database, ssl: s.ssl ? { rejectUnauthorized: true, ...(s.ca ? { ca: s.ca } : {}) } : undefined, charset: 'utf8mb4', timezone: 'Z', connectTimeout: 10_000 } };
+    case 'mssql': return { client: s.client, connection: { server: s.host, port: s.port, user: s.user, password: s.password ?? '', database: s.database, options: { encrypt: !!s.ssl, trustServerCertificate: !s.ssl, ...(s.ca ? { cryptoCredentialsDetails: { ca: s.ca } } : {}) } } };
   }
 }
 
 /** Impostazioni da mostrare all'amministratore: mai la password. */
 export const publicSettings = (s: DbSettings) => {
   const { password, ...rest } = s;
-  return { ...rest, hasPassword: !!password };
+  let ca: { subject: string; validTo: string } | null = null;
+  try { if (s.ca) ca = caInfo(s.ca); } catch { /* già controllato al salvataggio */ }
+  return { ...rest, hasPassword: !!password, caInfo: ca };
 };
 
 const FILE = 'database.json.enc';

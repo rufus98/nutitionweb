@@ -5,12 +5,16 @@ import { buildApp } from '../src/app.js';
 import { connect, migrate } from '../src/db.js';
 import { sha256, verifyPassword } from '../src/crypto.js';
 import type { Config } from '../src/config.js';
+import { settingsFromUrl, toConnection } from '../src/dbSettings.js';
+import { readFileSync } from 'node:fs';
 
 const KEY = 'nutrea_test_key';
 // Di base SQLite in memoria; con TEST_DB_CLIENT=pg|mysql2|mssql e TEST_DATABASE_URL gli stessi test girano su quel database.
-const testDb: Config['db'] = process.env.TEST_DB_CLIENT
-  ? { client: process.env.TEST_DB_CLIENT as Config['db']['client'], connection: process.env.TEST_DATABASE_URL! }
-  : { client: 'better-sqlite3', connection: { filename: ':memory:' } };
+// PostgreSQL e MySQL passano da settingsFromUrl come in produzione (SSL da ?ssl-mode=, certificato CA da TEST_DB_CA).
+const testClient = process.env.TEST_DB_CLIENT as NonNullable<Config['db']>['client'] | undefined;
+const testDb: Config['db'] = !testClient ? { client: 'better-sqlite3', connection: { filename: ':memory:' } }
+  : testClient === 'pg' || testClient === 'mysql2' ? toConnection(settingsFromUrl(process.env.TEST_DATABASE_URL!, process.env.TEST_DB_CA ? readFileSync(process.env.TEST_DB_CA, 'utf8') : undefined), '.')
+  : { client: testClient, connection: process.env.TEST_DATABASE_URL! };
 const config: Config = {
   port: 0, host: '127.0.0.1', db: testDb,
   studioKeyHash: sha256(KEY), webOrigin: 'https://app.esempio.it', corsOrigins: '*',

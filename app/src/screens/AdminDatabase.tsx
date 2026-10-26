@@ -4,11 +4,11 @@ import { useState } from 'react';
 import { useApp } from '../app/store';
 import * as repo from '../db/repo';
 import { Field, Toggle, cx } from '../components/ui';
-import { adminDbSave, adminDbStatus, adminDbTest, type DbAdminStatus, type DbClient, type DbSettings } from '../lib/remote';
+import { adminDbSave, adminDbStatus, adminDbTest, parseDbUri, type DbAdminStatus, type DbClient, type DbSettings } from '../lib/remote';
 
-const CLIENTS: [DbClient, string, number | null][] = [['pg', 'PostgreSQL', 5432], ['mysql2', 'MySQL / MariaDB', 3306], ['mssql', 'SQL Server', 1433], ['better-sqlite3', 'SQLite (file sul server)', null]];
+const CLIENTS: [DbClient, string, number | null][] = [['mysql2', 'MySQL / MariaDB (es. Aiven)', 3306], ['pg', 'PostgreSQL', 5432], ['mssql', 'SQL Server', 1433], ['better-sqlite3', 'SQLite (file sul server)', null]];
 const label = (c: DbClient | null) => CLIENTS.find((x) => x[0] === c)?.[1] ?? '—';
-const empty: DbSettings = { client: 'pg', host: '', port: '', database: 'nutrea', user: '', password: '', ssl: true, filename: 'nutrea.sqlite' };
+const empty: DbSettings = { client: 'mysql2', host: '', port: '', database: 'defaultdb', user: '', password: '', ssl: true, filename: 'nutrea.sqlite' };
 
 export function AdminDatabaseCard({ serverUrl }: { serverUrl: string }) {
   const { toast, confirm, bump } = useApp();
@@ -17,6 +17,8 @@ export function AdminDatabaseCard({ serverUrl }: { serverUrl: string }) {
   const [status, setStatus] = useState<DbAdminStatus | null>(null);
   const [f, setF] = useState<DbSettings>(empty);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [ca, setCa] = useState('');            // certificato CA incollato o caricato (PEM)
+  const [dropCa, setDropCa] = useState(false);  // togliere il certificato già salvato
   const [busy, setBusy] = useState<'' | 'connect' | 'test' | 'save'>('');
   const sqlite = f.client === 'better-sqlite3';
   const port = CLIENTS.find((x) => x[0] === f.client)![2];
@@ -30,8 +32,16 @@ export function AdminDatabaseCard({ serverUrl }: { serverUrl: string }) {
     setStatus(s);
     if (s.settings) setF({ ...empty, ...s.settings, port: s.settings.port ?? '', password: '' });
   });
+  const savedCa = status?.settings?.caInfo ?? null;
   const body = (): DbSettings => sqlite ? { client: f.client, filename: f.filename }
-    : { client: f.client, host: f.host, port: f.port === '' ? undefined : Number(f.port), database: f.database, user: f.user, ssl: f.ssl, ...(f.password ? { password: f.password } : {}) };
+    : { client: f.client, host: f.host, port: f.port === '' ? undefined : Number(f.port), database: f.database, user: f.user, ssl: f.ssl, ...(f.password ? { password: f.password } : {}), ...(ca.trim() ? { ca: ca.trim() } : dropCa ? { ca: '' } : {}) };
+  // Indirizzo del servizio (Aiven: "Service URI"): compila i campi e non lo conserva.
+  const fromUri = (text: string) => {
+    if (!text.trim()) return;
+    try { const p = parseDbUri(text); setMsg({ ok: true, text: p.user && p.password ? 'Campi compilati dall\'indirizzo.' : 'Campi compilati. Mancano utente e password: il Service URI li nasconde, copiali dal pannello del servizio.' }); setF((x) => ({ ...x, ...p, user: p.user || x.user, password: p.password || x.password })); }
+    catch (e: any) { setMsg({ ok: false, text: e.message }); }
+  };
+  const loadCaFile = async (file?: File) => { if (file) { setCa(await file.text()); setDropCa(false); setMsg(null); } };
   const test = () => run('test', async () => { const r = await adminDbTest(serverUrl, adminKey, body()); setMsg({ ok: true, text: `Connessione riuscita · ${r.version}` }); });
   const save = async () => {
     const ok = await confirm({
@@ -41,10 +51,12 @@ export function AdminDatabaseCard({ serverUrl }: { serverUrl: string }) {
     });
     if (!ok) return;
     await run('save', async () => {
-      const changed = !status?.settings || JSON.stringify({ ...status.settings, hasPassword: undefined }) !== JSON.stringify({ ...body(), password: undefined, hasPassword: undefined });
-      const s = await adminDbSave(serverUrl, adminKey, body());
+      // Un altro database (non solo un'altra password o un altro certificato): i dati vanno reinviati.
+      const a = status?.settings, b = body();
+      const changed = !a || a.client !== b.client || a.host !== b.host || a.port !== (b.port ?? a.port) || a.database !== b.database || a.user !== b.user || a.filename !== b.filename;
+      const s = await adminDbSave(serverUrl, adminKey, b);
       setStatus(s);
-      setF((x) => ({ ...x, password: '' }));
+      setF((x) => ({ ...x, password: '' })); setCa(''); setDropCa(false);
       if (changed) { await repo.resetRemoteSync(); bump(); }
       toast(`Database collegato: ${label(s.client)}`);
     });
@@ -74,6 +86,12 @@ export function AdminDatabaseCard({ serverUrl }: { serverUrl: string }) {
           {!status.canSave && <span className="text-warn">Il server non ha CONFIG_KEY: non può salvare una nuova configurazione (vedi server/README.md).</span>}
         </div>
 
+        {!sqlite && (
+          <Field label="Incolla il Service URI (facoltativo)">
+            <input autoComplete="off" spellCheck={false} className="field font-mono text-[13px]" placeholder="mysql://avnadmin:…@mysql-….aivencloud.com:19116/defaultdb?ssl-mode=REQUIRED"
+              value="" onChange={() => {}} onPaste={(e) => { e.preventDefault(); fromUri(e.clipboardData.getData('text')); }} />
+          </Field>
+        )}
         <div className="grid grid-cols-2 gap-3">
           <Field label="Tipo di database">
             <select className="field" value={f.client} onChange={(e) => set({ client: e.target.value as DbClient, port: '' })}>
@@ -94,9 +112,24 @@ export function AdminDatabaseCard({ serverUrl }: { serverUrl: string }) {
             <Field label="Password"><input type="password" autoComplete="new-password" className="field font-mono text-[13px]" placeholder={status.settings?.hasPassword ? 'invariata' : ''} value={f.password} onChange={(e) => set({ password: e.target.value })} /></Field>
           </div>
           <div className="flex justify-between items-center gap-4 py-1">
-            <div><div className="font-medium text-[13.5px]">Connessione cifrata (SSL/TLS)</div><div className="text-[12.5px] text-label">Consigliata quando il database è su un altro computer o su Internet</div></div>
+            <div><div className="font-medium text-[13.5px]">Connessione cifrata (SSL mode: REQUIRED)</div><div className="text-[12.5px] text-label">Necessaria con Aiven; consigliata quando il database è su Internet</div></div>
             <Toggle on={!!f.ssl} onClick={() => set({ ssl: !f.ssl })} label="SSL" />
           </div>
+          {f.ssl && (
+            <Field label="Certificato CA (CA certificate)">
+              {savedCa && !ca && !dropCa && (
+                <div className="flex justify-between items-center gap-3 text-[13px]">
+                  <span className="text-ink2">● Salvato: {savedCa.subject} · scade il {new Date(savedCa.validTo).toLocaleDateString('it-IT')}</span>
+                  <button className="btn-secondary" onClick={() => setDropCa(true)}>Rimuovi</button>
+                </div>
+              )}
+              {(!savedCa || ca || dropCa) && <>
+                <textarea spellCheck={false} rows={4} className="field font-mono text-[12px]" placeholder={'-----BEGIN CERTIFICATE-----\n…\n-----END CERTIFICATE-----'} value={ca} onChange={(e) => { setCa(e.target.value); setDropCa(false); setMsg(null); }} />
+                <label className="text-[12.5px] text-label">Oppure carica il file: <input type="file" accept=".pem,.crt,.cer,.txt" onChange={(e) => loadCaFile(e.target.files?.[0])} /></label>
+              </>}
+              <div className="text-[12px] text-label">In Aiven: pagina del servizio → "CA certificate" → Show o download. Senza, il certificato del database non si può verificare.</div>
+            </Field>
+          )}
         </>}
 
         {msg && <div className={cx('text-[13px] font-medium', msg.ok ? 'text-ok' : 'text-err')}>{msg.ok ? '● ' : ''}{msg.text}</div>}

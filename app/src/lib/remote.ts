@@ -149,10 +149,28 @@ export async function syncAll(cfg: RemoteConfig): Promise<{ sent: number; failed
 // La chiave dell'amministratore viene chiesta ogni volta e non si salva.
 
 export type DbClient = 'pg' | 'mysql2' | 'mssql' | 'better-sqlite3';
-export interface DbSettings { client: DbClient; host?: string; port?: number | ''; database?: string; user?: string; password?: string; ssl?: boolean; filename?: string }
+export interface DbSettings { client: DbClient; host?: string; port?: number | ''; database?: string; user?: string; password?: string; ssl?: boolean; ca?: string; filename?: string }
 export interface DbAdminStatus {
   configured: boolean; source: 'env' | 'admin' | null; client: DbClient | null; version: string | null; connectedAt: string | null; error: string | null;
-  settings: (Omit<DbSettings, 'password'> & { hasPassword: boolean }) | null; canSave: boolean;
+  settings: (Omit<DbSettings, 'password'> & { hasPassword: boolean; caInfo: { subject: string; validTo: string } | null }) | null; canSave: boolean;
+}
+
+/**
+ * Compila i campi dall'indirizzo che mostrano Aiven e gli altri servizi gestiti ("Service URI"):
+ * mysql://avnadmin:password@mysql-….aivencloud.com:12691/defaultdb?ssl-mode=REQUIRED
+ */
+export function parseDbUri(uri: string): Omit<DbSettings, 'ca' | 'filename'> {
+  let u: URL;
+  try { u = new URL(uri.trim()); } catch { throw new Error('Indirizzo non valido: copia il "Service URI" completo dal pannello del servizio'); }
+  const client = ({ 'mysql:': 'mysql2', 'postgres:': 'pg', 'postgresql:': 'pg', 'sqlserver:': 'mssql' } as Record<string, DbClient>)[u.protocol];
+  if (!client) throw new Error(`Tipo di database non supportato: ${u.protocol.replace(':', '')}`);
+  const hidden = u.username === 'CLICK_TO' && u.password === 'REVEAL_PASSWORD';
+  const mode = (u.searchParams.get('ssl-mode') ?? u.searchParams.get('sslmode') ?? u.searchParams.get('ssl') ?? '').toLowerCase();
+  return {
+    client, host: u.hostname, port: u.port ? Number(u.port) : '', database: decodeURIComponent(u.pathname.replace(/^\//, '')),
+    // Aiven nasconde "utente:password" dietro "CLICK_TO:REVEAL_PASSWORD" finché non si rivela la password: non sono dati veri.
+    user: hidden ? '' : decodeURIComponent(u.username), password: hidden ? '' : decodeURIComponent(u.password), ssl: !mode || !['disabled', 'disable', 'false', '0'].includes(mode),
+  };
 }
 
 const adminCfg = (url: string, adminKey: string): RemoteConfig => {

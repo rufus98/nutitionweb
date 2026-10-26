@@ -89,8 +89,19 @@ La configurazione del server e del database si fa da una sezione che compare **s
    - premi *Prova connessione*, poi *Salva e usa questo database*.
 3. Il server si collega e crea le tabelle se mancano. Da quel momento app desktop e web app usano il nuovo database, **senza riavvio**. I dati dei pazienti con il link vengono inviati di nuovo in automatico. Se il database è nuovo e vuoto, i pazienti dovranno riattivare l'accesso con un nuovo link (le password stanno nel database).
 
+### Con Aiven (MySQL, piano gratuito)
+
+1. Nel pannello Aiven apri il servizio MySQL → *Overview → Connection information*.
+2. Nell'app, sezione *Database esterno*: incolla il **Service URI** (compila host, porta, database e SSL). Il Service URI nasconde utente e password: copia **User** (`avnadmin`) e **Password** dal pannello.
+3. Copia il **CA certificate** (*Show* o download del file `.pem`) nel campo *Certificato CA* oppure caricalo come file. Il server verifica sempre il certificato del database: senza la CA di Aiven la connessione viene rifiutata.
+4. *Prova connessione*, poi *Salva e usa questo database*.
+
+Con le variabili d'ambiente (senza il pannello): `DATABASE_URL=mysql://avnadmin:…@host:porta/defaultdb?ssl-mode=REQUIRED` e `DB_SSL_CA=/percorso/ca.pem`.
+
+Il piano gratuito di Aiven ha 1 GB di spazio e al massimo 76 connessioni (il server ne usa al massimo 5), e **si spegne dopo un periodo di inattività**. Finché è spento studio e pazienti ricevono un errore 503 ("Database non raggiungibile"): i pazienti che hanno già aperto il piano lo vedono comunque dalla copia salvata sul telefono. Si risolve riaccendendo il servizio dal pannello Aiven. Se ti serve che sia sempre acceso, il piano a pagamento più economico non si spegne.
+
 **Dove finiscono i dati di accesso**:
-- il server li salva **cifrati** (AES-256-GCM con `CONFIG_KEY`) in `DATA_DIR/database.json.enc`, leggibile solo dal suo utente, e li riusa a ogni riavvio;
+- il server li salva **cifrati** (AES-256-GCM con `CONFIG_KEY`, certificato CA compreso) in `DATA_DIR/database.json.enc`, leggibile solo dal suo utente, e li riusa a ogni riavvio;
 - l'app desktop non li conserva, e non conserva nemmeno la chiave dell'amministratore, che va reinserita ogni volta;
 - la password del database non viene mai restituita.
 

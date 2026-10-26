@@ -16,7 +16,7 @@ import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
 import cors from '@fastify/cors';
 import type { Knex } from 'knex';
 import type { Config } from './config.js';
-import { DatabaseManager, DbUnavailable, toDate } from './db.js';
+import { DatabaseManager, DbUnavailable, isConnectionError, toDate } from './db.js';
 import { registerAdmin } from './admin.js';
 import { hashPassword, passwordProblem, randomCode, sameHash, sha256, verifyPassword } from './crypto.js';
 import { RateLimiter } from './rateLimit.js';
@@ -47,10 +47,17 @@ export async function buildApp({ db: fixed, database, config, now = () => new Da
   const db: Knex = manager.proxy();
   const app = Fastify({ logger: false, trustProxy: config.trustProxy, bodyLimit: 2 * 1024 * 1024 });
   // Errori in JSON leggibile; i dettagli tecnici degli errori interni restano nel log del server.
-  app.setErrorHandler((err: any, _req, reply) => {
-    const status = err instanceof DbUnavailable ? 503 : err.statusCode && err.statusCode < 500 ? err.statusCode : 500;
+  app.setErrorHandler((err: any, req, reply) => {
+    const down = isConnectionError(err);
+    const status = err instanceof DbUnavailable || down ? 503 : err.statusCode && err.statusCode < 500 ? err.statusCode : 500;
     if (status === 500) console.error(err);
-    reply.code(status).send({ error: status === 500 ? 'Errore interno del server' : err.message });
+    if (down) console.warn(`Database non raggiungibile: ${err.code ?? ''} ${String(err.message).slice(0, 160)}`);
+    // Al paziente un messaggio semplice (la web app mostra la copia salvata del piano, se c'è); allo studio il dettaglio.
+    const error = status === 500 ? 'Errore interno del server'
+      : status === 503 && req.url.startsWith('/api/p/') ? 'Servizio momentaneamente non disponibile: riprova tra qualche minuto'
+      : down ? "Database non raggiungibile: potrebbe essere spento o in pausa (per i piani gratuiti, riaccendilo dal pannello del servizio)"
+      : err.message;
+    reply.code(status).send({ error });
   });
   await app.register(cors, { origin: config.corsOrigins === '*' ? '*' : config.corsOrigins, methods: ['GET', 'POST', 'PUT', 'DELETE'], allowedHeaders: ['Authorization', 'Content-Type'], maxAge: 600 });
   const limiter = new RateLimiter(20, 60_000); // tentativi di login/attivazione per IP al minuto

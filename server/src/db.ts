@@ -20,7 +20,10 @@ export function connect(db: NonNullable<Config['db']>): Knex {
     connection: db.connection as Knex.StaticConnectionConfig,
     useNullAsDefault: sqlite,
     // SQLite in memoria (test): una sola connessione, altrimenti ognuna vedrebbe un database diverso.
-    pool: sqlite ? { min: 1, max: 1, afterCreate: (c: any, done: any) => { c.pragma('foreign_keys = ON'); done(); } } : { min: 0, max: 10 },
+    // Poche connessioni: bastano per lo studio e i pazienti, e i piani gratuiti (es. Aiven) ne ammettono un numero limitato.
+    pool: sqlite ? { min: 1, max: 1, afterCreate: (c: any, done: any) => { c.pragma('foreign_keys = ON'); done(); } } : { min: 0, max: 5 },
+    // Database spento o irraggiungibile: errore dopo 15 secondi invece di 60.
+    acquireConnectionTimeout: 15_000,
     migrations: { migrationSource: source, tableName: 'nutrea_migrations' },
   });
 }
@@ -38,6 +41,15 @@ export class DbUnavailable extends Error {
   readonly statusCode = 503;
   constructor(message = "Database non configurato: l'amministratore deve configurarlo") { super(message); }
 }
+
+const CONNECTION_CODES = new Set(['ECONNREFUSED', 'ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND', 'EAI_AGAIN', 'EHOSTUNREACH', 'ENETUNREACH', 'EPIPE', 'PROTOCOL_CONNECTION_LOST', 'ER_CON_COUNT_ERROR', 'ER_TOO_MANY_USER_CONNECTIONS', '57P01', '57P03', '53300', 'ESOCKET', 'ETIMEOUT']);
+
+/**
+ * Il database non risponde (spento, irraggiungibile, troppe connessioni): non è un errore dell'applicazione.
+ * Succede per esempio con i piani gratuiti che spengono il database dopo un periodo di inattività.
+ */
+export const isConnectionError = (e: any): boolean =>
+  CONNECTION_CODES.has(e?.code) || e?.name === 'KnexTimeoutError' || e?.fatal === true || /Connection terminated|Connection is closed|connect ETIMEDOUT/i.test(String(e?.message ?? ''));
 
 /** Versione del server di database, da mostrare all'amministratore. */
 async function serverVersion(k: Knex, client: string): Promise<string> {
