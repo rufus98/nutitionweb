@@ -60,7 +60,7 @@ Server dell'app paziente (database SQL a scelta, vedi `server/README.md`):
 ```bash
 cd server
 npm install
-cp .env.example .env     # DB_CLIENT, DATABASE_URL, WEB_ORIGIN, STUDIO_KEY_SHA256 (da npm run studio-key)
+cp .env.example .env     # WEB_ORIGIN, STUDIO_KEY_SHA256 (npm run studio-key), ADMIN_KEY_SHA256 e CONFIG_KEY (npm run admin-key)
 npm run dev              # http://localhost:8080
 npm test
 ```
@@ -167,6 +167,7 @@ Rispetto al prototipo, dove tutto era dimostrativo:
 | PDF scansionati (immagini senza testo) | ⏳ serve l'OCR: per ora il piano si trascrive a mano con il PDF affiancato |
 | Web app dei pazienti (`web/`): oggi, dieta, lista spesa, progressi, studio, consenso, offline, installazione sulla Home | ✅ frontend pronto, provabile su `/p/demo` |
 | Server dell'app paziente (`server/`): dati della dieta su database SQL remoto, accesso con link + password (hash scrypt), registro accessi, sincronizzazione automatica dallo studio | ✅ provato su PostgreSQL e SQLite; da installare sul tuo server (vedi `server/README.md`) |
+| Configurazione del database esterno dall'app desktop: sezione *Amministrazione*, visibile solo avviando Nutrea Studio come amministratore | ✅ chiave dell'amministratore non salvata, configurazione cifrata sul server, cambio di database senza riavvio |
 | Invio telematico a SdI e Sistema TS | ⏳ serve un intermediario: per ora PDF ed esportazione CSV |
 
 Due schermate non c'erano nel design e seguono lo stesso linguaggio visivo:

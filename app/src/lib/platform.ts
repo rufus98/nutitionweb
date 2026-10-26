@@ -53,6 +53,18 @@ export async function openFolder(path: string) {
   await openPath(path);
 }
 
+let adminCache: Promise<boolean> | null = null;
+/**
+ * Nutrea Studio avviato come amministratore ("Esegui come amministratore" in Windows)?
+ * Nel browser (sviluppo) si simula con ?admin nell'indirizzo.
+ */
+export function isAdmin(): Promise<boolean> {
+  adminCache ??= isTauri()
+    ? import('@tauri-apps/api/core').then(({ invoke }) => invoke<boolean>('is_admin')).catch(() => false)
+    : Promise.resolve(import.meta.env.DEV && new URLSearchParams(location.search).has('admin'));
+  return adminCache;
+}
+
 export async function copyText(text: string) {
   try { await navigator.clipboard.writeText(text); return true; } catch { return false; }
 }

@@ -53,7 +53,13 @@ Il comando `npm run studio-key` stampa due cose:
 - la **chiave dello studio**, da incollare nell'app desktop (*Impostazioni → App paziente & link → Server dell'app paziente*);
 - la riga `STUDIO_KEY_SHA256=…`, da mettere nel file `.env`. Sul server c'è solo l'hash della chiave.
 
-Poi compila `.env`: `DB_CLIENT`, `DATABASE_URL`, `WEB_ORIGIN` (indirizzo della web app, es. `https://app.diet.it`). Infine avvia:
+Poi esegui `npm run admin-key`. Stampa la **chiave dell'amministratore** (conservala in un luogo sicuro: l'app non la salva) e le righe `ADMIN_KEY_SHA256=…` e `CONFIG_KEY=…` per il file `.env`.
+
+Compila `.env` con `WEB_ORIGIN` (indirizzo della web app, es. `https://app.diet.it`). Per il database hai due possibilità:
+- **dall'app desktop** (consigliato): lascia vuoto `DATABASE_URL` e configura il database come spiegato in [Configurare il database dall'app desktop](#configurare-il-database-dallapp-desktop);
+- **nel file**: compila `DB_CLIENT` e `DATABASE_URL`.
+
+Infine avvia:
 
 ```sh
 npm run build && npm start     # crea/aggiorna le tabelle e avvia su :8080
@@ -71,6 +77,32 @@ Driver dei database: PostgreSQL (`pg`), MySQL/MariaDB (`mysql2`) e SQLite (`bett
 - La web app (cartella `web/`) e il server possono stare sullo stesso dominio: `/api/*` va al server, il resto alla web app. Possono stare anche su domini diversi: compila la web app con `VITE_API_BASE=https://api.tuodominio.it`.
 - Nell'app desktop, l'"Indirizzo app paziente" deve corrispondere a `WEB_ORIGIN`.
 - Fai backup del database come per qualsiasi dato sanitario.
+
+## Configurare il database dall'app desktop
+
+La configurazione del server e del database si fa da una sezione che compare **solo se Nutrea Studio è stato avviato come amministratore**: in Windows, tasto destro sull'icona → *Esegui come amministratore*. Chi usa l'app normalmente vede solo "Server collegato" o "Non configurato".
+
+1. *Impostazioni → **Amministrazione** → Server dell'app paziente*: indirizzo del server e chiave dello studio, poi *Prova connessione*.
+2. *Database esterno*:
+   - inserisci la **chiave dell'amministratore** e premi *Collegati al server* (si vede lo stato attuale);
+   - scegli il tipo di database (PostgreSQL, MySQL/MariaDB, SQL Server, SQLite sul server) e compila indirizzo, porta, nome, utente, password e SSL;
+   - premi *Prova connessione*, poi *Salva e usa questo database*.
+3. Il server si collega e crea le tabelle se mancano. Da quel momento app desktop e web app usano il nuovo database, **senza riavvio**. I dati dei pazienti con il link vengono inviati di nuovo in automatico. Se il database è nuovo e vuoto, i pazienti dovranno riattivare l'accesso con un nuovo link (le password stanno nel database).
+
+**Dove finiscono i dati di accesso**:
+- il server li salva **cifrati** (AES-256-GCM con `CONFIG_KEY`) in `DATA_DIR/database.json.enc`, leggibile solo dal suo utente, e li riusa a ogni riavvio;
+- l'app desktop non li conserva, e non conserva nemmeno la chiave dell'amministratore, che va reinserita ogni volta;
+- la password del database non viene mai restituita.
+
+Una configurazione sbagliata non interrompe quella in uso: il server cambia database solo se la nuova connessione funziona. Se all'avvio il database non è raggiungibile, il server resta acceso in modalità configurazione: studio e pazienti ricevono un errore 503 chiaro, e l'amministratore può correggere.
+
+API (chiave dell'amministratore, `Authorization: Bearer …`; disponibili solo con `ADMIN_KEY_SHA256` impostata; 10 chiavi sbagliate in 15 minuti bloccano l'IP):
+
+| Metodo | Percorso | |
+|---|---|---|
+| GET | `/api/admin/database` | stato: configurato, tipo, versione, impostazioni senza password |
+| POST | `/api/admin/database/test` | prova una configurazione senza usarla |
+| PUT | `/api/admin/database` | si collega, crea le tabelle, passa al nuovo database e salva la configurazione cifrata (se la password non viene reinviata, si tiene quella salvata) |
 
 ## API
 
@@ -105,7 +137,8 @@ Paziente (web app):
   - dopo 5 password sbagliate il link si blocca per 15 minuti;
   - in più c'è un limite di 20 tentativi al minuto per IP (in memoria; con più istanze aggiungi un limite sul proxy).
 - **Codici casuali** (attivazione, sessione): 256 bit, salvati solo come SHA-256. Il codice di attivazione vale una volta sola e la web app lo toglie subito dall'indirizzo.
-- **Chiave dello studio**: sul server c'è solo il suo SHA-256. Per cambiarla rigenerala con `npm run studio-key`.
+- **Chiave dello studio** e **chiave dell'amministratore**: sul server c'è solo il loro SHA-256. Sono due chiavi diverse: chi ha la chiave dello studio non può cambiare il database. Si rigenerano con `npm run studio-key` e `npm run admin-key`.
+- **Configurazione del database**: cifrata con `CONFIG_KEY`. Senza la chiave il file non rivela host, utente o password.
 - **Risposte**: tutte con `Cache-Control: no-store`, `X-Robots-Tag: noindex`, `Referrer-Policy: no-referrer`.
 - **Token del link**: oggi è di 8 caratteri (~47 bit). Con la password non basta più da solo per vedere i dati, ma conviene comunque allungarlo (vedi `web/README.md`).
 

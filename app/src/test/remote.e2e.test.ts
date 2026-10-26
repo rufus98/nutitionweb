@@ -8,7 +8,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { setDriver, sqlJsDriver } from '../db/driver';
 import { resetConnection } from '../db/connection';
 import * as repo from '../db/repo';
-import { createAccessLink, pushPatient, setAccessEnabled, syncAll, type RemoteConfig } from '../lib/remote';
+import { adminDbSave, adminDbStatus, adminDbTest, createAccessLink, pushPatient, setAccessEnabled, syncAll, type RemoteConfig } from '../lib/remote';
+import { mkdtempSync, rmSync } from 'fs';
+import { tmpdir } from 'os';
 
 const SERVER = resolve(__dirname, '../../../server');
 const KEY = 'nutrea_e2e_key';
@@ -109,4 +111,50 @@ describe.skipIf(!existsSync(resolve(SERVER, 'node_modules')))('app desktop → s
     await expect(pushPatient({ url: 'http://127.0.0.1:9', key: KEY }, p.id, { force: true })).rejects.toThrow(/non raggiungibile/);
     expect((await repo.getRemoteAccess(p.id))?.error).toMatch(/non raggiungibile/);
   }, 30000);
+});
+
+describe.skipIf(!existsSync(resolve(SERVER, 'node_modules')))('amministratore: database esterno configurato dall’app desktop', () => {
+  const ADMIN = 'nutrea_admin_e2e';
+  let server: any, manager: any, url: string, dir: string;
+
+  beforeAll(async () => {
+    const { buildApp } = await import(/* @vite-ignore */ resolve(SERVER, 'src/app.ts'));
+    const { DatabaseManager } = await import(/* @vite-ignore */ resolve(SERVER, 'src/db.ts'));
+    const { sha256 } = await import(/* @vite-ignore */ resolve(SERVER, 'src/crypto.ts'));
+    dir = mkdtempSync(resolve(tmpdir(), 'nutrea-e2e-'));
+    manager = new DatabaseManager(); // server avviato senza database: modalità configurazione
+    const config = { port: 0, host: '127.0.0.1', db: null, studioKeyHash: sha256(KEY), webOrigin: 'https://app.esempio.it', corsOrigins: '*', sessionDays: 30, activationDays: 7, migrateOnStart: true, trustProxy: false, adminKeyHash: sha256(ADMIN), configKey: Buffer.alloc(32, 3), dataDir: dir };
+    server = await buildApp({ database: manager, config });
+    url = await server.listen({ port: 0, host: '127.0.0.1' });
+    setDriver(await sqlJsDriver(false));
+    resetConnection();
+    await repo.init();
+  }, 30000);
+  afterAll(async () => { await server?.close(); await manager?.close(); rmSync(dir, { recursive: true, force: true }); });
+
+  it('senza database lo studio riceve un errore chiaro; l’amministratore lo configura e tutto funziona', async () => {
+    const cfg = { url, key: KEY };
+    const p = await repo.createPatient({
+      first: 'Sara', last: 'Lombardo', phone: '340 5527781', email: 'sara@example.it', dob: null, birthplace: null, cf: null, job: null, sex: 'F', contact: 'WhatsApp', tags: [],
+      drugs: null, activity: null, notes: null, height: null, goal: null, target_kg: null, source: null, consent_privacy: true, consent_app: true, consent_marketing: false,
+    });
+    await expect(createAccessLink(cfg, p.id)).rejects.toThrow(/Database non configurato/);
+
+    await expect(adminDbStatus(url, 'sbagliata')).rejects.toThrow("Chiave dell'amministratore non valida");
+    await expect(adminDbStatus(url, KEY)).rejects.toThrow("Chiave dell'amministratore non valida"); // la chiave dello studio non basta
+    expect(await adminDbStatus(url, ADMIN)).toMatchObject({ configured: false, canSave: true });
+    await expect(adminDbTest(url, ADMIN, { client: 'pg', host: '127.0.0.1', port: 9, database: 'nutrea', user: 'u', password: 'p' })).rejects.toThrow(/non accetta connessioni/);
+    expect((await adminDbTest(url, ADMIN, { client: 'better-sqlite3', filename: 'studio.sqlite' })).ok).toBe(true);
+    expect(await adminDbSave(url, ADMIN, { client: 'better-sqlite3', filename: 'studio.sqlite' })).toMatchObject({ configured: true, source: 'admin', client: 'better-sqlite3' });
+
+    const link = await createAccessLink(cfg, p.id);
+    expect(link.url).toContain(`/p/${p.token}?a=`);
+    expect(await repo.getRemoteAccess(p.id)).toMatchObject({ status: 'pending', error: null });
+
+    // Cambio di database: lo studio rinvia tutto da solo alla prossima sincronizzazione.
+    await adminDbSave(url, ADMIN, { client: 'better-sqlite3', filename: 'nuovo.sqlite' });
+    await repo.resetRemoteSync();
+    expect(await syncAll(cfg)).toEqual({ sent: 1, failed: 0 });
+    expect(await manager.get()('patient_access').where({ token: p.token }).first()).toMatchObject({ email: 'sara@example.it', status: 'pending' });
+  }, 60000);
 });

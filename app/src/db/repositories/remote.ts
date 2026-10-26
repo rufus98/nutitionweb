@@ -28,3 +28,11 @@ export async function listRemoteDeletions(): Promise<string[]> {
 export async function removeRemoteDeletion(token: string) {
   await (await db()).execute('DELETE FROM remote_deletions WHERE token = ?', [token]);
 }
+
+/**
+ * Il server è passato a un altro database: i dati vanno inviati di nuovo a tutti (la sincronizzazione lo farà da sola).
+ * Lo stato torna "da attivare" finché il server non dice altrimenti.
+ */
+export async function resetRemoteSync() {
+  await (await db()).execute("UPDATE remote_access SET view_hash = NULL, pdf_document_id = NULL, synced_at = NULL, error = NULL");
+}

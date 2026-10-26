@@ -16,7 +16,8 @@ import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
 import cors from '@fastify/cors';
 import type { Knex } from 'knex';
 import type { Config } from './config.js';
-import { toDate } from './db.js';
+import { DatabaseManager, DbUnavailable, toDate } from './db.js';
+import { registerAdmin } from './admin.js';
 import { hashPassword, passwordProblem, randomCode, sameHash, sha256, verifyPassword } from './crypto.js';
 import { RateLimiter } from './rateLimit.js';
 
@@ -32,10 +33,25 @@ interface AccessRow {
   failed_logins: number; locked_until: unknown; last_login_at: unknown; password_set_at: unknown; updated_at: unknown;
 }
 
-export interface AppDeps { db: Knex; config: Config; now?: () => Date }
+export interface AppDeps {
+  /** Database fisso (test); in alternativa `database`, sostituibile dall'amministratore. */
+  db?: Knex;
+  database?: DatabaseManager;
+  config: Config;
+  now?: () => Date;
+}
 
-export async function buildApp({ db, config, now = () => new Date() }: AppDeps) {
+export async function buildApp({ db: fixed, database, config, now = () => new Date() }: AppDeps) {
+  const manager = database ?? new DatabaseManager(fixed, config.db?.client);
+  // Tutte le query passano dal database corrente: se l'amministratore lo cambia, le richieste successive usano il nuovo.
+  const db: Knex = manager.proxy();
   const app = Fastify({ logger: false, trustProxy: config.trustProxy, bodyLimit: 2 * 1024 * 1024 });
+  // Errori in JSON leggibile; i dettagli tecnici degli errori interni restano nel log del server.
+  app.setErrorHandler((err: any, _req, reply) => {
+    const status = err instanceof DbUnavailable ? 503 : err.statusCode && err.statusCode < 500 ? err.statusCode : 500;
+    if (status === 500) console.error(err);
+    reply.code(status).send({ error: status === 500 ? 'Errore interno del server' : err.message });
+  });
   await app.register(cors, { origin: config.corsOrigins === '*' ? '*' : config.corsOrigins, methods: ['GET', 'POST', 'PUT', 'DELETE'], allowedHeaders: ['Authorization', 'Content-Type'], maxAge: 600 });
   const limiter = new RateLimiter(20, 60_000); // tentativi di login/attivazione per IP al minuto
 
@@ -72,7 +88,7 @@ export async function buildApp({ db, config, now = () => new Date() }: AppDeps) 
     hasPdf: !!a.pdf_b64,
   });
 
-  app.get('/api/studio/ping', { preHandler: studio }, async () => ({ ok: true, server: 'nutrea', viewVersion: VIEW_VERSION, db: config.db.client }));
+  app.get('/api/studio/ping', { preHandler: studio }, async () => ({ ok: true, server: 'nutrea', viewVersion: VIEW_VERSION, db: manager.status.client, database: manager.status.configured }));
 
   app.put('/api/studio/access/:token', { preHandler: studio }, async (req, reply) => {
     const token = tokenOf(req, reply); if (!token) return;
@@ -246,5 +262,6 @@ export async function buildApp({ db, config, now = () => new Date() }: AppDeps) 
   });
 
   app.get('/api/health', async () => { await db.raw('select 1'); return { ok: true }; });
+  registerAdmin(app, { config, manager });
   return app;
 }

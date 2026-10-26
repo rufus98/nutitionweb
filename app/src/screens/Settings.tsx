@@ -6,12 +6,14 @@ import { cx, Field, Page, TimeInput, Toggle } from '../components/ui';
 import { PhonePreview } from './patient/PhonePreview';
 import { DatabaseCard } from './DatabaseCard';
 import { ping, remoteConfig } from '../lib/remote';
+import { isAdmin } from '../lib/platform';
+import { AdminDatabaseCard } from './AdminDatabase';
 import { b64ToBytes } from '../lib/pdf';
 import { makeZip } from '../lib/zip';
 import { saveFile } from '../lib/platform';
 import { today } from '../lib/format';
 
-type Sec = 'profilo' | 'orari' | 'tariffe' | 'fatt' | 'app' | 'msg' | 'privacy';
+type Sec = 'profilo' | 'orari' | 'tariffe' | 'fatt' | 'app' | 'msg' | 'privacy' | 'admin';
 const SECT: [Sec, string][] = [['profilo', 'Profilo studio'], ['orari', 'Orari & agenda'], ['tariffe', 'Tariffe'], ['fatt', 'Fatturazione'], ['app', 'App paziente & link'], ['msg', 'Messaggi WhatsApp'], ['privacy', 'Privacy & sicurezza']];
 const PROF: [keyof Settings['prof'], string][] = [['name', 'Nome e titolo'], ['title', 'Qualifica'], ['albo', 'Iscrizione albo'], ['piva', 'Partita IVA'], ['addr', 'Indirizzo studio'], ['phone', 'Telefono studio'], ['email', 'Email'], ['pec', 'PEC']];
 const VARS = ['{nome}', '{data}', '{ora}', '{link}', '{importo}', '{studio}'];
@@ -35,6 +37,10 @@ async function imageToDataUrl(file: File, size = 256): Promise<string> {
 export function SettingsScreen() {
   const { settings, setSettings, toast, setGuard, confirm, bump, go } = useApp();
   const [sec, setSec] = useState<Sec>('profilo');
+  // Sezione Amministrazione: solo se l'app è stata avviata come amministratore.
+  const [admin, setAdmin] = useState(false);
+  useEffect(() => { isAdmin().then(setAdmin); }, []);
+  const sections: [Sec, string][] = admin ? [...SECT, ['admin', 'Amministrazione']] : SECT;
   const [d, setD] = useState<Settings | null>(settings && structuredClone(settings));
   const [nextInv, setNextInv] = useState('');
   const [demo, setDemo] = useState(false);
@@ -110,7 +116,7 @@ export function SettingsScreen() {
       <div><h1 className="m-0 text-[28px] font-semibold tracking-[-.02em]">Impostazioni</h1><div className="text-muted text-[13px] mt-0.5">Studio, agenda, fatturazione ed esperienza paziente</div></div>
       <div className={cx('grid grid-cols-[220px_minmax(0,1fr)] gap-7 items-start', dirty && 'pb-16')}>
         <nav className="flex flex-col gap-0.5 sticky top-5">
-          {SECT.map(([id, label]) => id === sec
+          {sections.map(([id, label]) => id === sec
             ? <button key={id} className="text-left px-3 py-[9px] rounded-[9px] border-0 bg-surface shadow-[0_0_0_1px_rgb(var(--line))] font-semibold text-[13.5px] text-strong">{label}</button>
             : <button key={id} onClick={() => setSec(id)} className="text-left px-3 py-[9px] rounded-[9px] border-0 bg-transparent text-[13.5px] text-muted hover:bg-sunken hover:text-ink">{label}</button>)}
         </nav>
@@ -211,7 +217,7 @@ export function SettingsScreen() {
                 {tog('app', 'checks', 'Checklist pasti', 'Il paziente può spuntare i pasti consumati')}
                 {tog('app', 'install', 'Suggerisci "Aggiungi alla Home"', 'Banner discreto dalla seconda apertura')}
               </Card>
-              <RemoteServerCard value={d.remote} onChange={(remote) => up((x) => { x.remote = remote; })} webDomain={d.appDomain} />
+              <ServerStatusCard remote={d.remote} admin={admin} onAdmin={() => setSec('admin')} />
               <div className="sticky top-5 flex flex-col gap-2">
                 <div className="label">Anteprima tab bar</div>
                 <div className="card rounded-[20px] px-2 py-3 flex justify-around">
@@ -239,6 +245,15 @@ export function SettingsScreen() {
               </div>
             </div>
           ))}
+
+          {sec === 'admin' && admin && <>
+            <div className="card px-6 py-[22px] flex flex-col gap-1">
+              <div className="font-semibold text-[17px]">Amministrazione</div>
+              <div className="text-[13px] text-label">Visibile solo perché Nutrea Studio è stato avviato come amministratore. Qui si collegano il server dell'app paziente e il database esterno usato da app desktop e web app.</div>
+            </div>
+            <RemoteServerCard value={d.remote} onChange={(remote) => up((x) => { x.remote = remote; })} webDomain={d.appDomain} />
+            <AdminDatabaseCard serverUrl={d.remote.url} />
+          </>}
 
           {sec === 'privacy' && <>
             <Card className="gap-1.5">
@@ -293,7 +308,7 @@ function RemoteServerCard({ value, onChange, webDomain }: { value: Settings['rem
   };
   const configured = !!(value.url.trim() && value.key.trim());
   return (
-    <Card className="gap-3 col-span-2">
+    <Card className="gap-3">
       <Head title="Server dell'app paziente" sub="Il server pubblica i piani per i pazienti e conserva email e password (solo come hash). Vedi server/README.md." />
       <div className="grid grid-cols-2 gap-3">
         <Field label="Indirizzo del server (API)"><input className="field font-mono text-[13px]" placeholder="https://api.esempio.it" value={value.url} onChange={(e) => { setState(null); onChange({ ...value, url: e.target.value.trim() }); }} /></Field>
@@ -309,5 +324,20 @@ function RemoteServerCard({ value, onChange, webDomain }: { value: Settings['rem
           : <>Senza server il piano si condivide in PDF. La chiave si genera sul server con <span className="font-mono">npm run studio-key</span>.</>}
       </div>
     </Card>
+  );
+}
+
+/** Per chi non è amministratore: solo lo stato del collegamento, senza poterlo modificare. */
+function ServerStatusCard({ remote, admin, onAdmin }: { remote: Settings['remote']; admin: boolean; onAdmin: () => void }) {
+  const cfg = remoteConfig({ remote } as Settings);
+  return (
+    <div className="card px-6 py-[18px] flex justify-between items-center gap-4 col-span-2">
+      <div>
+        <div className="font-semibold text-[15px]">Server dell'app paziente</div>
+        <div className="text-[13px] text-label">{cfg ? <>Collegato a <span className="font-mono">{new URL(cfg.url).host}</span></> : 'Non configurato: il piano si condivide in PDF.'}</div>
+        {!admin && <div className="text-[12.5px] text-label mt-1">La configurazione del server e del database è riservata all'amministratore: avvia Nutrea Studio con "Esegui come amministratore".</div>}
+      </div>
+      {admin && <button className="btn-secondary flex-none" onClick={onAdmin}>Amministrazione →</button>}
+    </div>
   );
 }
