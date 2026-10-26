@@ -16,7 +16,6 @@ import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
 import cors from '@fastify/cors';
 import type { Knex } from 'knex';
 import type { Config } from './config.js';
-import { registerSetup } from './setup.js';
 import { DatabaseManager, DbUnavailable, isConnectionError, toDate } from './db.js';
 import { registerAdmin } from './admin.js';
 import { hashPassword, passwordProblem, randomCode, sameHash, sha256, verifyPassword } from './crypto.js';
@@ -270,7 +269,6 @@ export async function buildApp({ db: fixed, database, config, now = () => new Da
   });
 
   app.get('/api/health', async () => { await db.raw('select 1'); return { ok: true }; });
-  registerSetup(app, config);
   registerAdmin(app, { config, manager });
   return app;
 }

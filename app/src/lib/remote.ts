@@ -5,7 +5,7 @@
 // la password (salvata dal server solo come hash) e da lì accede con il suo link e la password.
 // Dopo, ogni modifica (piano condiviso, visite, appuntamenti, impostazioni) viene inviata in automatico.
 //
-// L'app desktop non conosce le credenziali del database: parla solo con il server, con la chiave dello studio.
+// Due modi: direttamente nel database MySQL (modalità attuale, remoteDb.ts) oppure tramite un server dello studio con chiave (non più configurabile dall'app).
 import * as repo from '../db/repo';
 import type { Patient, RemoteAccess, Settings } from '../db/types';
 import { buildPatientView } from '../patientApp/buildView';
@@ -69,21 +69,6 @@ async function call<T>(cfg: RemoteConfig, method: string, path: string, body?: u
     throw new RemoteError(msg, res.status);
   }
   return data as T;
-}
-
-/**
- * Primo collegamento: se il server non ha ancora uno studio, lo "prende" e restituisce la chiave dello studio
- * (nessuna chiave da generare a mano). Se è già di qualcuno, serve la sua chiave.
- */
-export async function claimServer(url: string): Promise<string> {
-  const base = url.trim().replace(/\/+$/, '');
-  if (!base) throw new RemoteError("Inserisci l'indirizzo del server");
-  let res: Response;
-  try { res = await fetch(base + '/api/setup/claim', { method: 'POST' }); }
-  catch { throw new RemoteError(`Server non raggiungibile (${new URL(base).host}): controlla la connessione e l'indirizzo`); }
-  const data = await res.json().catch(() => null);
-  if (!res.ok) throw new RemoteError(data?.error ?? `Errore del server (${res.status})`, res.status);
-  return data.key as string;
 }
 
 /** Stato dell'accesso restituito dal server. */
@@ -187,44 +172,20 @@ export async function syncAll(cfg: RemoteConfig): Promise<{ sent: number; failed
   return { sent, failed };
 }
 
-// ——— Amministrazione: database esterno del server ———
-// Si usa la stessa chiave dello studio delle altre chiamate: non c'è un'altra chiave da generare.
-
-export type DbClient = 'pg' | 'mysql2' | 'mssql' | 'better-sqlite3';
-export interface DbSettings { client: DbClient; host?: string; port?: number | ''; database?: string; user?: string; password?: string; ssl?: boolean; ca?: string; filename?: string }
-export interface DbAdminStatus {
-  configured: boolean; source: 'env' | 'admin' | null; client: DbClient | null; version: string | null; connectedAt: string | null; error: string | null;
-  settings: (Omit<DbSettings, 'password'> & { hasPassword: boolean; caInfo: { subject: string; validTo: string } | null }) | null; canSave: boolean;
-}
-
 /**
  * Compila i campi dall'indirizzo che mostrano Aiven e gli altri servizi gestiti ("Service URI"):
  * mysql://avnadmin:password@mysql-….aivencloud.com:12691/defaultdb?ssl-mode=REQUIRED
  */
-export function parseDbUri(uri: string): Omit<DbSettings, 'ca' | 'filename'> {
+export function parseDbUri(uri: string): { client: 'mysql2' | 'pg' | 'mssql'; host: string; port: number | ''; database: string; user: string; password: string; ssl: boolean } {
   let u: URL;
   try { u = new URL(uri.trim()); } catch { throw new Error('Indirizzo non valido: copia il "Service URI" completo dal pannello del servizio'); }
-  const client = ({ 'mysql:': 'mysql2', 'postgres:': 'pg', 'postgresql:': 'pg', 'sqlserver:': 'mssql' } as Record<string, DbClient>)[u.protocol];
+  const client = ({ 'mysql:': 'mysql2', 'postgres:': 'pg', 'postgresql:': 'pg', 'sqlserver:': 'mssql' } as Record<string, 'mysql2' | 'pg' | 'mssql'>)[u.protocol];
   if (!client) throw new Error(`Tipo di database non supportato: ${u.protocol.replace(':', '')}`);
-  const hidden = u.username === 'CLICK_TO' && u.password === 'REVEAL_PASSWORD';
   const mode = (u.searchParams.get('ssl-mode') ?? u.searchParams.get('sslmode') ?? u.searchParams.get('ssl') ?? '').toLowerCase();
+  // Aiven nasconde "utente:password" dietro "CLICK_TO:REVEAL_PASSWORD" finché non si rivela la password: non sono dati veri.
+  const hidden = u.username === 'CLICK_TO' && u.password === 'REVEAL_PASSWORD';
   return {
     client, host: u.hostname, port: u.port ? Number(u.port) : '', database: decodeURIComponent(u.pathname.replace(/^\//, '')),
-    // Aiven nasconde "utente:password" dietro "CLICK_TO:REVEAL_PASSWORD" finché non si rivela la password: non sono dati veri.
     user: hidden ? '' : decodeURIComponent(u.username), password: hidden ? '' : decodeURIComponent(u.password), ssl: !mode || !['disabled', 'disable', 'false', '0'].includes(mode),
   };
 }
-
-const adminCfg = (url: string, adminKey: string): RemoteConfig => {
-  const u = url.trim().replace(/\/+$/, '');
-  if (!u) throw new RemoteError("Inserisci l'indirizzo del server");
-  if (!adminKey.trim()) throw new RemoteError('Inserisci la chiave dello studio');
-  return { url: u, key: adminKey.trim() };
-};
-const adminCall = async <T>(url: string, adminKey: string, method: string, path: string, body?: unknown) => {
-  return call<T>(adminCfg(url, adminKey), method, path, body);
-};
-
-export const adminDbStatus = (url: string, adminKey: string) => adminCall<DbAdminStatus>(url, adminKey, 'GET', '/api/admin/database');
-export const adminDbTest = (url: string, adminKey: string, s: DbSettings) => adminCall<{ ok: true; version: string }>(url, adminKey, 'POST', '/api/admin/database/test', s);
-export const adminDbSave = (url: string, adminKey: string, s: DbSettings) => adminCall<DbAdminStatus>(url, adminKey, 'PUT', '/api/admin/database', s);

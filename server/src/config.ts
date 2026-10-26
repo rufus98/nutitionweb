@@ -14,7 +14,7 @@ export interface Config {
   /** Cartella dei dati del server (configurazione cifrata, eventuale file SQLite). */
   dataDir: string;
   /** SHA-256 (esadecimale) della chiave dello studio: la chiave vera sta solo nell'app desktop. */
-  /** null finché nessuno studio ha "preso" il server (POST /api/setup/claim, vedi setup.ts). */
+  /** Facoltativo: abilita le API dello studio (non usate dall'app attuale, che scrive direttamente nel database). */
   studioKeyHash: string | null;
   /** Indirizzo pubblico della web app dei pazienti, per i link di attivazione (es. https://app.diet.it). */
   webOrigin: string;

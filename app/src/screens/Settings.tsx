@@ -5,9 +5,8 @@ import type { Plan, Patient, Settings } from '../db/types';
 import { cx, Field, Page, TimeInput, Toggle } from '../components/ui';
 import { PhonePreview } from './patient/PhonePreview';
 import { DatabaseCard } from './DatabaseCard';
-import { claimServer, ping, remoteConfig } from '../lib/remote';
+import { remoteConfig } from '../lib/remote';
 import { isAdmin } from '../lib/platform';
-import { AdminDatabaseCard } from './AdminDatabase';
 import { DirectDatabaseCard } from './DirectDatabase';
 import { b64ToBytes } from '../lib/pdf';
 import { makeZip } from '../lib/zip';
@@ -256,14 +255,6 @@ export function SettingsScreen() {
               await setSettings({ ...settings!, remote: { ...settings!.remote, db } });
               up((x) => { x.remote.db = db; });
             }} />
-            <details className="card px-6 py-[18px]">
-              <summary className="cursor-pointer font-semibold text-[15px]">Avanzate: usa un server dello studio invece del collegamento diretto</summary>
-              <div className="flex flex-col gap-5 mt-4">
-                <div className="text-[12.5px] text-label">Il collegamento diretto, qui sopra, ha la precedenza. Con un server dello studio (cartella server/) l'app non conosce le credenziali del database.</div>
-                <RemoteServerCard value={d.remote} onChange={(remote) => up((x) => { x.remote = { ...remote, db: x.remote.db }; })} webDomain={d.appDomain} />
-                <AdminDatabaseCard serverUrl={d.remote.url} studioKey={d.remote.key} />
-              </div>
-            </details>
           </>}
 
           {sec === 'privacy' && <>
@@ -302,48 +293,6 @@ export function SettingsScreen() {
       )}
       {preview && <PhonePreview patient={preview.p} plan={preview.plan} onClose={() => setPreview(null)} />}
     </Page>
-  );
-}
-
-/** Server dell'app paziente: indirizzo delle API e chiave dello studio (generata sul server con npm run studio-key). */
-function RemoteServerCard({ value, onChange, webDomain }: { value: Settings['remote']; onChange: (v: Settings['remote']) => void; webDomain: string }) {
-  const [state, setState] = useState<{ ok: boolean; text: string } | null>(null);
-  const [busy, setBusy] = useState(false);
-  const test = async () => {
-    const cfg = remoteConfig({ remote: { url: value.url, key: value.key } } as Settings);
-    if (!cfg) { setState({ ok: false, text: 'Inserisci indirizzo e chiave' }); return; }
-    setBusy(true);
-    try { const r = await ping(cfg); setState({ ok: true, text: `Collegato · database ${r.db}` }); }
-    catch (e: any) { setState({ ok: false, text: e?.message ?? String(e) }); }
-    finally { setBusy(false); }
-  };
-  // Primo collegamento: il server crea la chiave dello studio e l'app la tiene da sola.
-  const claim = async () => {
-    setBusy(true); setState(null);
-    try { const key = await claimServer(value.url); onChange({ ...value, key }); setState({ ok: true, text: 'Server collegato: la chiave dello studio è stata salvata nell\'app' }); }
-    catch (e: any) { setState({ ok: false, text: e?.status === 409 ? 'Questo server è già collegato a uno studio: incolla la sua chiave dello studio' : e?.message ?? String(e) }); }
-    finally { setBusy(false); }
-  };
-  const configured = !!(value.url.trim() && value.key.trim());
-  return (
-    <Card className="gap-3">
-      <Head title="Server dell'app paziente" sub="Il server pubblica i piani per i pazienti e conserva email e password (solo come hash). Vedi server/README.md." />
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="Indirizzo del server (API)"><input className="field font-mono text-[13px]" placeholder="https://api.esempio.it" value={value.url} onChange={(e) => { setState(null); onChange({ ...value, url: e.target.value.trim() }); }} /></Field>
-        <Field label="Chiave dello studio"><input type="password" autoComplete="off" className="field font-mono text-[13px]" placeholder="nutrea_…" value={value.key} onChange={(e) => { setState(null); onChange({ ...value, key: e.target.value.trim() }); }} /></Field>
-      </div>
-      <div className="flex items-center gap-3 flex-wrap">
-        {value.url.trim() && !value.key.trim()
-          ? <button className="btn-primary" disabled={busy} onClick={claim}>{busy ? 'Collegamento…' : 'Collega questo server'}</button>
-          : <button className="btn-secondary" disabled={busy} onClick={test}>{busy ? 'Verifica…' : 'Prova connessione'}</button>}
-        {state && <span className={cx('text-[13px] font-medium', state.ok ? 'text-ok' : 'text-err')}>{state.ok ? '● ' : ''}{state.text}</span>}
-      </div>
-      <div className="text-[12.5px] text-label leading-snug">
-        {configured
-          ? <>Con il server collegato, dalla scheda del paziente si crea il link di accesso: il paziente sceglie la sua password e apre l'app su <span className="font-mono">{webDomain}</span>. I dati (piano condiviso, visite, appuntamenti) si aggiornano da soli.</>
-          : <>Senza server il piano si condivide in PDF. Inserisci l'indirizzo del server e premi "Collega questo server": la chiave la crea il server e l'app la salva da sola. Se il server è già collegato, incolla la sua chiave dello studio.</>}
-      </div>
-    </Card>
   );
 }
 

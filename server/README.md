@@ -3,14 +3,12 @@
 Il server sta tra l'app desktop dello studio e la web app dei pazienti. Conserva i dati in un **database SQL a tua scelta**: PostgreSQL, MySQL/MariaDB, SQL Server o SQLite.
 
 ```
-App desktop (studio) ──chiave dello studio──▶  SERVER  ◀──link + password──  Web app (paziente)
-                                                  │
-                                         database SQL remoto
+App desktop (studio) ──scrive──▶  database MySQL (es. Aiven)  ◀──legge──  SERVER (questa cartella)  ◀──link + password──  Web app (paziente)
 ```
 
-L'app desktop **non contiene le credenziali del database**: parla solo con il server, con una chiave revocabile.
+L'app desktop **scrive direttamente nel database**: niente chiavi né server per lo studio. Questo server serve ai pazienti: attivazione del link, scelta della password (salvata solo come hash scrypt), accesso, PDF.
 
-## Collegamento diretto (consigliato): l'app scrive nel database
+## Come si collega l'app
 
 In *Nutrea Studio → Impostazioni → Amministrazione* (app avviata come amministratore) inserisci i dati del database MySQL, per esempio quelli di Aiven: host, porta, nome, utente, password e certificato CA. L'app crea le tabelle e ci scrive i dati dei pazienti con il link. **Non serve nessun server dello studio e nessuna chiave da generare.**
 
@@ -22,7 +20,7 @@ DB_SSL_CA=./aiven-ca.pem          # il file "CA certificate" scaricato da Aiven
 WEB_ORIGIN=https://indirizzo-della-web-app-dei-pazienti
 ```
 
-Le credenziali del database stanno quindi in due posti: nell'app dello studio (su quel computer) e nelle variabili del server. Nelle sezioni seguenti, il collegamento tramite un server dello studio (chiave dello studio, configurazione del database dal server) è l'alternativa in cui l'app non conosce le credenziali.
+Le credenziali del database stanno quindi in due posti: nell'app dello studio (su quel computer) e nelle variabili del server.
 
 ## Il flusso
 
@@ -61,13 +59,7 @@ npm install
 cp .env.example .env
 ```
 
-**Non c'è nessuna chiave da generare.** Avvia il server e, in Nutrea Studio (avviato come amministratore), in *Impostazioni → Amministrazione* inserisci l'**indirizzo del server** e premi **Collega questo server**: il server crea la chiave dello studio e l'app la salva da sola. Il server è "libero" finché il primo studio non lo collega: dopo il collegamento l'operazione è chiusa, e un secondo tentativo riceve "già collegato". Collega il server **subito dopo averlo pubblicato**.
-
-Se preferisci non lasciarlo libero nemmeno per qualche minuto, genera la chiave tu: `npm run studio-key` stampa la chiave (da incollare nell'app) e la riga `STUDIO_KEY_SHA256=…` per il `.env`.
-
-Nel `.env` compila `WEB_ORIGIN` (indirizzo della web app, es. `https://app.diet.it`). Per il database hai due possibilità:
-- **dall'app desktop** (consigliato): lascia vuoto `DATABASE_URL` e configura il database come spiegato in [Configurare il database dall'app desktop](#configurare-il-database-dallapp-desktop);
-- **nel file**: compila `DB_CLIENT` e `DATABASE_URL`.
+Nel `.env` compila `WEB_ORIGIN` (indirizzo della web app, es. `https://app.diet.it`), `DATABASE_URL` e, se serve, `DB_SSL_CA` (certificato CA): gli stessi dati inseriti nell'app. Non serve nessuna chiave.
 
 Infine avvia:
 
@@ -88,46 +80,25 @@ Driver dei database: PostgreSQL (`pg`), MySQL/MariaDB (`mysql2`) e SQLite (`bett
 - Nell'app desktop, l'"Indirizzo app paziente" deve corrispondere a `WEB_ORIGIN`.
 - Fai backup del database come per qualsiasi dato sanitario.
 
-## Configurare il database dall'app desktop
-
-La configurazione del server e del database si fa da una sezione che compare **solo se Nutrea Studio è stato avviato come amministratore**: in Windows, tasto destro sull'icona → *Esegui come amministratore*. Chi usa l'app normalmente vede solo "Server collegato" o "Non configurato".
-
-1. *Impostazioni → **Amministrazione** → Server dell'app paziente*: indirizzo del server e chiave dello studio, poi *Prova connessione*.
-2. *Database esterno*:
-   - il pannello usa la stessa chiave dello studio e legge subito lo stato attuale (non ci sono altre chiavi da generare);
-   - scegli il tipo di database (PostgreSQL, MySQL/MariaDB, SQL Server, SQLite sul server) e compila indirizzo, porta, nome, utente, password e SSL;
-   - premi *Prova connessione*, poi *Salva e usa questo database*.
-3. Il server si collega e crea le tabelle se mancano. Da quel momento app desktop e web app usano il nuovo database, **senza riavvio**. I dati dei pazienti con il link vengono inviati di nuovo in automatico. Se il database è nuovo e vuoto, i pazienti dovranno riattivare l'accesso con un nuovo link (le password stanno nel database).
-
-### Con Aiven (MySQL, piano gratuito)
+## Il database: Aiven MySQL (piano gratuito)
 
 1. Nel pannello Aiven apri il servizio MySQL → *Overview → Connection information*.
-2. Nell'app, sezione *Database esterno*: incolla il **Service URI** (compila host, porta, database e SSL). Il Service URI nasconde utente e password: copia **User** (`avnadmin`) e **Password** dal pannello.
-3. Copia il **CA certificate** (*Show* o download del file `.pem`) nel campo *Certificato CA* oppure caricalo come file. Il server verifica sempre il certificato del database: senza la CA di Aiven la connessione viene rifiutata.
-4. *Prova connessione*, poi *Salva e usa questo database*.
+2. In Nutrea Studio, avviato **come amministratore** (Windows: tasto destro → *Esegui come amministratore*), apri *Impostazioni → Amministrazione*. Incolla il **Service URI** (compila host, porta, database e SSL). Il Service URI nasconde utente e password: copia **User** (`avnadmin`) e **Password** dal pannello.
+3. Incolla il **CA certificate** (*Show* o download del file `.pem`) nel campo *Certificato CA*, oppure caricalo come file. L'app verifica sempre il certificato del database: senza la CA di Aiven la connessione viene rifiutata.
+4. *Prova connessione*, poi *Salva e usa questo database*. L'app crea le tabelle se mancano e da quel momento ci scrive i dati dei pazienti con il link.
+5. Sul server dei pazienti imposta gli stessi dati: `DATABASE_URL=mysql://avnadmin:…@host:porta/defaultdb?ssl-mode=REQUIRED` e `DB_SSL_CA=/percorso/ca.pem`.
 
-Con le variabili d'ambiente (senza il pannello): `DATABASE_URL=mysql://avnadmin:…@host:porta/defaultdb?ssl-mode=REQUIRED` e `DB_SSL_CA=/percorso/ca.pem`.
+Chi usa l'app normalmente, senza amministratore, non vede la sezione: vede solo se il database è collegato.
 
-Il piano gratuito di Aiven ha 1 GB di spazio e al massimo 76 connessioni (il server ne usa al massimo 5), e **si spegne dopo un periodo di inattività**. Finché è spento studio e pazienti ricevono un errore 503 ("Database non raggiungibile"): i pazienti che hanno già aperto il piano lo vedono comunque dalla copia salvata sul telefono. Si risolve riaccendendo il servizio dal pannello Aiven. Se ti serve che sia sempre acceso, il piano a pagamento più economico non si spegne.
+Se cambi database, l'app invia di nuovo i dati dei pazienti con il link; se il nuovo database è vuoto, i pazienti dovranno riattivare l'accesso con un nuovo link (le password stanno nel database).
 
-**Dove finiscono i dati di accesso**:
-- il server li salva **cifrati** (AES-256-GCM, certificato CA compreso) in `DATA_DIR/database.json.enc`, leggibile solo dal suo utente, e li riusa a ogni riavvio. La chiave di cifratura la crea il server da solo al primo salvataggio (`DATA_DIR/config.key`); se preferisci gestirla tu, imposta `CONFIG_KEY` (64 caratteri esadecimali). **`DATA_DIR` deve essere una cartella che resta**: se l'hosting la cancella a ogni riavvio, il database va reinserito dal pannello;
-- l'app desktop non li conserva;
-- la password del database non viene mai restituita.
+Utente e password del database restano nell'app, su quel computer, e nelle variabili del server. Non vengono inviati ad altri.
 
-Una configurazione sbagliata non interrompe quella in uso: il server cambia database solo se la nuova connessione funziona. Se all'avvio il database non è raggiungibile, il server resta acceso in modalità configurazione: studio e pazienti ricevono un errore 503 chiaro, e l'amministratore può correggere.
-
-API (chiave dello studio, `Authorization: Bearer …`; 10 chiavi sbagliate in 15 minuti bloccano l'IP; l'app mostra il pannello solo se avviata come amministratore):
-
-| Metodo | Percorso | |
-|---|---|---|
-| GET | `/api/admin/database` | stato: configurato, tipo, versione, impostazioni senza password |
-| POST | `/api/admin/database/test` | prova una configurazione senza usarla |
-| PUT | `/api/admin/database` | si collega, crea le tabelle, passa al nuovo database e salva la configurazione cifrata (se la password non viene reinviata, si tiene quella salvata) |
+Il piano gratuito di Aiven ha 1 GB di spazio e al massimo 76 connessioni (il server ne usa al massimo 5), e **si spegne dopo un periodo di inattività**. Finché è spento, l'app mostra "Database: il database non risponde…" e ai pazienti il server risponde con un errore 503: chi ha già aperto il piano lo vede comunque dalla copia salvata sul telefono. Si risolve riaccendendo il servizio dal pannello Aiven. Il piano a pagamento più economico non si spegne.
 
 ## API
 
-Studio (`Authorization: Bearer <chiave dello studio>`):
+Studio (`Authorization: Bearer <chiave dello studio>`): facoltative e **non usate dall'app attuale**, che scrive direttamente nel database. Si attivano solo impostando `STUDIO_KEY_SHA256` (`npm run studio-key`).
 
 | Metodo | Percorso | |
 |---|---|---|
