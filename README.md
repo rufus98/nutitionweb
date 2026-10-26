@@ -25,11 +25,13 @@ app/
     db/                 SQLite: migrazioni .sql, repository per dominio, dati demo — vedi src/db/README.md
     lib/                formattazione all'italiana, PDF (fatture, consenso), ZIP, integrazione con il sistema
     lib/planPdf/        PDF del piano nello stile dello studio: settimanale o ON/OFF/RESET (pdf-lib + carattere Carlito)
+    patientApp/         app paziente condivisa con web/: interfaccia, contratto dei dati (PatientView), buildPatientView
     screens/            Oggi, Pazienti, Nuovo paziente, Scheda paziente, Agenda, Piani, Pagamenti, Impostazioni
     test/               test unitari (Vitest)
   tailwind.config.js    token del bundle (petrol, sage, ink, line, canvas…) collegati alle variabili CSS
+web/                    web app dei pazienti (PWA, React) aperta dal link /p/{token} — vedi web/README.md
 project/, chats/        bundle di design originale (riferimento) e README dell'handoff
-.github/workflows/      build degli installer Windows su GitHub Actions
+.github/workflows/      installer Windows e build/test della web app su GitHub Actions
 ```
 
 ## Sviluppo
@@ -51,6 +53,15 @@ Altri comandi:
 | `npm run db:schema` | Rigenera `src/db/schema.sql` dopo aver aggiunto una migrazione. |
 | `npm test` | Test unitari (formattazione, PDF, ZIP, migrazioni, vincoli e repository del database, lettura dei piani). Con `NUTREA_PDF_DIR=/cartella/con/pdf npm test` verifica anche la lettura di PDF reali (non inclusi nel repository). |
 | `npm run build` | Controllo dei tipi e build del frontend. |
+
+Web app dei pazienti (importa il codice condiviso da `app/src/patientApp/`, ma non richiede le dipendenze di `app/`):
+
+```bash
+cd web
+npm install
+npm run dev          # http://localhost:5180/p/demo
+npm test && npm run build
+```
 
 Al primo avvio l'app chiede se partire con un **archivio vuoto** o con i **dati di esempio** del design (20 pazienti, agenda, pagamenti, piani). I dati di esempio si eliminano da *Impostazioni → Privacy & sicurezza*.
 
@@ -143,7 +154,8 @@ Rispetto al prototipo, dove tutto era dimostrativo:
 | Anteprima dell'app paziente (Oggi, La mia dieta, Progressi, Studio) | ✅ con i dati reali |
 | Blocco con PIN all'avvio | ✅ |
 | PDF scansionati (immagini senza testo) | ⏳ serve l'OCR: per ora il piano si trascrive a mano con il PDF affiancato |
-| App paziente online (`app.diet.it/p/{token}`), registro accessi, consenso digitale | ⏳ serve un server: i link vengono generati e revocati, ma non sono ancora raggiungibili. Intanto si invia il PDF del piano |
+| Web app dei pazienti (`web/`): oggi, dieta, lista spesa, progressi, studio, consenso, offline, installazione sulla Home | ✅ frontend pronto, provabile su `/p/demo` |
+| Server che pubblica i dati (`GET /api/p/{token}`), registro accessi | ⏳ da realizzare seguendo il contratto in `web/README.md` (usa `buildPatientView`). Intanto si invia il PDF del piano |
 | Invio telematico a SdI e Sistema TS | ⏳ serve un intermediario: per ora PDF ed esportazione CSV |
 
 Due schermate non c'erano nel design e seguono lo stesso linguaggio visivo:

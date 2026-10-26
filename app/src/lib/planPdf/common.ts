@@ -19,11 +19,7 @@ const WEEKDAYS: Record<string, string> = { lun: 'Lunedì', mar: 'Martedì', mer:
 /** "Lun" → "Lunedì"; altre etichette restano come sono. */
 export const dayName = (label: string) => WEEKDAYS[label.trim().slice(0, 3).toLowerCase()] ?? label;
 
-/** Quantità divisa in numero e unità quando è una grammatura ("150 g" → 150, g); altrimenti null. */
-export function splitQty(g: string): { num: string; unit: string } | null {
-  const m = /^\s*([\d.,/+\s]+?)\s*(g|gr|ml|kg|l)\.?\s*$/i.exec(g);
-  return m ? { num: m[1].replace(/\s+/g, ''), unit: m[2].toLowerCase() === 'gr' ? 'g' : m[2].toLowerCase() } : null;
-}
+export { splitQty } from '../shopping';
 
 /** Quantità compatta come nei piani ON/OFF/RESET: "150 g" → "150g". */
 export const compactQty = (g: string) => g.trim().replace(/(\d)\s+(g|ml|kg)\b/gi, '$1$2');

@@ -5,6 +5,7 @@ import { sections } from '../planGroups';
 import { ageFrom, bmiOf, fmtDate, n1 } from '../format';
 import { Canvas, hex, type RGB } from './canvas';
 import { BLACK, dayName, fullName, GREY, LIGHT_GREY, splitQty, type PlanPdfInput } from './common';
+import { shoppingList } from '../shopping';
 
 const BLUE = hex('#6495ed');
 const GREEN = hex('#008000');
@@ -254,26 +255,8 @@ function alternatives(c: Canvas, list: { code: number; it: PlanItem }[]) {
   }
 }
 
-/** Somma delle grammature della settimana per alimento (solo le voci fisse, non quelle "a scelta"). */
-function shoppingList(inp: PlanPdfInput) {
-  const tot = new Map<string, { f: string; unit: string; n: number }>();
-  for (const d of inp.plan.days) for (const m of d.meals) for (const s of sections(m.items)) {
-    if (s.kind === 'choice' || s.kind === 'variant') continue;
-    for (const { it } of s.items) {
-      const q = splitQty(it.g);
-      const n = q && /^\d+([.,]\d+)?$/.test(q.num) ? parseFloat(q.num.replace(',', '.')) : NaN;
-      if (!it.f.trim() || isNaN(n)) continue;
-      const key = it.f.trim().toLowerCase() + '|' + q!.unit;
-      const cur = tot.get(key) ?? { f: it.f.trim(), unit: q!.unit, n: 0 };
-      cur.n += n;
-      tot.set(key, cur);
-    }
-  }
-  return [...tot.values()].sort((a, b) => a.f.localeCompare(b.f, 'it'));
-}
-
 function shopping(c: Canvas, inp: PlanPdfInput) {
-  const list = shoppingList(inp);
+  const list = shoppingList(inp.plan);
   if (list.length < 2) return;
   const name = fullName(inp.patient);
   const head = (cc: Canvas) => {
