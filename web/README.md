@@ -40,6 +40,7 @@ web/
   api/_lib/patient.ts   attivazione, login, sessioni, dati, PDF, consenso: query dirette sul database
   api/_lib/mysql.ts     collegamento a MySQL da DATABASE_URL e DB_SSL_CA
   vercel.json           /api/p/* → funzione, /p/* → index.html, cache di sw.js e /assets
+  netlify.toml          lo stesso per Netlify (funzione in netlify/functions/patient.ts)
   index.html            meta (noindex, no-referrer), icone, manifest di base
   public/sw.js          service worker: mette in cache solo l'app, mai i dati del paziente
   src/App.tsx           percorsi /p/{token} e /, caricamento, accesso, schermate di errore
@@ -105,5 +106,13 @@ Su **Vercel** (sito e API insieme, HTTPS incluso):
 3. Nell'app desktop, l'"Indirizzo app paziente" deve essere il dominio del sito Vercel.
 
 `vercel.json` instrada `/api/p/*` alla funzione, `/p/*` a `index.html` e imposta la cache di `sw.js` e `/assets/`. Le funzioni usano al massimo 2 connessioni ciascuna (`DB_POOL_MAX`): il piano gratuito di Aiven ne accetta 76.
+
+Su **Netlify** (stesse API, funzione in `netlify/functions/patient.ts`; la configurazione è in `netlify.toml`):
+
+1. *Add new site → Import an existing project*, scegli il repository e imposta **Base directory** = `web`. Comando di build (`npm run build`), cartella da pubblicare (`dist`) e funzioni arrivano da `netlify.toml`.
+2. In *Site configuration → Environment variables* imposta `DATABASE_URL` e `DB_SSL_CA` (il contenuto del file "CA certificate"), con ambito che includa **Functions**.
+3. Nell'app desktop, l'"Indirizzo app paziente" deve essere il dominio del sito Netlify (es. `https://nutrea-pazienti.netlify.app` o il tuo dominio).
+
+Prova dopo la pubblicazione: `https://<sito>/p/demo` mostra i dati dimostrativi; `https://<sito>/api/p/prova123` deve rispondere `404 Link non valido` (database raggiungibile) e non `503`.
 
 Per servire solo i file statici altrove, `VITE_API_BASE=https://api.esempio.it npm run build` manda le chiamate a un'altra origine (per esempio il server della cartella `server/`, che resta un'alternativa).
