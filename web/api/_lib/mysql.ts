@@ -8,14 +8,25 @@ import { DbUnavailable, type Db } from './patient.js';
 
 let pool: Pool | null = null;
 
+/**
+ * Certificato PEM ricostruito: nei campi su una riga (es. variabili di Netlify) gli a capo diventano spazi o "\n" scritti
+ * come testo, e il certificato non è più valido. Si riprende il contenuto base64 di ogni blocco e si rimette a 64 caratteri.
+ */
+export function normalizePem(raw: string): string {
+  const blocks = [...raw.replace(/\\r|\\n/g, '\n').matchAll(/-----BEGIN ([A-Z ]+)-----([\s\S]*?)-----END \1-----/g)];
+  return blocks.map(([, label, body]) => `-----BEGIN ${label}-----\n${body.replace(/\s+/g, '').match(/.{1,64}/g)!.join('\n')}\n-----END ${label}-----\n`).join('');
+}
+
 function createPool(env: NodeJS.ProcessEnv): Pool {
   if (!env.DATABASE_URL) throw new DbUnavailable('DATABASE_URL non impostata');
   const u = new URL(env.DATABASE_URL);
   const mode = (u.searchParams.get('ssl-mode') ?? u.searchParams.get('sslmode') ?? u.searchParams.get('ssl') ?? '').toLowerCase();
   const ssl = !['disabled', 'disable', 'false', '0'].includes(mode);
-  // Il certificato si può incollare nella variabile (anche con "\n" al posto degli a capo) o indicare come file.
-  const caVar = env.DB_SSL_CA?.replace(/\\n/g, '\n').trim();
-  const ca = caVar && !caVar.startsWith('-----BEGIN') ? readFileSync(caVar, 'utf8') : caVar;
+  // Il certificato si può incollare nella variabile (anche su una riga) o indicare come file.
+  const caVar = env.DB_SSL_CA?.trim().replace(/^["']|["']$/g, '');
+  const caText = caVar && !caVar.includes('-----BEGIN') ? readFileSync(caVar, 'utf8') : caVar;
+  const ca = caText ? normalizePem(caText) : '';
+  if (caText && !ca) throw new DbUnavailable('DB_SSL_CA non contiene un certificato (-----BEGIN CERTIFICATE----- … -----END CERTIFICATE-----)');
   return mysql.createPool({
     host: u.hostname, port: u.port ? Number(u.port) : 3306, database: decodeURIComponent(u.pathname.replace(/^\//, '')),
     user: decodeURIComponent(u.username), password: decodeURIComponent(u.password),
