@@ -29,9 +29,10 @@ app/
     screens/            Oggi, Pazienti, Nuovo paziente, Scheda paziente, Agenda, Piani, Pagamenti, Impostazioni
     test/               test unitari (Vitest)
   tailwind.config.js    token del bundle (petrol, sage, ink, line, canvas…) collegati alle variabili CSS
-web/                    web app dei pazienti (PWA, React) aperta dal link /p/{token} — vedi web/README.md
+web/                    web app dei pazienti (PWA, React): link /p/{token} + password — vedi web/README.md
+server/                 server dell'app paziente (Node, database SQL a scelta): riceve i dati dallo studio — vedi server/README.md
 project/, chats/        bundle di design originale (riferimento) e README dell'handoff
-.github/workflows/      installer Windows e build/test della web app su GitHub Actions
+.github/workflows/      installer Windows, web app e server su GitHub Actions
 ```
 
 ## Sviluppo
@@ -53,6 +54,16 @@ Altri comandi:
 | `npm run db:schema` | Rigenera `src/db/schema.sql` dopo aver aggiunto una migrazione. |
 | `npm test` | Test unitari (formattazione, PDF, ZIP, migrazioni, vincoli e repository del database, lettura dei piani). Con `NUTREA_PDF_DIR=/cartella/con/pdf npm test` verifica anche la lettura di PDF reali (non inclusi nel repository). |
 | `npm run build` | Controllo dei tipi e build del frontend. |
+
+Server dell'app paziente (database SQL a scelta, vedi `server/README.md`):
+
+```bash
+cd server
+npm install
+cp .env.example .env     # DB_CLIENT, DATABASE_URL, WEB_ORIGIN, STUDIO_KEY_SHA256 (da npm run studio-key)
+npm run dev              # http://localhost:8080
+npm test
+```
 
 Web app dei pazienti (importa il codice condiviso da `app/src/patientApp/`, ma non richiede le dipendenze di `app/`):
 
@@ -155,7 +166,7 @@ Rispetto al prototipo, dove tutto era dimostrativo:
 | Blocco con PIN all'avvio | ✅ |
 | PDF scansionati (immagini senza testo) | ⏳ serve l'OCR: per ora il piano si trascrive a mano con il PDF affiancato |
 | Web app dei pazienti (`web/`): oggi, dieta, lista spesa, progressi, studio, consenso, offline, installazione sulla Home | ✅ frontend pronto, provabile su `/p/demo` |
-| Server che pubblica i dati (`GET /api/p/{token}`), registro accessi | ⏳ da realizzare seguendo il contratto in `web/README.md` (usa `buildPatientView`). Intanto si invia il PDF del piano |
+| Server dell'app paziente (`server/`): dati della dieta su database SQL remoto, accesso con link + password (hash scrypt), registro accessi, sincronizzazione automatica dallo studio | ✅ provato su PostgreSQL e SQLite; da installare sul tuo server (vedi `server/README.md`) |
 | Invio telematico a SdI e Sistema TS | ⏳ serve un intermediario: per ora PDF ed esportazione CSV |
 
 Due schermate non c'erano nel design e seguono lo stesso linguaggio visivo:

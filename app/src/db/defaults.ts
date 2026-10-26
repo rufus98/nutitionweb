@@ -25,7 +25,7 @@ export const DEFAULT_SETTINGS: Settings = {
   dur: { prima: 60, controllo: 30, online: 30, buffer: 0 },
   expiry: 'Fino a revoca',
   appDomain: 'app.diet.it',
-  appServer: false,
+  remote: { url: '', key: '' },
   app: { weight: true, meas: true, pdf: true, checks: true, install: true },
   tpl: [
     "Ciao {nome}, ti ricordo l'appuntamento di {data} alle {ora} presso lo studio. A presto! — {studio}",

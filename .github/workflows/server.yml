@@ -1,0 +1,45 @@
+# Server dell'app paziente: test su SQLite e su PostgreSQL reale, poi il flusso completo app desktop → server.
+name: Server app paziente
+
+on:
+  push:
+    branches: [main]
+    paths: ['server/**', 'app/src/lib/remote.ts', 'app/src/patientApp/**', 'app/src/test/remote.e2e.test.ts', '.github/workflows/server.yml']
+  pull_request:
+    paths: ['server/**', 'app/src/lib/remote.ts', 'app/src/patientApp/**', 'app/src/test/remote.e2e.test.ts', '.github/workflows/server.yml']
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_PASSWORD: nutrea, POSTGRES_DB: nutrea_test }
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            server/package-lock.json
+            app/package-lock.json
+      - name: Dipendenze
+        run: |
+          npm ci --prefix server
+          npm ci --prefix app
+      - name: Test (SQLite)
+        run: npm test --prefix server
+      - name: Test (PostgreSQL)
+        run: npm test --prefix server
+        env:
+          TEST_DB_CLIENT: pg
+          TEST_DATABASE_URL: postgres://postgres:nutrea@localhost:5432/nutrea_test
+      - name: Build
+        run: npm run build --prefix server
+      - name: Flusso completo app desktop → server → paziente
+        working-directory: app
+        run: npx vitest run src/test/remote.e2e.test.ts

@@ -5,6 +5,7 @@ import type { Plan, Patient, Settings } from '../db/types';
 import { cx, Field, Page, TimeInput, Toggle } from '../components/ui';
 import { PhonePreview } from './patient/PhonePreview';
 import { DatabaseCard } from './DatabaseCard';
+import { ping, remoteConfig } from '../lib/remote';
 import { b64ToBytes } from '../lib/pdf';
 import { makeZip } from '../lib/zip';
 import { saveFile } from '../lib/platform';
@@ -209,8 +210,8 @@ export function SettingsScreen() {
                 {tog('app', 'pdf', 'Consenti download PDF originale', 'Pulsante in "La mia dieta"')}
                 {tog('app', 'checks', 'Checklist pasti', 'Il paziente può spuntare i pasti consumati')}
                 {tog('app', 'install', 'Suggerisci "Aggiungi alla Home"', 'Banner discreto dalla seconda apertura')}
-                <div className="text-[12.5px] text-warn bg-warn-bg rounded-[10px] px-3.5 py-2.5 mt-2">Server dell'app paziente non ancora configurato: i link sono generati e revocabili, ma diventeranno raggiungibili quando l'app paziente sarà pubblicata online.</div>
               </Card>
+              <RemoteServerCard value={d.remote} onChange={(remote) => up((x) => { x.remote = remote; })} webDomain={d.appDomain} />
               <div className="sticky top-5 flex flex-col gap-2">
                 <div className="label">Anteprima tab bar</div>
                 <div className="card rounded-[20px] px-2 py-3 flex justify-around">
@@ -275,5 +276,38 @@ export function SettingsScreen() {
       )}
       {preview && <PhonePreview patient={preview.p} plan={preview.plan} onClose={() => setPreview(null)} />}
     </Page>
+  );
+}
+
+/** Server dell'app paziente: indirizzo delle API e chiave dello studio (generata sul server con npm run studio-key). */
+function RemoteServerCard({ value, onChange, webDomain }: { value: Settings['remote']; onChange: (v: Settings['remote']) => void; webDomain: string }) {
+  const [state, setState] = useState<{ ok: boolean; text: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const test = async () => {
+    const cfg = remoteConfig({ remote: value } as Settings);
+    if (!cfg) { setState({ ok: false, text: 'Inserisci indirizzo e chiave' }); return; }
+    setBusy(true);
+    try { const r = await ping(cfg); setState({ ok: true, text: `Collegato · database ${r.db}` }); }
+    catch (e: any) { setState({ ok: false, text: e?.message ?? String(e) }); }
+    finally { setBusy(false); }
+  };
+  const configured = !!(value.url.trim() && value.key.trim());
+  return (
+    <Card className="gap-3 col-span-2">
+      <Head title="Server dell'app paziente" sub="Il server pubblica i piani per i pazienti e conserva email e password (solo come hash). Vedi server/README.md." />
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Indirizzo del server (API)"><input className="field font-mono text-[13px]" placeholder="https://api.esempio.it" value={value.url} onChange={(e) => { setState(null); onChange({ ...value, url: e.target.value.trim() }); }} /></Field>
+        <Field label="Chiave dello studio"><input type="password" autoComplete="off" className="field font-mono text-[13px]" placeholder="nutrea_…" value={value.key} onChange={(e) => { setState(null); onChange({ ...value, key: e.target.value.trim() }); }} /></Field>
+      </div>
+      <div className="flex items-center gap-3 flex-wrap">
+        <button className="btn-secondary" disabled={busy} onClick={test}>{busy ? 'Verifica…' : 'Prova connessione'}</button>
+        {state && <span className={cx('text-[13px] font-medium', state.ok ? 'text-ok' : 'text-err')}>{state.ok ? '● ' : ''}{state.text}</span>}
+      </div>
+      <div className="text-[12.5px] text-label leading-snug">
+        {configured
+          ? <>Con il server collegato, dalla scheda del paziente si crea il link di accesso: il paziente sceglie la sua password e apre l'app su <span className="font-mono">{webDomain}</span>. I dati (piano condiviso, visite, appuntamenti) si aggiornano da soli.</>
+          : <>Senza server il piano si condivide in PDF. La chiave si genera sul server con <span className="font-mono">npm run studio-key</span>.</>}
+      </div>
+    </Card>
   );
 }

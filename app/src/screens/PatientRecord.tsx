@@ -8,6 +8,8 @@ import { downloadInvoice, RegisterPayment, remindPayment } from '../components/p
 import { VisitDrawer } from './patient/VisitDrawer';
 import { EditPatient } from './patient/EditPatient';
 import { DietTab } from './patient/DietTab';
+import { AppAccessCard } from './patient/AppAccess';
+import { ShareModal } from './patient/ShareModal';
 import { ageFrom, bmiCategory, bmiOf, eur, fmtDate, fmtShort, fmtSmart, initials, n1, signed, telLink, today, waLink } from '../lib/format';
 import { openExternal, saveFile } from '../lib/platform';
 import { consentPdf } from '../lib/documents';
@@ -28,6 +30,7 @@ export function PatientRecord({ id, tab: initialTab, action }: { id: number; tab
   const [drawer, setDrawer] = useState<Visit | 'new' | null>(action === 'visit' ? 'new' : null);
   const [edit, setEdit] = useState(false);
   const [payModal, setPayModal] = useState(false);
+  const [share, setShare] = useState(false);
   const [mode, setMode] = useState<'cm' | 'pct'>('cm');
 
   if (!data) return <Page><div /></Page>;
@@ -140,10 +143,10 @@ export function PatientRecord({ id, tab: initialTab, action }: { id: number; tab
                 {active ? (p.link_on ? <span className="pill-ok py-0.5 px-2">Link attivo</span> : <span className="pill-neutral py-0.5 px-2">Link revocato</span>) : draft ? (draft.saved_at ? <span className="pill-warn py-0.5 px-2">Da condividere</span> : <span className="pill-neutral py-0.5 px-2">Bozza</span>) : null}</div>
               {active ? <>
                 <div className="text-[13px] text-ink2">{[active.data.title, active.data.kcal && active.data.kcal.toLocaleString('it-IT') + ' kcal', `v${active.version} del ${fmtDate(active.published_at ?? active.created_at)}`].filter(Boolean).join(' · ')}</div>
-                <div className="flex items-center gap-2 bg-canvas rounded-ctl px-2.5 py-2"><span className="flex-1 font-mono text-xs text-ink2 truncate selectable">{settings?.appDomain}/p/{p.token}</span><span className="text-xs text-label">{settings?.appServer ? '' : 'non pubblicato'}</span></div>
               </> : <div className="text-[13px] text-label">{draft ? (draft.saved_at ? `Piano v${draft.version} salvato, non ancora condiviso.` : 'Bozza in preparazione, non ancora condivisa.') : 'Nessun piano ancora caricato.'}</div>}
               <button className="btn-secondary py-[9px]" onClick={() => setTab('diet')}>{active ? 'Aggiorna piano →' : 'Prepara piano →'}</button>
             </div>
+            <AppAccessCard p={p} onEditPatient={() => setEdit(true)} onSend={() => setShare(true)} />
             <div className="card px-5 py-[18px] flex flex-col gap-2.5">
               <div className="flex justify-between items-center"><div className="font-semibold text-[15px]">Pagamenti</div><button className="link-btn" onClick={() => setTab('pay')}>Tutti →</button></div>
               {pays.slice(0, 3).map((x) => (
@@ -205,6 +208,7 @@ export function PatientRecord({ id, tab: initialTab, action }: { id: number; tab
       {drawer && <VisitDrawer patient={p} visits={visits} visit={drawer === 'new' ? null : drawer} onClose={() => setDrawer(null)} />}
       {edit && <EditPatient patient={p} onClose={() => setEdit(false)} onConsentPdf={async () => { await saveFile(`Consenso_${p.last}_${p.first}.pdf`, consentPdf(p, settings!), [{ name: 'PDF', extensions: ['pdf'] }]); }} />}
       {payModal && <RegisterPayment patientId={p.id} onClose={() => setPayModal(false)} />}
+      {share && <ShareModal patient={p} onClose={() => setShare(false)} />}
     </Page>
   );
 }

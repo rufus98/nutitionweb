@@ -10,8 +10,9 @@ export default defineConfig({
     alias: { '@app': fileURLToPath(new URL('../app/src', import.meta.url)) },
     dedupe: ['react', 'react-dom'],
   },
-  server: { port: 5180, fs: { allow: ['..'] } },
-  preview: { port: 5180 },
+  // In sviluppo /api va al server locale (cartella server/, npm run dev): API_TARGET per cambiarlo.
+  server: { port: 5180, fs: { allow: ['..'] }, proxy: { '/api': process.env.API_TARGET ?? 'http://localhost:8080' } },
+  preview: { port: 5180, proxy: { '/api': process.env.API_TARGET ?? 'http://localhost:8080' } },
   build: { target: 'es2020', sourcemap: true },
   test: { environment: 'jsdom' },
 } as any);

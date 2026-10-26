@@ -168,12 +168,25 @@ export interface Settings {
   dur: { prima: number; controllo: number; online: number; buffer: number };
   expiry: string;
   appDomain: string;
-  /** true quando il server che pubblica l'app paziente è attivo (per ora sempre false). */
-  appServer: boolean;
+  /** Server dell'app paziente (cartella server/): indirizzo delle API e chiave dello studio. Vuoti = non configurato. */
+  remote: { url: string; key: string };
   app: { weight: boolean; meas: boolean; pdf: boolean; checks: boolean; install: boolean };
   tpl: string[];
   priv: { pin: boolean; consent: boolean; log: boolean };
   pin: string;
   logo: string | null;
   photo: string | null;
+}
+
+/** Stato dell'accesso del paziente alla web app sul server remoto (tabella remote_access). */
+export interface RemoteAccess {
+  patient_id: number;
+  status: 'pending' | 'active' | 'disabled';
+  view_hash: string | null;
+  pdf_document_id: number | null;
+  activation_url: string | null;
+  activation_expires_at: string | null;
+  last_login_at: string | null;
+  synced_at: string | null;
+  error: string | null;
 }

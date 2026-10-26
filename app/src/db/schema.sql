@@ -90,6 +90,25 @@ CREATE TABLE plans (
   CHECK (status = 'draft' OR published_at IS NOT NULL)
 );
 
+CREATE TABLE remote_access (
+  patient_id             INTEGER PRIMARY KEY REFERENCES patients (id) ON DELETE CASCADE,
+  -- stato sul server: pending (in attesa che il paziente scelga la password) | active | disabled
+  status                 TEXT    NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'disabled')),
+  view_hash              TEXT,                        -- SHA-256 dei dati inviati l'ultima volta
+  pdf_document_id        INTEGER,                     -- PDF del piano già caricato (documents.id)
+  activation_url         TEXT,                        -- ultimo link di attivazione, da reinviare finché vale
+  activation_expires_at  TEXT,
+  last_login_at          TEXT,
+  synced_at              TEXT,
+  error                  TEXT,                        -- ultimo errore di sincronizzazione (null se tutto ok)
+  created_at             TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+
+CREATE TABLE remote_deletions (
+  token       TEXT PRIMARY KEY,
+  created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+
 CREATE TABLE schema_migrations (
     version    INTEGER PRIMARY KEY,
     name       TEXT NOT NULL,
@@ -169,6 +188,12 @@ BEGIN SELECT RAISE(ABORT, 'Orario non valido: usa il formato HH:MM tra 00:00 e 2
 
 CREATE TRIGGER appointments_touch AFTER UPDATE ON appointments WHEN NEW.updated_at = OLD.updated_at
 BEGIN UPDATE appointments SET updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = NEW.id; END;
+
+CREATE TRIGGER patients_remote_deletion BEFORE DELETE ON patients
+WHEN OLD.token IS NOT NULL AND EXISTS (SELECT 1 FROM remote_access WHERE patient_id = OLD.id)
+BEGIN
+  INSERT OR IGNORE INTO remote_deletions (token) VALUES (OLD.token);
+END;
 
 CREATE TRIGGER patients_touch AFTER UPDATE ON patients WHEN NEW.updated_at = OLD.updated_at
 BEGIN UPDATE patients SET updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = NEW.id; END;

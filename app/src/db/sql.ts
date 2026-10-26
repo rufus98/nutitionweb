@@ -23,10 +23,10 @@ export function insertStmt(table: string, columns: readonly string[], values: Ro
 }
 
 /** UPDATE delle sole colonne consentite presenti in `patch`; null se non c'è nulla da aggiornare. */
-export function updateStmt(table: string, allowed: readonly string[], id: number, patch: Row): Stmt | null {
+export function updateStmt(table: string, allowed: readonly string[], id: number, patch: Row, key = 'id'): Stmt | null {
   const cols = allowed.filter((c) => c in patch);
   if (!cols.length) return null;
-  return { sql: `UPDATE ${table} SET ${cols.map((c) => `${c} = ?`).join(', ')} WHERE id = ?`, params: [...cols.map((c) => patch[c]), id] };
+  return { sql: `UPDATE ${table} SET ${cols.map((c) => `${c} = ?`).join(', ')} WHERE ${key} = ?`, params: [...cols.map((c) => patch[c]), id] };
 }
 
 /** Errore leggibile per le violazioni dei vincoli del database. */

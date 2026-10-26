@@ -1,7 +1,8 @@
 // Web app dei pazienti: /p/{token} apre il piano condiviso dallo studio; "/" riapre l'ultimo link usato.
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { PatientApp } from '@app/patientApp/PatientApp';
-import { ApiError, loadView, sendConsent, type LoadError, type Loaded } from './api';
+import { ApiError, AuthError, fetchPdf, loadView, logout, sendConsent, type AuthNeeded, type LoadError, type Loaded } from './api';
+import { Activate, Login } from './Access';
 import { lastToken, rememberToken, tokenStore, useInstall, useTokenManifest } from './device';
 
 const localToday = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
@@ -12,13 +13,24 @@ export function App() {
   return <PatientPage token={decodeURIComponent(token)} />;
 }
 
+/** Codice del link di attivazione (?a=…): letto una volta e tolto subito dall'indirizzo (cronologia, segnalibri). */
+let activationCode: string | null | undefined;
+function takeActivationCode() {
+  if (activationCode !== undefined) return activationCode; // una sola lettura per caricamento della pagina
+  const url = new URL(location.href);
+  activationCode = url.searchParams.get('a');
+  if (activationCode) { url.searchParams.delete('a'); history.replaceState(null, '', url.pathname + url.search + url.hash); }
+  return activationCode;
+}
+
 function PatientPage({ token }: { token: string }) {
-  const [state, setState] = useState<{ data?: Loaded; error?: LoadError; loading: boolean }>({ loading: true });
+  const [code, setCode] = useState(takeActivationCode);
+  const [state, setState] = useState<{ data?: Loaded; auth?: AuthNeeded; error?: LoadError; loading: boolean }>({ loading: true });
   const load = useCallback(() => {
     setState((s) => ({ ...s, loading: true }));
     loadView(token)
       .then((data) => { setState({ data, loading: false }); rememberToken(token); })
-      .catch((e) => setState({ error: e instanceof ApiError ? e.kind : 'server', loading: false }));
+      .catch((e) => setState(e instanceof AuthError ? { auth: e.info, loading: false } : { error: e instanceof ApiError ? e.kind : 'server', loading: false }));
   }, [token]);
   useEffect(load, [load]);
   // Al ritorno sull'app (o al ritorno della connessione) i dati si aggiornano.
@@ -35,13 +47,26 @@ function PatientPage({ token }: { token: string }) {
   const install = useInstall(token, !!view?.features.install);
   const store = useMemo(() => tokenStore(token), [token]);
 
+  // Link di attivazione: si sceglie la password (anche se c'era già una sessione: es. password dimenticata).
+  if (code && (state.auth || view)) {
+    const info = state.auth ?? { state: 'login' as const, firstName: view!.patient.first, studio: { name: view!.studio.name, whatsapp: view!.studio.whatsapp } };
+    return <Frame><Activate token={token} code={code} info={info} onDone={() => { setCode(null); load(); }} onUseLogin={() => setCode(null)} /></Frame>;
+  }
   if (view) {
+    const openPdf = async () => {
+      // La finestra si apre subito (al tocco), poi riceve il PDF: altrimenti il browser la bloccherebbe.
+      const w = window.open('', '_blank');
+      try { const blob = await fetchPdf(token, view.links.pdf!); const url = URL.createObjectURL(blob); if (w) w.location.href = url; else location.href = url; }
+      catch { w?.close(); }
+    };
+    const exit = async () => { await logout(token); setState({ loading: false, auth: { state: 'login', firstName: view.patient.first, studio: { name: view.studio.name, whatsapp: view.studio.whatsapp } } }); };
     return (
       <Frame>
-        <PatientApp view={view} env={{ today: localToday(), store, install, offlineSince: state.data!.offlineSince, onConsent: () => sendConsent(token) }} />
+        <PatientApp view={view} env={{ today: localToday(), store, install, offlineSince: state.data!.offlineSince, onConsent: () => sendConsent(token), openPdf, onLogout: token === 'demo' ? undefined : exit }} />
       </Frame>
     );
   }
+  if (state.auth) return <Frame><Login token={token} info={state.auth} onDone={load} /></Frame>;
   if (state.loading) return <Frame><Loading /></Frame>;
   return <Frame><ErrorScreen kind={state.error!} retry={load} /></Frame>;
 }

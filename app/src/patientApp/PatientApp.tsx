@@ -29,6 +29,10 @@ export interface PatientEnv {
   onConsent?: () => Promise<void>;
   /** Dati mostrati dalla copia salvata perché il telefono è offline (data e ora del salvataggio). */
   offlineSince?: string | null;
+  /** Apre il PDF originale (nella web app serve la sessione); senza, si usa il collegamento links.pdf. */
+  openPdf?: () => void;
+  /** "Esci da questo telefono" (web app con password). */
+  onLogout?: () => void;
 }
 
 const json = <T,>(s: string | null, d: T): T => { try { return s ? JSON.parse(s) : d; } catch { return d; } };
@@ -212,11 +216,11 @@ function Diet({ view, env, onShop }: { view: PatientView; env: PatientEnv; onSho
   return <>
     <Title sub={`Piano v${plan.version} · dal ${fmtDate(plan.since)}`} title="La mia dieta" />
     <div className="grid grid-cols-2 gap-2">
-      {view.links.pdf && (
-        <Ext href={view.links.pdf} preview={env.preview} className="flex items-center justify-center gap-2 h-12 rounded-[14px] bg-white border border-[#E4E2DC] font-semibold text-sm text-[#18211F] no-underline">
-          <span className="font-mono text-[9px] font-semibold text-[#1E5A5F] border-[1.5px] border-[#1E5A5F] rounded-[3px] px-[3px] py-0.5">PDF</span>Originale
-        </Ext>
-      )}
+      {view.links.pdf && (() => {
+        const cls = 'flex items-center justify-center gap-2 h-12 rounded-[14px] bg-white border border-[#E4E2DC] font-semibold text-sm text-[#18211F] no-underline';
+        const label = <><span className="font-mono text-[9px] font-semibold text-[#1E5A5F] border-[1.5px] border-[#1E5A5F] rounded-[3px] px-[3px] py-0.5">PDF</span>Originale</>;
+        return env.openPdf && !env.preview ? <button onClick={env.openPdf} className={cls}>{label}</button> : <Ext href={view.links.pdf} preview={env.preview} className={cls}>{label}</Ext>;
+      })()}
       <button onClick={onShop} className={'flex items-center justify-center h-12 rounded-[14px] bg-white border border-[#E4E2DC] font-semibold text-sm text-[#18211F] ' + (view.links.pdf ? '' : 'col-span-2')}>Lista spesa</button>
     </div>
     {plan.data.notes.length > 0 && (
@@ -381,6 +385,9 @@ function Studio({ view, env }: { view: PatientView; env: PatientEnv }) {
         {s.address && <Ext href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.address)}`} preview={env.preview} className="text-[#1E5A5F] no-underline">{s.address}</Ext>}
         {s.hours && <div style={{ color: C.muted }}>{s.hours}</div>}
       </div>
+    )}
+    {env.onLogout && (
+      <button onClick={env.onLogout} className="justify-self-center border-0 bg-transparent text-[13.5px] font-semibold text-[#6B7472] py-2">Esci da questo telefono</button>
     )}
   </>;
 }

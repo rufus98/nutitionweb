@@ -62,8 +62,8 @@ describe('migrazioni', () => {
     await db.execute("INSERT INTO settings VALUES ('main', '{\"prof\":{\"name\":\"Dott.ssa Test\"}}'), ('onboarded', '1'), ('rem-1', '1')");
 
     const backups: string[] = [];
-    expect(await migrate(db, { beforeMigrate: async (f, t) => { backups.push(`${f}->${t}`); } })).toEqual([3, 4, 5]);
-    expect(backups).toEqual(['2->5']);
+    expect(await migrate(db, { beforeMigrate: async (f, t) => { backups.push(`${f}->${t}`); } })).toEqual([3, 4, 5, 6]);
+    expect(backups).toEqual(['2->6']);
 
     setDriver(db); resetConnection();
     const [g, m] = await repo.listPatients().then((l) => [l.find((p) => p.code === 'PZ-0401')!, l.find((p) => p.code === 'PZ-0402')!]);
@@ -225,6 +225,22 @@ describe('repository', () => {
     await repo.rescheduleAppointment(id, { date: '2026-12-01', time: '09:00', duration: 30 }, sent); // annulla
     expect(await get()).toMatchObject({ date: '2026-12-01', time: '09:00', duration: 30, reminder_sent_at: sent });
     await expect(repo.rescheduleAppointment(id, { date: '2026-12-01', time: '25:00', duration: 30 })).rejects.toThrow();
+  });
+
+  it('accesso remoto: stato salvato per paziente; eliminando il paziente si prenota la cancellazione dal server', async () => {
+    const p = await repo.createPatient(newPatient());
+    const q = await repo.createPatient(newPatient());
+    await repo.saveRemoteAccess(p.id, { status: 'pending', view_hash: 'abc', synced_at: '2026-10-26T10:00:00Z' });
+    await repo.saveRemoteAccess(p.id, { status: 'active', error: null });
+    expect(await repo.getRemoteAccess(p.id)).toMatchObject({ status: 'active', view_hash: 'abc', error: null });
+    expect(await repo.getRemoteAccess(q.id)).toBeNull();
+    await expect(repo.saveRemoteAccess(p.id, { status: 'boh' as any })).rejects.toThrow();
+    await repo.deletePatient(p.id);
+    await repo.deletePatient(q.id); // senza accesso remoto: niente da cancellare sul server
+    expect(await repo.listRemoteDeletions()).toEqual([p.token]);
+    expect(await repo.listRemoteAccess()).toEqual([]);
+    await repo.removeRemoteDeletion(p.token!);
+    expect(await repo.listRemoteDeletions()).toEqual([]);
   });
 
   it('impostazioni: i valori salvati si uniscono ai predefiniti', async () => {

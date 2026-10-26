@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useRemoteSync } from './app/useRemoteSync';
 import { AppProvider, useApp, type Route } from './app/store';
 import { Sidebar, NAV } from './components/Sidebar';
 import { Palette, ShortcutsHelp } from './components/Palette';
@@ -30,6 +31,7 @@ function Screen({ route }: { route: Route }) {
 
 function Shell() {
   const { route, go, back, toastMsg, confirmState, settings } = useApp();
+  useRemoteSync();
   const [palette, setPalette] = useState(false);
   const [help, setHelp] = useState(false);
   const [locked, setLocked] = useState<boolean | null>(null);
